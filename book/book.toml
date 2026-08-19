@@ -1,0 +1,13 @@
+[book]
+title = "smearor-wrot-process-manager Documentation"
+authors = ["Andreas Schaeffer <hanack@nooblounge.net>"]
+language = "en"
+multilingual = false
+src = "src"
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
+[output.html]
+git-repository-url = "https://github.com/smearor/smearor-wrot-process-manager"
+additional-js = ["mermaid.min.js", "mermaid-init.js"]
