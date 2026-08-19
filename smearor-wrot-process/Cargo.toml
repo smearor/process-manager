@@ -10,7 +10,14 @@ homepage.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+dashmap = { workspace = true }
+libc = { workspace = true }
+nix = { workspace = true }
 smearor-wrot-socket = { path = "../smearor-wrot-socket" }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+typed-builder = { workspace = true }
+which = { workspace = true }
 
 [lints]
 workspace = true

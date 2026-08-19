@@ -1,6 +1,6 @@
+use crate::SocketBuilder;
 use crate::error::SocketManagerError;
 use crate::socket::Socket;
-use crate::SocketBuilder;
 use dashmap::DashMap;
 
 /// Manages multiple Wayland sockets, keyed by a string name.
