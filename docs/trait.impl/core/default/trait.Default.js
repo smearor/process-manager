@@ -1,0 +1,9 @@
+(function() {
+    const implementors = Object.fromEntries([["smearor_wrot_process",[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/default/trait.Default.html\" title=\"trait core::default::Default\">Default</a> for <a class=\"enum\" href=\"smearor_wrot_process/kill_signal/enum.KillSignal.html\" title=\"enum smearor_wrot_process::kill_signal::KillSignal\">KillSignal</a>",0],["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/default/trait.Default.html\" title=\"trait core::default::Default\">Default</a> for <a class=\"enum\" href=\"smearor_wrot_process/stdio_config/enum.StdioConfig.html\" title=\"enum smearor_wrot_process::stdio_config::StdioConfig\">StdioConfig</a>",0],["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/default/trait.Default.html\" title=\"trait core::default::Default\">Default</a> for <a class=\"struct\" href=\"smearor_wrot_process/manager/struct.ProcessManager.html\" title=\"struct smearor_wrot_process::manager::ProcessManager\">ProcessManager</a>",0]]],["smearor_wrot_socket",[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/default/trait.Default.html\" title=\"trait core::default::Default\">Default</a> for <a class=\"struct\" href=\"smearor_wrot_socket/manager/struct.SocketManager.html\" title=\"struct smearor_wrot_socket::manager::SocketManager\">SocketManager</a>",0]]]]);
+    if (window.register_implementors) {
+        window.register_implementors(implementors);
+    } else {
+        window.pending_implementors = implementors;
+    }
+})()
+//{"start":59,"fragment_lengths":[989,347]}
