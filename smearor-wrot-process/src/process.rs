@@ -110,7 +110,7 @@ impl Process {
     /// always sends `SIGKILL` and does not respect `kill_signal`.
     pub fn send_signal(&mut self, signal: KillSignal) -> std::io::Result<()> {
         let nix_signal = signal.to_signal();
-        nix::sys::signal::kill(Pid::from_raw(self.pid as i32), nix_signal).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+        nix::sys::signal::kill(Pid::from_raw(self.pid as i32), nix_signal).map_err(|e| std::io::Error::other(e.to_string()))
     }
 
     /// Force-kill the child process with `SIGKILL`.
@@ -118,7 +118,7 @@ impl Process {
     /// This is the escalation step after `SIGTERM` + grace period.
     /// Uses `nix::sys::signal::kill(Pid::from_raw(pid), Signal::SIGKILL)`.
     pub fn force_kill(&mut self) -> std::io::Result<()> {
-        nix::sys::signal::kill(Pid::from_raw(self.pid as i32), Signal::SIGKILL).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+        nix::sys::signal::kill(Pid::from_raw(self.pid as i32), Signal::SIGKILL).map_err(|e| std::io::Error::other(e.to_string()))
     }
 }
 

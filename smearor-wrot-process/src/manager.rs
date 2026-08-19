@@ -140,7 +140,7 @@ impl ProcessManager {
             command.env(key, value);
         }
         if let Some(socket) = &config.socket {
-            command.env("WAYLAND_DISPLAY", socket.to_string());
+            command.env("WAYLAND_DISPLAY", socket);
         }
         // Inherit XDG_RUNTIME_DIR and DBUS_SESSION_BUS_ADDRESS from parent
         if std::env::var("XDG_RUNTIME_DIR").is_ok() {
@@ -176,43 +176,43 @@ impl ProcessManager {
         let pid = child.id();
 
         // 5b. Spawn reader threads for piped stdout/stderr
-        if config.stdout == StdioConfig::Piped {
-            if let Some(stdout) = child.stdout.take() {
-                let program_name_clone = program_name.clone();
-                let label_clone = label.to_string();
-                thread::Builder::new()
-                    .name(format!("stdout-reader-{}", program_name_clone))
-                    .spawn(move || {
-                        use std::io::BufRead;
-                        let reader = std::io::BufReader::new(stdout);
-                        for line in reader.lines() {
-                            match line {
-                                Ok(line) => debug!("[{}:{}] stdout: {}", label_clone, program_name_clone, line),
-                                Err(_) => break,
-                            }
+        if config.stdout == StdioConfig::Piped
+            && let Some(stdout) = child.stdout.take()
+        {
+            let program_name_clone = program_name.clone();
+            let label_clone = label.to_string();
+            thread::Builder::new()
+                .name(format!("stdout-reader-{}", program_name_clone))
+                .spawn(move || {
+                    use std::io::BufRead;
+                    let reader = std::io::BufReader::new(stdout);
+                    for line in reader.lines() {
+                        match line {
+                            Ok(line) => debug!("[{}:{}] stdout: {}", label_clone, program_name_clone, line),
+                            Err(_) => break,
                         }
-                    })
-                    .ok();
-            }
+                    }
+                })
+                .ok();
         }
-        if config.stderr == StdioConfig::Piped {
-            if let Some(stderr) = child.stderr.take() {
-                let program_name_clone = program_name.clone();
-                let label_clone = label.to_string();
-                thread::Builder::new()
-                    .name(format!("stderr-reader-{}", program_name_clone))
-                    .spawn(move || {
-                        use std::io::BufRead;
-                        let reader = std::io::BufReader::new(stderr);
-                        for line in reader.lines() {
-                            match line {
-                                Ok(line) => warn!("[{}:{}] stderr: {}", label_clone, program_name_clone, line),
-                                Err(_) => break,
-                            }
+        if config.stderr == StdioConfig::Piped
+            && let Some(stderr) = child.stderr.take()
+        {
+            let program_name_clone = program_name.clone();
+            let label_clone = label.to_string();
+            thread::Builder::new()
+                .name(format!("stderr-reader-{}", program_name_clone))
+                .spawn(move || {
+                    use std::io::BufRead;
+                    let reader = std::io::BufReader::new(stderr);
+                    for line in reader.lines() {
+                        match line {
+                            Ok(line) => warn!("[{}:{}] stderr: {}", label_clone, program_name_clone, line),
+                            Err(_) => break,
                         }
-                    })
-                    .ok();
-            }
+                    }
+                })
+                .ok();
         }
 
         // 8. Track
