@@ -1,0 +1,16 @@
+[package]
+name = "smearor-wrot-process"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+readme = "README.md"
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+smearor-wrot-socket = { path = "../smearor-wrot-socket" }
+
+[lints]
+workspace = true

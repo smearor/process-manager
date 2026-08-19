@@ -1,0 +1,40 @@
+[workspace]
+resolver = "3"
+
+members = [
+    "smearor-wrot-socket",
+    "smearor-wrot-process"
+]
+
+[workspace.package]
+version = "0.1.0"
+authors = ["Andreas Schaeffer <hanack@nooblounge.net>"]
+edition = "2024"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/smearor/smearor-wrot-process-manager"
+homepage = "https://smearor.io/"
+rust-version = "1.92.0"
+
+[workspace.dependencies]
+dashmap = "6"
+nix = { version = "0.31", features = ["fs", "poll", "process", "signal", "term"] }
+thiserror = "2.0"
+tokio = { version = "1.0", features = ["full"] }
+tracing = "0.1"
+typed-builder = "0.23.2"
+which = "8.0.2"
+
+[workspace.lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin_include)', 'cfg(fn_traits)', 'cfg(unboxed_closures)'] }
+
+[workspace.lints.clippy]
+non_std_lazy_statics = "warn"
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = "symbols"

@@ -1,0 +1,17 @@
+[package]
+name = "smearor-wrot-socket"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+readme = "README.md"
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+dashmap = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true
