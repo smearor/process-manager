@@ -13,6 +13,7 @@ rust-version.workspace = true
 dashmap = { workspace = true }
 libc = { workspace = true }
 nix = { workspace = true }
+serde = { workspace = true }
 smearor-wrot-socket = { path = "../smearor-wrot-socket" }
 thiserror = { workspace = true }
 tracing = { workspace = true }

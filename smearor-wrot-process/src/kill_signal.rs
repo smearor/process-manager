@@ -1,11 +1,14 @@
 use nix::sys::signal::Signal;
+use serde::Deserialize;
+use serde::Serialize;
 
 /// Signal used for process termination.
 ///
 /// Made framework-agnostic — the conversion to `nix::sys::signal::Signal`
 /// is internal. This allows the type to be used without importing `nix`
 /// in consumer crates.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
 pub enum KillSignal {
     /// Send `SIGTERM` — allows the process to clean up gracefully.
     #[default]
