@@ -1,0 +1,25 @@
+name: Mark stale pull requests
+
+on:
+  schedule:
+    - cron: '35 19 * * *'
+  workflow_dispatch:
+
+jobs:
+  stale:
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/stale@v11
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          days-before-pr-stale: 28
+          days-before-issue-stale: -1
+          exempt-draft-pr: true
+          days-before-close: -1
+          stale-pr-label: o:stale
+          stale-pr-message: >
+            This PR has not had activity in the past 4 weeks, labeling it as stale.
+          debug-only: false
+          operations-per-run: 500
