@@ -101,7 +101,7 @@ mod tests {
         assert_eq!(manager.len(), 1);
         assert!(!manager.is_empty());
         let retrieved = manager.get("default").unwrap();
-        assert_eq!(retrieved.0, socket.0);
+        assert_eq!(retrieved.path(), socket.path());
     }
 
     #[test]
@@ -119,7 +119,7 @@ mod tests {
         let socket = Socket::from(PathBuf::from("/tmp/wayland-0"));
         manager.register("default", socket.clone()).unwrap();
         let removed = manager.remove("default").unwrap();
-        assert_eq!(removed.0, socket.0);
+        assert_eq!(removed.path(), socket.path());
         assert!(manager.is_empty());
     }
 

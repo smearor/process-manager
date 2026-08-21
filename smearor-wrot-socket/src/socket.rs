@@ -10,7 +10,14 @@ use std::path::PathBuf;
 /// Provides convenient trait implementations for dereferencing to `Path`,
 /// displaying as a string, and converting from `PathBuf`.
 #[derive(Debug, Clone)]
-pub struct Socket(pub PathBuf);
+pub struct Socket(PathBuf);
+
+impl Socket {
+    /// Returns a reference to the socket path.
+    pub fn path(&self) -> &Path {
+        &self.0
+    }
+}
 
 impl Deref for Socket {
     type Target = Path;
@@ -52,7 +59,7 @@ mod tests {
     fn test_socket_from_pathbuf() {
         let path = PathBuf::from("/tmp/wayland-0");
         let socket = Socket::from(path);
-        assert_eq!(socket.0, PathBuf::from("/tmp/wayland-0"));
+        assert_eq!(socket.path(), Path::new("/tmp/wayland-0"));
     }
 
     #[test]

@@ -9,7 +9,7 @@ use std::process::ExitStatus;
 ///
 /// Assigned by `ProcessManager` using an `AtomicU64` counter.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ProcessId(pub u64);
+pub struct ProcessId(u64);
 
 impl ProcessId {
     /// Create a new `ProcessId` from a raw `u64`.
