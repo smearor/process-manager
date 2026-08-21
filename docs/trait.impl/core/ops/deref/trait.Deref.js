@@ -1,5 +1,5 @@
 (function() {
-    const implementors = Object.fromEntries([["smearor_wrot_socket",[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/ops/deref/trait.Deref.html\" title=\"trait core::ops::deref::Deref\">Deref</a> for <a class=\"struct\" href=\"smearor_wrot_socket/socket/struct.Socket.html\" title=\"struct smearor_wrot_socket::socket::Socket\">Socket</a>",0]]]]);
+    const implementors = Object.fromEntries([["smearor_wrot_socket",[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.98.0/core/ops/deref/trait.Deref.html\" title=\"trait core::ops::deref::Deref\">Deref</a> for <a class=\"struct\" href=\"smearor_wrot_socket/socket/struct.Socket.html\" title=\"struct smearor_wrot_socket::socket::Socket\">Socket</a>",0]]]]);
     if (window.register_implementors) {
         window.register_implementors(implementors);
     } else {
