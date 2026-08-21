@@ -2,6 +2,7 @@ use crate::SocketBuilder;
 use crate::error::SocketManagerError;
 use crate::socket::Socket;
 use dashmap::DashMap;
+use dashmap::mapref::entry::Entry;
 
 /// Manages multiple Wayland sockets, keyed by a string name.
 ///
@@ -23,11 +24,13 @@ impl SocketManager {
     ///
     /// Returns an error if the name is already registered.
     pub fn register(&self, name: &str, socket: Socket) -> Result<(), SocketManagerError> {
-        if self.sockets.contains_key(name) {
-            return Err(SocketManagerError::AlreadyRegistered(name.to_string()));
+        match self.sockets.entry(name.to_string()) {
+            Entry::Occupied(_) => Err(SocketManagerError::AlreadyRegistered(name.to_string())),
+            Entry::Vacant(entry) => {
+                entry.insert(socket);
+                Ok(())
+            }
         }
-        self.sockets.insert(name.to_string(), socket);
-        Ok(())
     }
 
     /// Build and register a socket from an optional name hint.
