@@ -2,6 +2,7 @@ use crate::error::ProcessConfigError;
 use crate::error::ProcessManagerError;
 use crate::process::Process;
 use crate::process::ProcessId;
+use crate::process_info::ProcessInfo;
 use crate::reaper::ProcessExitEvent;
 use crate::stdio_config::StdioConfig;
 use dashmap::DashMap;
@@ -248,13 +249,14 @@ impl ProcessManager {
 
     /// Get all processes with a given label.
     ///
-    /// Returns a list of `(ProcessId, Process)` pairs. The processes are
-    /// removed from the manager and returned to the caller.
-    pub fn get_by_label(&self, label: &str) -> Vec<(ProcessId, Process)> {
+    /// Returns a list of `(ProcessId, ProcessInfo)` snapshots. The processes
+    /// remain in the manager. Snapshots contain metadata only — no `Child`
+    /// handle. Use `stop()` / `stop_label()` for process control.
+    pub fn get_by_label(&self, label: &str) -> Vec<(ProcessId, ProcessInfo)> {
         self.processes
             .iter()
             .filter(|entry| entry.value().label == label)
-            .map(|entry| (*entry.key(), entry.value().clone()))
+            .map(|entry| (*entry.key(), ProcessInfo::from(entry.value())))
             .collect::<Vec<_>>()
     }
 
@@ -534,10 +536,7 @@ mod tests {
         let id = manager.start("test", &config).unwrap();
         // Wait for the process to exit
         thread::sleep(Duration::from_millis(100));
-        let process = manager.get(id).unwrap();
-        let mut process_mut = process.clone();
-        assert!(!process_mut.is_running());
-        drop(process);
+        // Process exited on its own; stop() removes it from the manager
         manager.stop(id).unwrap();
     }
 

@@ -59,22 +59,6 @@ pub struct Process {
     pub child: Option<Child>,
 }
 
-impl Clone for Process {
-    fn clone(&self) -> Self {
-        Self {
-            id: self.id,
-            pid: self.pid,
-            program_name: self.program_name.clone(),
-            label: self.label.clone(),
-            terminate_on_exit: self.terminate_on_exit,
-            config: self.config.clone(),
-            // Child doesn't implement Clone — cloned Process has no child handle.
-            // This is used by `get_by_label()` which returns snapshots.
-            child: None,
-        }
-    }
-}
-
 impl Process {
     /// Whether the child process is still running.
     ///
