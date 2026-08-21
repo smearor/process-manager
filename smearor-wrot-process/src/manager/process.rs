@@ -1,10 +1,13 @@
-use crate::error::ProcessConfigError;
-use crate::error::ProcessManagerError;
+use crate::config::ProcessConfig;
+use crate::config::ProcessConfigError;
+use crate::config::StdioConfig;
+use crate::manager::ProcessManagerError;
 use crate::process::Process;
+use crate::process::ProcessExitEvent;
 use crate::process::ProcessId;
-use crate::process_info::ProcessInfo;
-use crate::reaper::ProcessExitEvent;
-use crate::stdio_config::StdioConfig;
+use crate::process::ProcessInfo;
+use crate::reaper::ReaperHandle;
+use crate::reaper::reaper_loop;
 use dashmap::DashMap;
 use std::path::PathBuf;
 use std::process::Command;
@@ -17,31 +20,6 @@ use std::time::Duration;
 use tracing::debug;
 use tracing::error;
 use tracing::warn;
-
-/// Handle to the reaper thread, allowing it to be stopped on `Drop`.
-#[derive(Debug)]
-struct ReaperHandle {
-    stop_flag: Arc<std::sync::atomic::AtomicBool>,
-    thread_handle: Option<thread::JoinHandle<()>>,
-}
-
-impl ReaperHandle {
-    fn new(stop_flag: Arc<std::sync::atomic::AtomicBool>, thread_handle: thread::JoinHandle<()>) -> Self {
-        Self {
-            stop_flag,
-            thread_handle: Some(thread_handle),
-        }
-    }
-}
-
-impl Drop for ReaperHandle {
-    fn drop(&mut self) {
-        self.stop_flag.store(true, Ordering::Relaxed);
-        if let Some(handle) = self.thread_handle.take() {
-            let _ = handle.join();
-        }
-    }
-}
 
 /// Manages multiple child processes.
 ///
@@ -81,10 +59,7 @@ impl ProcessManager {
     /// The reaper uses non-blocking `try_wait()` on all tracked processes
     /// every `poll_interval` and emits `ProcessExitEvent`s to the provided
     /// channel. This prevents zombies without blocking a thread per process.
-    pub fn with_reaper(
-        poll_interval: Duration,
-        exit_sender: Sender<ProcessExitEvent>,
-    ) -> Result<Self, ProcessManagerError> {
+    pub fn with_reaper(poll_interval: Duration, exit_sender: Sender<ProcessExitEvent>) -> Result<Self, ProcessManagerError> {
         let processes = Arc::new(DashMap::new());
         let stop_flag = Arc::new(std::sync::atomic::AtomicBool::new(false));
         let processes_clone = Arc::clone(&processes);
@@ -110,7 +85,7 @@ impl ProcessManager {
     /// If `config.forked` is `true`, `setsid()` is applied via `pre_exec`
     /// to detach from the controlling terminal. The process is still tracked
     /// in the `DashMap` (with its `Child` handle) for stop/reaper operations.
-    pub fn start(&self, label: &str, config: &crate::config::ProcessConfig) -> Result<ProcessId, ProcessManagerError> {
+    pub fn start(&self, label: &str, config: &ProcessConfig) -> Result<ProcessId, ProcessManagerError> {
         ProcessConfigError::validate(config).map_err(ProcessManagerError::from)?;
         let id = ProcessId::new(self.next_id.fetch_add(1, Ordering::Relaxed));
         let program_name = config.command.clone();
@@ -393,52 +368,6 @@ impl Drop for ProcessManager {
     }
 }
 
-/// The reaper loop, running in a background thread.
-///
-/// Polls all tracked processes via non-blocking `try_wait()` every
-/// `poll_interval`. When a process has exited, it is removed from the
-/// `DashMap` and a `ProcessExitEvent` is sent to the channel.
-fn reaper_loop(
-    processes: Arc<DashMap<ProcessId, Process>>,
-    poll_interval: Duration,
-    exit_sender: &Sender<ProcessExitEvent>,
-    stop_flag: &std::sync::atomic::AtomicBool,
-) {
-    debug!("Reaper thread started (poll_interval={:?})", poll_interval);
-    while !stop_flag.load(Ordering::Relaxed) {
-        thread::sleep(poll_interval);
-
-        // Collect IDs of processes that have exited
-        let mut exited: Vec<(ProcessId, String, u32, bool)> = Vec::new();
-        let mut to_remove: Vec<ProcessId> = Vec::new();
-
-        for mut entry in processes.iter_mut() {
-            let process = entry.value_mut();
-            if !process.is_running() {
-                exited.push((process.id, process.label.clone(), process.pid, process.config.restart_on_exit));
-                to_remove.push(process.id);
-            }
-        }
-
-        // Remove exited processes and emit events
-        for (id, label, pid, restart_on_exit) in exited {
-            processes.remove(&id);
-            let event = ProcessExitEvent {
-                id,
-                label,
-                pid,
-                restart_on_exit,
-            };
-            debug!("Reaper: process {} (pid={}) exited, emitting event", event.id, event.pid);
-            if exit_sender.send(event).is_err() {
-                warn!("Reaper: exit event channel closed, stopping reaper thread");
-                break;
-            }
-        }
-    }
-    debug!("Reaper thread stopped");
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -684,6 +613,8 @@ mod tests {
         let event = receiver.recv_timeout(Duration::from_secs(5)).unwrap();
         assert_eq!(event.label, "test");
         assert!(!event.restart_on_exit);
+        assert!(event.exit_status.is_some());
+        assert!(event.exit_status.unwrap().success());
     }
 
     #[test]
@@ -699,6 +630,22 @@ mod tests {
         let _ = manager.start("test", &config).unwrap();
         let event = receiver.recv_timeout(Duration::from_secs(5)).unwrap();
         assert!(event.restart_on_exit);
+    }
+
+    #[test]
+    fn test_reaper_exit_status_nonzero() {
+        let (sender, receiver) = std::sync::mpsc::channel::<ProcessExitEvent>();
+        let manager = ProcessManager::with_reaper(Duration::from_millis(100), sender).unwrap();
+        let config = ProcessConfig::builder()
+            .command("false".to_string())
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Null)
+            .build();
+        let _ = manager.start("test", &config).unwrap();
+        let event = receiver.recv_timeout(Duration::from_secs(5)).unwrap();
+        assert_eq!(event.label, "test");
+        assert!(event.exit_status.is_some());
+        assert!(!event.exit_status.unwrap().success());
     }
 
     #[test]

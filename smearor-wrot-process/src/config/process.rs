@@ -1,5 +1,5 @@
+use crate::config::StdioConfig;
 use crate::kill_signal::KillSignal;
-use crate::stdio_config::StdioConfig;
 use smearor_wrot_socket::Socket;
 use std::collections::HashMap;
 use std::path::PathBuf;
