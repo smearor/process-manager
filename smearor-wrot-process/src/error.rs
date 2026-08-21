@@ -21,6 +21,9 @@ pub enum ProcessManagerError {
     /// A ProcessConfig validation error.
     #[error("Process config error: {0}")]
     ConfigError(#[from] ProcessConfigError),
+    /// Failed to spawn the reaper thread.
+    #[error("Failed to spawn reaper thread: {0}")]
+    ReaperThreadFailed(std::io::Error),
 }
 
 /// Error returned when a `ProcessConfig` is invalid.

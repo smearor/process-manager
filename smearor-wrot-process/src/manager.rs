@@ -80,7 +80,10 @@ impl ProcessManager {
     /// The reaper uses non-blocking `try_wait()` on all tracked processes
     /// every `poll_interval` and emits `ProcessExitEvent`s to the provided
     /// channel. This prevents zombies without blocking a thread per process.
-    pub fn with_reaper(poll_interval: Duration, exit_sender: Sender<ProcessExitEvent>) -> Self {
+    pub fn with_reaper(
+        poll_interval: Duration,
+        exit_sender: Sender<ProcessExitEvent>,
+    ) -> Result<Self, ProcessManagerError> {
         let processes = Arc::new(DashMap::new());
         let stop_flag = Arc::new(std::sync::atomic::AtomicBool::new(false));
         let processes_clone = Arc::clone(&processes);
@@ -91,13 +94,13 @@ impl ProcessManager {
             .spawn(move || {
                 reaper_loop(processes_clone, poll_interval, &exit_sender, &stop_flag_clone);
             })
-            .ok();
+            .map_err(ProcessManagerError::ReaperThreadFailed)?;
 
-        Self {
+        Ok(Self {
             processes,
             next_id: AtomicU64::new(1),
-            reaper: thread_handle.map(|handle| ReaperHandle::new(stop_flag, handle)),
-        }
+            reaper: Some(ReaperHandle::new(stop_flag, thread_handle)),
+        })
     }
 
     /// Spawn a new child process with the given label and configuration.
@@ -671,7 +674,7 @@ mod tests {
     #[test]
     fn test_reaper_detects_exit() {
         let (sender, receiver) = std::sync::mpsc::channel::<ProcessExitEvent>();
-        let manager = ProcessManager::with_reaper(Duration::from_millis(100), sender);
+        let manager = ProcessManager::with_reaper(Duration::from_millis(100), sender).unwrap();
         let config = ProcessConfig::builder()
             .command("true".to_string())
             .stdout(StdioConfig::Null)
@@ -687,7 +690,7 @@ mod tests {
     #[test]
     fn test_reaper_restart_on_exit() {
         let (sender, receiver) = std::sync::mpsc::channel::<ProcessExitEvent>();
-        let manager = ProcessManager::with_reaper(Duration::from_millis(100), sender);
+        let manager = ProcessManager::with_reaper(Duration::from_millis(100), sender).unwrap();
         let config = ProcessConfig::builder()
             .command("true".to_string())
             .restart_on_exit(true)
@@ -736,7 +739,7 @@ mod tests {
     #[test]
     fn test_process_forked_reaper_detects_exit() {
         let (sender, receiver) = std::sync::mpsc::channel::<ProcessExitEvent>();
-        let manager = ProcessManager::with_reaper(Duration::from_millis(100), sender);
+        let manager = ProcessManager::with_reaper(Duration::from_millis(100), sender).unwrap();
         let config = ProcessConfig::builder()
             .command("true".to_string())
             .forked(true)
