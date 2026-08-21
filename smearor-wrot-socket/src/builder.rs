@@ -54,7 +54,7 @@ impl SocketBuilder {
 
     /// Build the full socket path from a relative name in `XDG_RUNTIME_DIR`.
     pub fn build_socket_path(socket_name: &str) -> Result<Socket, SocketBuilderError> {
-        Ok(PathBuf::from(std::env::var("XDG_RUNTIME_DIR").map_err(|_| SocketBuilderError::XdgRuntimeDirNotSet)?.clone())
+        Ok(PathBuf::from(std::env::var("XDG_RUNTIME_DIR").map_err(|_| SocketBuilderError::XdgRuntimeDirNotSet)?)
             .join(socket_name)
             .into())
     }
