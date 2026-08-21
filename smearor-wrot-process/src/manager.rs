@@ -165,7 +165,9 @@ impl ProcessManager {
             use std::os::unix::process::CommandExt;
             unsafe {
                 command.pre_exec(|| {
-                    libc::setsid();
+                    if libc::setsid() < 0 {
+                        return Err(std::io::Error::last_os_error());
+                    }
                     Ok(())
                 });
             }
