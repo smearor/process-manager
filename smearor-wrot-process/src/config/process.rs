@@ -15,6 +15,7 @@ use typed_builder::TypedBuilder;
 ///
 /// Built using `TypedBuilder` for ergonomic construction with defaults.
 #[derive(Debug, Clone, Serialize, Deserialize, TypedBuilder)]
+#[must_use]
 pub struct ProcessConfig {
     /// The program name or absolute path to execute.
     pub command: String,

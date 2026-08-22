@@ -26,6 +26,7 @@ use tracing::warn;
 ///
 /// Uses `DashMap` for concurrent access (matching swipe-launcher's pattern).
 /// Supports both `ProcessId`-based and label-based operations.
+#[must_use]
 pub struct ProcessManager {
     processes: Arc<DashMap<ProcessId, Process>>,
     next_id: AtomicU64,

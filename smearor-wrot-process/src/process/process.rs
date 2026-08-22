@@ -14,6 +14,7 @@ use std::thread::JoinHandle;
 /// The `child` handle is always `Some` — even forked processes (with `setsid()`)
 /// are tracked with their `Child` handle for stop/reaper operations.
 #[derive(Debug)]
+#[must_use]
 pub struct Process {
     /// Unique identifier assigned by the `ProcessManager`.
     pub id: ProcessId,

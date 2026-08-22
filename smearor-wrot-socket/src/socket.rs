@@ -12,6 +12,7 @@ use std::path::PathBuf;
 /// Provides convenient trait implementations for dereferencing to `Path`,
 /// displaying as a string, and converting from `PathBuf`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct Socket(PathBuf);
 
 impl Socket {

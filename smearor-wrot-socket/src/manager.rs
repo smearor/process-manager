@@ -10,6 +10,7 @@ use dashmap::mapref::entry::Entry;
 /// manager to be shared via `Arc<SocketManager>` across threads without
 /// external locks.
 #[derive(Debug)]
+#[must_use]
 pub struct SocketManager {
     sockets: DashMap<String, Socket>,
 }

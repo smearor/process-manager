@@ -3,6 +3,7 @@ use thiserror::Error;
 
 /// Error returned when a `ProcessConfig` is invalid.
 #[derive(Debug, Error)]
+#[must_use]
 pub enum ProcessConfigError {
     /// The command string is empty.
     #[error("Command cannot be empty")]

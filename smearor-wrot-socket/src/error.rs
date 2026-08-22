@@ -2,6 +2,7 @@ use thiserror::Error;
 
 /// Error returned by `SocketBuilder` operations.
 #[derive(Debug, Clone, Error)]
+#[must_use]
 pub enum SocketBuilderError {
     /// A socket with the given name already exists in `XDG_RUNTIME_DIR`.
     #[error("Socket already exists")]
@@ -16,6 +17,7 @@ pub enum SocketBuilderError {
 
 /// Error returned by `SocketManager` operations.
 #[derive(Debug, Clone, Error)]
+#[must_use]
 pub enum SocketManagerError {
     /// A socket with the given name is already registered in the manager.
     #[error("Socket with name '{0}' is already registered")]

@@ -6,6 +6,7 @@ use std::path::PathBuf;
 ///
 /// Either validates a user-provided socket name or generates a unique one
 /// by incrementing a counter until a free name is found.
+#[must_use]
 pub struct SocketBuilder;
 
 impl SocketBuilder {

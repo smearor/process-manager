@@ -8,6 +8,7 @@ use std::process::Stdio;
 /// Each variant maps to a `std::process::Stdio` configuration when
 /// spawning a child process.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[must_use]
 pub enum StdioConfig {
     /// Inherit from the parent process.
     Inherit,

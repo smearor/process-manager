@@ -9,6 +9,7 @@ use serde::Serialize;
 /// in consumer crates.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
+#[must_use]
 pub enum KillSignal {
     /// Send `SIGTERM` — allows the process to clean up gracefully.
     #[default]

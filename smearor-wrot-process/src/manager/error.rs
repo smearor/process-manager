@@ -4,6 +4,7 @@ use thiserror::Error;
 
 /// Error returned by `ProcessManager` operations.
 #[derive(Debug, Error)]
+#[must_use]
 pub enum ProcessManagerError {
     /// No process with the given ID was found in the manager.
     #[error("Process with ID {0} not found")]
@@ -34,6 +35,7 @@ pub enum ProcessManagerError {
 /// Each individual error is preserved so the caller can inspect all failures.
 #[derive(Debug, Error)]
 #[error("{count} error(s) stopping processes: {errors}", count = self.errors.len(), errors = self.errors.iter().map(|e| e.to_string()).collect::<Vec<_>>().join(", "))]
+#[must_use]
 pub struct StopManyError {
     /// All individual errors encountered during the batch stop.
     pub errors: Vec<ProcessManagerError>,

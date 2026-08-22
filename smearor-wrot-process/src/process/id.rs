@@ -2,6 +2,7 @@
 ///
 /// Assigned by `ProcessManager` using an `AtomicU64` counter.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[must_use]
 pub struct ProcessId(u64);
 
 impl ProcessId {

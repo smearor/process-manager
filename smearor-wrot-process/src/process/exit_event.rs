@@ -6,6 +6,7 @@ use std::process::ExitStatus;
 /// Emitted by the reaper thread when it detects that a tracked process
 /// has exited via non-blocking `try_wait()`.
 #[derive(Debug, Clone)]
+#[must_use]
 pub struct ProcessExitEvent {
     /// The ID of the process that exited.
     pub id: ProcessId,
