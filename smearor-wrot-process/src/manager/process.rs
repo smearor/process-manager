@@ -158,7 +158,7 @@ impl ProcessManager {
         let pid = child.id();
 
         // 5b. Spawn reader threads for piped stdout/stderr
-        if config.stdout == StdioConfig::Piped
+        let stdout_reader = if config.stdout == StdioConfig::Piped
             && let Some(stdout) = child.stdout.take()
         {
             let program_name_clone = program_name.clone();
@@ -175,9 +175,11 @@ impl ProcessManager {
                         }
                     }
                 })
-                .ok();
-        }
-        if config.stderr == StdioConfig::Piped
+                .ok()
+        } else {
+            None
+        };
+        let stderr_reader = if config.stderr == StdioConfig::Piped
             && let Some(stderr) = child.stderr.take()
         {
             let program_name_clone = program_name.clone();
@@ -194,8 +196,10 @@ impl ProcessManager {
                         }
                     }
                 })
-                .ok();
-        }
+                .ok()
+        } else {
+            None
+        };
 
         // 8. Track
         let process = Process {
@@ -206,6 +210,8 @@ impl ProcessManager {
             terminate_on_exit: config.terminate_on_exit,
             config: config.clone(),
             child: Some(child),
+            stdout_reader,
+            stderr_reader,
         };
         self.processes.insert(id, process);
 
@@ -267,6 +273,7 @@ impl ProcessManager {
         while std::time::Instant::now() < deadline {
             if !process.is_running() {
                 debug!("Process {} (pid={}) exited after signal", id, pid);
+                process.join_readers(Duration::from_millis(500));
                 return Ok(());
             }
             thread::sleep(Duration::from_millis(50));
@@ -281,6 +288,7 @@ impl ProcessManager {
         // Wait for SIGKILL to take effect
         let _ = process.child.as_mut().and_then(|child| child.wait().ok());
         debug!("Process {} (pid={}) killed with SIGKILL", id, pid);
+        process.join_readers(Duration::from_millis(500));
 
         Ok(())
     }
@@ -319,12 +327,14 @@ impl ProcessManager {
 
         // 3. Poll: wait for each process until it exits or its deadline passes
         let mut to_escalate: Vec<Process> = Vec::new();
+        let mut to_join: Vec<Process> = Vec::new();
         while !entries.is_empty() {
             let now = std::time::Instant::now();
             let mut still_waiting = Vec::new();
             for (mut process, deadline) in entries.drain(..) {
                 if !process.is_running() {
                     debug!("Process {} (pid={}) exited after signal", process.id, process.pid);
+                    to_join.push(process);
                 } else if now >= deadline {
                     to_escalate.push(process);
                 } else {
@@ -335,6 +345,11 @@ impl ProcessManager {
             if !entries.is_empty() {
                 thread::sleep(Duration::from_millis(50));
             }
+        }
+
+        // 3b. Join reader threads for processes that exited gracefully
+        for process in &mut to_join {
+            process.join_readers(Duration::from_millis(500));
         }
 
         // 4. Escalate to SIGKILL for processes that didn't exit in time.
@@ -361,6 +376,7 @@ impl ProcessManager {
         for process in &mut to_reap {
             let _ = process.child.as_mut().and_then(|child| child.wait().ok());
             debug!("Process {} (pid={}) killed with SIGKILL", process.id, process.pid);
+            process.join_readers(Duration::from_millis(500));
         }
 
         // 6. Re-insert processes that couldn't be killed so they remain tracked

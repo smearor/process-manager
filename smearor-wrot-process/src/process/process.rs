@@ -5,6 +5,7 @@ use nix::sys::signal::Signal;
 use nix::unistd::Pid;
 use std::process::Child;
 use std::process::ExitStatus;
+use std::thread::JoinHandle;
 
 /// A managed child process.
 ///
@@ -34,6 +35,12 @@ pub struct Process {
     /// The child process handle. Always `Some` — forked processes are also
     /// tracked (with `setsid()` applied via `pre_exec`).
     pub child: Option<Child>,
+
+    /// Join handle for the stdout reader thread, if stdout was piped.
+    pub stdout_reader: Option<JoinHandle<()>>,
+
+    /// Join handle for the stderr reader thread, if stderr was piped.
+    pub stderr_reader: Option<JoinHandle<()>>,
 }
 
 impl Process {
@@ -92,6 +99,37 @@ impl Process {
     pub fn force_kill(&mut self) -> std::io::Result<()> {
         nix::sys::signal::kill(Pid::from_raw(self.pid as i32), Signal::SIGKILL).map_err(|e| std::io::Error::other(e.to_string()))
     }
+
+    /// Join reader threads with a timeout.
+    ///
+    /// After the child process exits, its stdout/stderr pipes are closed
+    /// and the reader threads should terminate. This joins them with a
+    /// short timeout to avoid lingering threads. Threads that don't finish
+    /// within the timeout are detached (logged as warning).
+    pub fn join_readers(&mut self, timeout: std::time::Duration) {
+        for (name, handle) in [
+            ("stdout", self.stdout_reader.take()),
+            ("stderr", self.stderr_reader.take()),
+        ] {
+            if let Some(handle) = handle {
+                let start = std::time::Instant::now();
+                while !handle.is_finished() && start.elapsed() < timeout {
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                }
+                if handle.is_finished() {
+                    let _ = handle.join();
+                } else {
+                    tracing::warn!(
+                        "Process {} (pid={}) {} reader thread did not finish within {:?}, detaching",
+                        self.id,
+                        self.pid,
+                        name,
+                        timeout
+                    );
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -111,6 +149,8 @@ mod tests {
             terminate_on_exit: false,
             config: ProcessConfig::builder().command("sleep".to_string()).build(),
             child: Some(child),
+            stdout_reader: None,
+            stderr_reader: None,
         };
         assert!(process.is_running());
         // Clean up
@@ -132,6 +172,8 @@ mod tests {
             terminate_on_exit: false,
             config: ProcessConfig::builder().command("true".to_string()).build(),
             child: Some(child),
+            stdout_reader: None,
+            stderr_reader: None,
         };
         assert!(!process.is_running());
     }
@@ -148,6 +190,8 @@ mod tests {
             terminate_on_exit: false,
             config: ProcessConfig::builder().command("sleep".to_string()).build(),
             child: Some(child),
+            stdout_reader: None,
+            stderr_reader: None,
         };
         let result = process.send_signal(KillSignal::Sigterm);
         assert!(result.is_ok());
@@ -166,6 +210,8 @@ mod tests {
             terminate_on_exit: false,
             config: ProcessConfig::builder().command("sleep".to_string()).build(),
             child: Some(child),
+            stdout_reader: None,
+            stderr_reader: None,
         };
         let result = process.force_kill();
         assert!(result.is_ok());
