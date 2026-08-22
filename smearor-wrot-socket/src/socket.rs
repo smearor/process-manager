@@ -1,3 +1,5 @@
+use serde::Deserialize;
+use serde::Serialize;
 use std::ffi::OsStr;
 use std::fmt::Display;
 use std::fmt::Formatter;
@@ -9,7 +11,7 @@ use std::path::PathBuf;
 ///
 /// Provides convenient trait implementations for dereferencing to `Path`,
 /// displaying as a string, and converting from `PathBuf`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Socket(PathBuf);
 
 impl Socket {

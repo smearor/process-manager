@@ -1,3 +1,5 @@
+use serde::Deserialize;
+use serde::Serialize;
 use std::process::Stdio;
 
 /// Configuration for a child process's standard streams.
@@ -5,7 +7,7 @@ use std::process::Stdio;
 /// Replaces hardcoded `Stdio` choices with a serializable enum.
 /// Each variant maps to a `std::process::Stdio` configuration when
 /// spawning a child process.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum StdioConfig {
     /// Inherit from the parent process.
     Inherit,
@@ -53,5 +55,14 @@ mod tests {
         // Stdio::piped() values are not comparable via PartialEq in all Rust versions,
         // but we can verify it doesn't panic.
         let _ = stdio;
+    }
+
+    #[test]
+    fn test_stdio_config_serde_roundtrip() {
+        for variant in [StdioConfig::Inherit, StdioConfig::Null, StdioConfig::Piped] {
+            let json = serde_json::to_string(&variant).unwrap();
+            let deserialized: StdioConfig = serde_json::from_str(&json).unwrap();
+            assert_eq!(variant, deserialized);
+        }
     }
 }

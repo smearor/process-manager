@@ -108,10 +108,7 @@ impl Process {
     /// short timeout to avoid lingering threads. Threads that don't finish
     /// within the timeout are detached (logged as warning).
     pub fn join_readers(&mut self, timeout: std::time::Duration) {
-        for (name, handle) in [
-            ("stdout", self.stdout_reader.take()),
-            ("stderr", self.stderr_reader.take()),
-        ] {
+        for (name, handle) in [("stdout", self.stdout_reader.take()), ("stderr", self.stderr_reader.take())] {
             if let Some(handle) = handle {
                 let start = std::time::Instant::now();
                 while !handle.is_finished() && start.elapsed() < timeout {
@@ -120,13 +117,7 @@ impl Process {
                 if handle.is_finished() {
                     let _ = handle.join();
                 } else {
-                    tracing::warn!(
-                        "Process {} (pid={}) {} reader thread did not finish within {:?}, detaching",
-                        self.id,
-                        self.pid,
-                        name,
-                        timeout
-                    );
+                    tracing::warn!("Process {} (pid={}) {} reader thread did not finish within {:?}, detaching", self.id, self.pid, name, timeout);
                 }
             }
         }

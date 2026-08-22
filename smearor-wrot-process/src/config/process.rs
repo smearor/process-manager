@@ -1,5 +1,7 @@
 use crate::config::StdioConfig;
 use crate::kill_signal::KillSignal;
+use serde::Deserialize;
+use serde::Serialize;
 use smearor_wrot_socket::Socket;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -12,7 +14,7 @@ use typed_builder::TypedBuilder;
 /// `smearor-swipe-launcher/services/app_launcher`.
 ///
 /// Built using `TypedBuilder` for ergonomic construction with defaults.
-#[derive(Debug, Clone, TypedBuilder)]
+#[derive(Debug, Clone, Serialize, Deserialize, TypedBuilder)]
 pub struct ProcessConfig {
     /// The program name or absolute path to execute.
     pub command: String,
@@ -130,5 +132,43 @@ mod tests {
         let config = ProcessConfig::builder().command("test".to_string()).env(env).build();
         assert_eq!(config.env.get("GDK_BACKEND"), Some(&"wayland".to_string()));
         assert_eq!(config.env.get("WAYLAND_DEBUG"), Some(&"1".to_string()));
+    }
+
+    #[test]
+    fn test_process_config_serde_roundtrip() {
+        let mut env = HashMap::new();
+        env.insert("GDK_BACKEND".to_string(), "wayland".to_string());
+        let config = ProcessConfig::builder()
+            .command("test".to_string())
+            .args(vec!["--foo".to_string(), "bar".to_string()])
+            .env(env)
+            .working_dir(Some(PathBuf::from("/tmp")))
+            .shell(true)
+            .forked(true)
+            .terminate_on_exit(true)
+            .kill_signal(KillSignal::Sigkill)
+            .terminate_timeout_ms(5000)
+            .restart_on_exit(true)
+            .stdin(StdioConfig::Null)
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Inherit)
+            .socket(Some(Socket::from(PathBuf::from("/tmp/wayland-0"))))
+            .build();
+        let json = serde_json::to_string(&config).unwrap();
+        let deserialized: ProcessConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(config.command, deserialized.command);
+        assert_eq!(config.args, deserialized.args);
+        assert_eq!(config.env, deserialized.env);
+        assert_eq!(config.working_dir, deserialized.working_dir);
+        assert_eq!(config.shell, deserialized.shell);
+        assert_eq!(config.forked, deserialized.forked);
+        assert_eq!(config.terminate_on_exit, deserialized.terminate_on_exit);
+        assert_eq!(config.kill_signal, deserialized.kill_signal);
+        assert_eq!(config.terminate_timeout_ms, deserialized.terminate_timeout_ms);
+        assert_eq!(config.restart_on_exit, deserialized.restart_on_exit);
+        assert_eq!(config.stdin, deserialized.stdin);
+        assert_eq!(config.stdout, deserialized.stdout);
+        assert_eq!(config.stderr, deserialized.stderr);
+        assert_eq!(config.socket, deserialized.socket);
     }
 }

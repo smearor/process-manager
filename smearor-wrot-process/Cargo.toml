@@ -20,5 +20,8 @@ tracing = { workspace = true }
 typed-builder = { workspace = true }
 which = { workspace = true }
 
+[dev-dependencies]
+serde_json = { workspace = true }
+
 [lints]
 workspace = true
