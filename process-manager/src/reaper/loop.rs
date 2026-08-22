@@ -1,6 +1,8 @@
 use crate::process::Process;
 use crate::process::ProcessExitEvent;
 use crate::process::ProcessId;
+use crate::process::ProcessState;
+use crate::reaper::ExitedProcess;
 use dashmap::DashMap;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
@@ -24,29 +26,38 @@ pub(crate) fn reaper_loop(
     while !stop_flag.load(Ordering::Relaxed) {
         thread::sleep(poll_interval);
 
-        // Collect exited processes with their exit status
-        let mut exited: Vec<(ProcessId, String, u32, bool, Option<std::process::ExitStatus>)> = Vec::new();
+        // Collect exited processes with their exit status and derived state
+        let mut exited: Vec<ExitedProcess> = Vec::new();
         let mut to_remove: Vec<ProcessId> = Vec::new();
 
         for mut entry in processes.iter_mut() {
             let process = entry.value_mut();
             if let Some(exit_status) = process.try_wait_exit() {
-                exited.push((process.id, process.label.clone(), process.pid, process.config.restart_on_exit, Some(exit_status)));
+                let state = if exit_status.success() { ProcessState::Stopped } else { ProcessState::Crashed };
+                exited.push(ExitedProcess {
+                    id: process.id,
+                    label: process.label.clone(),
+                    pid: process.pid,
+                    restart_on_exit: process.config.restart_on_exit,
+                    exit_status: Some(exit_status),
+                    state,
+                });
                 to_remove.push(process.id);
             }
         }
 
         // Remove exited processes and emit events
-        for (id, label, pid, restart_on_exit, exit_status) in exited {
-            processes.remove(&id);
+        for exited_process in exited {
+            processes.remove(&exited_process.id);
             let event = ProcessExitEvent {
-                id,
-                label,
-                pid,
-                restart_on_exit,
-                exit_status,
+                id: exited_process.id,
+                label: exited_process.label,
+                pid: exited_process.pid,
+                restart_on_exit: exited_process.restart_on_exit,
+                exit_status: exited_process.exit_status,
+                state: exited_process.state,
             };
-            debug!("Reaper: process {} (pid={}) exited, emitting event", event.id, event.pid);
+            debug!("Reaper: process {} (pid={}) exited (state={}), emitting event", event.id, event.pid, event.state);
             if exit_sender.send(event).is_err() {
                 warn!("Reaper: exit event channel closed, stopping reaper thread");
                 break;

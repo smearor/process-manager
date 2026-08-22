@@ -1,5 +1,6 @@
 use crate::config::ProcessConfig;
 use crate::process::ProcessId;
+use crate::process::ProcessState;
 use crate::signal::KillSignal;
 use nix::sys::signal::Signal;
 use nix::unistd::Pid;
@@ -43,23 +44,57 @@ pub struct Process {
 
     /// Join handle for the stderr reader thread, if stderr was piped.
     pub stderr_reader: Option<JoinHandle<()>>,
+
+    /// The current lifecycle state of this process.
+    ///
+    /// Updated lazily by `state()` / `is_running()` via non-blocking
+    /// `try_wait()`, and explicitly by `stop()` / `restart()`.
+    pub state: ProcessState,
 }
 
 impl Process {
+    /// The current lifecycle state of this process.
+    ///
+    /// Performs a non-blocking `try_wait()` to detect whether the process has
+    /// exited since the last check. If it has, the state is updated to
+    /// `Stopped` (success) or `Crashed` (failure) and returned.
+    ///
+    /// For processes in `Stopping`, `Stopped`, `Crashed`, `Restarting`, or
+    /// `Failed`, the state is returned as-is without polling.
+    pub fn state(&mut self) -> ProcessState {
+        if self.state.is_terminated() || self.state == ProcessState::Stopping || self.state == ProcessState::Restarting {
+            return self.state;
+        }
+        match &mut self.child {
+            Some(child) => match child.try_wait() {
+                Ok(Some(status)) => {
+                    self.state = if status.success() { ProcessState::Stopped } else { ProcessState::Crashed };
+                    self.state
+                }
+                Ok(None) => {
+                    self.state = ProcessState::Running;
+                    ProcessState::Running
+                }
+                Err(_) => {
+                    self.state = ProcessState::Crashed;
+                    ProcessState::Crashed
+                }
+            },
+            None => {
+                self.state = ProcessState::Stopped;
+                ProcessState::Stopped
+            }
+        }
+    }
+
     /// Whether the child process is still running.
     ///
+    /// Delegates to `state()` and returns `true` if the state is `Running`.
     /// Uses non-blocking `try_wait()` on the `Child` handle for all processes
     /// (forked and non-forked). No `/proc` polling needed since the `Child`
     /// handle is always available.
     pub fn is_running(&mut self) -> bool {
-        match &mut self.child {
-            Some(child) => match child.try_wait() {
-                Ok(Some(_)) => false,
-                Ok(None) => true,
-                Err(_) => false,
-            },
-            None => false,
-        }
+        self.state().is_alive()
     }
 
     /// Non-blocking check whether the child has exited.
@@ -144,8 +179,10 @@ mod tests {
             child: Some(child),
             stdout_reader: None,
             stderr_reader: None,
+            state: ProcessState::Starting,
         };
         assert!(process.is_running());
+        assert_eq!(process.state, ProcessState::Running);
         // Clean up
         let _ = process.send_signal(KillSignal::Sigkill);
         let _ = process.child.as_mut().unwrap().wait();
@@ -167,7 +204,31 @@ mod tests {
             child: Some(child),
             stdout_reader: None,
             stderr_reader: None,
+            state: ProcessState::Starting,
         };
+        assert!(!process.is_running());
+        assert_eq!(process.state, ProcessState::Stopped);
+    }
+
+    #[test]
+    fn test_process_state_crashed_after_failure() {
+        let mut child = Command::new("false").spawn().unwrap();
+        let pid = child.id();
+        let _ = child.wait();
+        let mut process = Process {
+            id: ProcessId::new(1),
+            pid,
+            program_name: "false".to_string(),
+            label: "test".to_string(),
+            terminate_on_exit: false,
+            config: Arc::new(ProcessConfig::builder().command("false".to_string()).build()),
+            child: Some(child),
+            stdout_reader: None,
+            stderr_reader: None,
+            state: ProcessState::Starting,
+        };
+        let state = process.state();
+        assert_eq!(state, ProcessState::Crashed);
         assert!(!process.is_running());
     }
 
@@ -185,6 +246,7 @@ mod tests {
             child: Some(child),
             stdout_reader: None,
             stderr_reader: None,
+            state: ProcessState::Starting,
         };
         let result = process.send_signal(KillSignal::Sigterm);
         assert!(result.is_ok());
@@ -205,6 +267,7 @@ mod tests {
             child: Some(child),
             stdout_reader: None,
             stderr_reader: None,
+            state: ProcessState::Starting,
         };
         let result = process.force_kill();
         assert!(result.is_ok());

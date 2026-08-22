@@ -1,4 +1,5 @@
 use crate::process::ProcessId;
+use crate::process::ProcessState;
 use std::process::ExitStatus;
 
 /// Information about a process that has exited.
@@ -24,6 +25,12 @@ pub struct ProcessExitEvent {
     ///
     /// `None` if the child handle was missing or `try_wait()` returned an error.
     pub exit_status: Option<ExitStatus>,
+
+    /// The lifecycle state at the time of exit.
+    ///
+    /// `Stopped` if the process exited normally, `Crashed` if it exited
+    /// with a non-zero exit code or signal.
+    pub state: ProcessState,
 }
 
 #[cfg(test)]
@@ -38,6 +45,7 @@ mod tests {
             pid: 12345,
             restart_on_exit: true,
             exit_status: None,
+            state: ProcessState::Stopped,
         };
         assert_eq!(event.id.raw(), 42);
         assert_eq!(event.label, "test");
@@ -54,6 +62,7 @@ mod tests {
             pid: 999,
             restart_on_exit: false,
             exit_status: None,
+            state: ProcessState::Crashed,
         };
         let cloned = event.clone();
         assert_eq!(cloned.id, event.id);
@@ -73,6 +82,7 @@ mod tests {
             pid: 4321,
             restart_on_exit: false,
             exit_status: Some(status),
+            state: ProcessState::Stopped,
         };
         assert!(event.exit_status.is_some());
         assert!(event.exit_status.unwrap().success());
@@ -88,6 +98,7 @@ mod tests {
             pid: 1111,
             restart_on_exit: false,
             exit_status: Some(status),
+            state: ProcessState::Crashed,
         };
         assert!(event.exit_status.is_some());
         assert!(!event.exit_status.unwrap().success());

@@ -62,5 +62,6 @@ pub use process::Process;
 pub use process::ProcessExitEvent;
 pub use process::ProcessId;
 pub use process::ProcessInfo;
+pub use process::ProcessState;
 pub use signal::KillSignal;
 pub use signal::Signal;

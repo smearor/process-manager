@@ -7,6 +7,7 @@ use crate::process::Process;
 use crate::process::ProcessExitEvent;
 use crate::process::ProcessId;
 use crate::process::ProcessInfo;
+use crate::process::ProcessState;
 use crate::reaper::ReaperHandle;
 use crate::reaper::reaper_loop;
 use dashmap::DashMap;
@@ -207,7 +208,8 @@ impl ProcessManager {
             child: Some(child),
             stdout_reader,
             stderr_reader,
-        };
+            state: ProcessState::Starting,
+ };
         self.processes.insert(id, process);
 
         debug!("Started process '{}' (pid={}, id={}, label='{}')", program_name, pid, id, label);
@@ -221,7 +223,10 @@ impl ProcessManager {
     /// Returns a `ProcessInfo` containing metadata only — no `Child` handle.
     /// Safe to hold across mutating calls since it does not hold a DashMap lock.
     pub fn get_info(&self, id: ProcessId) -> Option<ProcessInfo> {
-        self.processes.get(&id).map(|entry| ProcessInfo::from(entry.value()))
+        self.processes.get_mut(&id).map(|mut entry| {
+            let _ = entry.state();
+            ProcessInfo::from(entry.value())
+        })
     }
 
     /// Whether the process with the given ID was started in forked mode.
@@ -234,6 +239,15 @@ impl ProcessManager {
     /// Uses non-blocking `try_wait()` on the `Child` handle.
     pub fn is_running(&self, id: ProcessId) -> Option<bool> {
         self.processes.get_mut(&id).map(|mut entry| entry.is_running())
+    }
+
+    /// The current lifecycle state of the process with the given ID.
+    ///
+    /// Performs a non-blocking `try_wait()` to detect whether the process
+    /// has exited since the last check. Returns `None` if the process is not
+    /// found.
+    pub fn state(&self, id: ProcessId) -> Option<ProcessState> {
+        self.processes.get_mut(&id).map(|mut entry| entry.state())
     }
 
     /// The OS PID of the process with the given ID.
@@ -337,6 +351,9 @@ impl ProcessManager {
         let timeout_ms = process.config.terminate_timeout_ms;
         let pid = process.pid;
 
+        // 0. Mark as Stopping
+        process.state = ProcessState::Stopping;
+
         // 1. Send kill signal (ignore ESRCH — process may have already exited)
         if let Err(e) = process.send_signal(kill_signal) {
             if e.raw_os_error() == Some(libc::ESRCH) {
@@ -411,6 +428,7 @@ impl ProcessManager {
         // Signal failures are logged — the process will escalate to SIGKILL
         // if still alive, so we don't record an error here.
         for (process, _) in &mut entries {
+            process.state = ProcessState::Stopping;
             let kill_signal = process.config.kill_signal;
             let pid = process.pid;
             if let Err(e) = process.send_signal(kill_signal) {
@@ -481,7 +499,8 @@ impl ProcessManager {
         }
 
         // 6. Re-insert processes that couldn't be killed so they remain tracked
-        for process in to_reinsert {
+        for mut process in to_reinsert {
+            process.state = ProcessState::Failed;
             warn!("Re-inserting process {} (pid={}) into manager after failed kill", process.id, process.pid);
             self.processes.insert(process.id, process);
         }
@@ -534,6 +553,10 @@ impl ProcessManager {
     /// starts a new process with the same config and label. Returns the
     /// new `ProcessId`.
     pub fn restart(&self, id: ProcessId) -> Result<ProcessId, ProcessManagerError> {
+        // Mark as Restarting in the map before stopping
+        if let Some(mut entry) = self.processes.get_mut(&id) {
+            entry.state = ProcessState::Restarting;
+        }
         let process = self.processes.get(&id).ok_or(ProcessManagerError::NotFound(id))?;
         let config = Arc::clone(&process.config);
         let label = process.label.clone();
@@ -550,9 +573,12 @@ impl ProcessManager {
     pub fn restart_label(&self, label: &str) -> Result<Vec<ProcessId>, ProcessManagerError> {
         let entries: Vec<(ProcessId, Arc<ProcessConfig>)> = self
             .processes
-            .iter()
+            .iter_mut()
             .filter(|entry| entry.value().label == label)
-            .map(|entry| (*entry.key(), Arc::clone(&entry.value().config)))
+            .map(|mut entry| {
+                entry.state = ProcessState::Restarting;
+                (*entry.key(), Arc::clone(&entry.config))
+            })
             .collect();
 
         if entries.is_empty() {
@@ -1235,5 +1261,91 @@ mod tests {
         let result = manager.restart_label("nonexistent");
         assert!(result.is_ok());
         assert!(result.unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_state_running() {
+        let manager = ProcessManager::new();
+        let config = ProcessConfig::builder()
+            .command("sleep".to_string())
+            .args(vec!["10".to_string()])
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Null)
+            .build();
+        let id = manager.start("test", &config).unwrap();
+        assert_eq!(manager.state(id), Some(ProcessState::Running));
+        assert_eq!(manager.state(ProcessId::new(999)), None);
+        manager.stop(id).unwrap();
+    }
+
+    #[test]
+    fn test_state_stopped_after_normal_exit() {
+        let manager = ProcessManager::new();
+        let config = ProcessConfig::builder()
+            .command("true".to_string())
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Null)
+            .build();
+        let id = manager.start("test", &config).unwrap();
+        thread::sleep(Duration::from_millis(100));
+        assert_eq!(manager.state(id), Some(ProcessState::Stopped));
+        manager.stop(id).unwrap();
+    }
+
+    #[test]
+    fn test_state_crashed_after_failure() {
+        let manager = ProcessManager::new();
+        let config = ProcessConfig::builder()
+            .command("false".to_string())
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Null)
+            .build();
+        let id = manager.start("test", &config).unwrap();
+        thread::sleep(Duration::from_millis(100));
+        assert_eq!(manager.state(id), Some(ProcessState::Crashed));
+        manager.stop(id).unwrap();
+    }
+
+    #[test]
+    fn test_state_in_process_info() {
+        let manager = ProcessManager::new();
+        let config = ProcessConfig::builder()
+            .command("sleep".to_string())
+            .args(vec!["10".to_string()])
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Null)
+            .build();
+        let id = manager.start("test", &config).unwrap();
+        let info = manager.get_info(id).unwrap();
+        assert_eq!(info.state, ProcessState::Running);
+        manager.stop(id).unwrap();
+    }
+
+    #[test]
+    fn test_reaper_exit_event_state_stopped() {
+        let (sender, receiver) = std::sync::mpsc::channel::<ProcessExitEvent>();
+        let manager = ProcessManager::with_reaper(Duration::from_millis(100), sender).unwrap();
+        let config = ProcessConfig::builder()
+            .command("true".to_string())
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Null)
+            .build();
+        let _ = manager.start("test", &config).unwrap();
+        let event = receiver.recv_timeout(Duration::from_secs(5)).unwrap();
+        assert_eq!(event.state, ProcessState::Stopped);
+    }
+
+    #[test]
+    fn test_reaper_exit_event_state_crashed() {
+        let (sender, receiver) = std::sync::mpsc::channel::<ProcessExitEvent>();
+        let manager = ProcessManager::with_reaper(Duration::from_millis(100), sender).unwrap();
+        let config = ProcessConfig::builder()
+            .command("false".to_string())
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Null)
+            .build();
+        let _ = manager.start("test", &config).unwrap();
+        let event = receiver.recv_timeout(Duration::from_secs(5)).unwrap();
+        assert_eq!(event.state, ProcessState::Crashed);
     }
 }
