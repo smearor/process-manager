@@ -169,3 +169,77 @@ fn escalation_to_sigkill_on_short_timeout() {
     assert!(result.is_ok());
     assert!(manager.is_empty());
 }
+
+#[test]
+fn stop_label_escalates_sigkill_for_stubborn_group() {
+    let manager = ProcessManager::new();
+    let config = ProcessConfig::builder()
+        .command("sleep".to_string())
+        .args(vec!["30".to_string()])
+        .kill_signal(KillSignal::Sigterm)
+        .terminate_timeout_ms(100)
+        .stdout(StdioConfig::Null)
+        .stderr(StdioConfig::Null)
+        .build();
+
+    let _ = manager.start("stubborn-a", &config).unwrap();
+    let _ = manager.start("stubborn-a", &config).unwrap();
+    let _ = manager.start("stubborn-b", &config).unwrap();
+
+    assert_eq!(manager.len(), 3);
+
+    let start = std::time::Instant::now();
+    manager.stop_label("stubborn-a").unwrap();
+    let elapsed = start.elapsed();
+
+    assert_eq!(manager.len(), 1);
+    assert!(manager.pids_by_label("stubborn-a").is_empty());
+    assert_eq!(manager.pids_by_label("stubborn-b").len(), 1);
+    assert!(
+        elapsed < Duration::from_secs(5),
+        "stop_label should escalate quickly, took {:?}",
+        elapsed
+    );
+
+    manager.stop_all();
+    assert!(manager.is_empty());
+}
+
+#[test]
+fn stop_all_escalates_sigkill_for_mixed_group() {
+    let manager = ProcessManager::new();
+
+    let cooperative = ProcessConfig::builder()
+        .command("sleep".to_string())
+        .args(vec!["30".to_string()])
+        .kill_signal(KillSignal::Sigterm)
+        .terminate_timeout_ms(100)
+        .stdout(StdioConfig::Null)
+        .stderr(StdioConfig::Null)
+        .build();
+
+    let _ = manager.start("coop-1", &cooperative).unwrap();
+    let _ = manager.start("coop-2", &cooperative).unwrap();
+    let _ = manager.start("stubborn-1", &cooperative).unwrap();
+
+    assert_eq!(manager.len(), 3);
+
+    let start = std::time::Instant::now();
+    manager.stop_all();
+    let elapsed = start.elapsed();
+
+    assert!(manager.is_empty());
+    assert!(
+        elapsed < Duration::from_secs(10),
+        "stop_all should escalate quickly, took {:?}",
+        elapsed
+    );
+}
+
+#[test]
+fn stop_label_nonexistent_returns_empty_ok() {
+    let manager = ProcessManager::new();
+    let result = manager.stop_label("nonexistent");
+    assert!(result.is_ok());
+    assert!(manager.is_empty());
+}
