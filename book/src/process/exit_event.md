@@ -6,7 +6,7 @@
 
 When the reaper thread detects that a process has exited (via `try_wait()`), it constructs a `ProcessExitEvent` and sends it through the `std::sync::mpsc::Sender` provided to `ProcessManager::with_reaper()`.
 
-The consumer receives this event and can decide what to do — log the exit, restart the process, update UI state, etc.
+The consumer receives this event and can decide what to do - log the exit, restart the process, update UI state, etc.
 
 ## Fields
 
@@ -17,9 +17,9 @@ The consumer receives this event and can decide what to do — log the exit, res
 | `label` | `String` | The label under which the process was started |
 | `restart_on_exit` | `bool` | Whether the consumer should restart this process |
 | `exit_status` | `Option<ExitStatus>` | The exit status of the process (`None` if the child handle was missing or `try_wait()` returned an error) |
-| `state` | `ProcessState` | The lifecycle state at exit — `Stopped` if normal exit, `Crashed` if non-zero exit code or signal |
+| `state` | `ProcessState` | The lifecycle state at exit - `Stopped` if normal exit, `Crashed` if non-zero exit code or signal |
 
-The `restart_on_exit` flag is set from `ProcessConfig::restart_on_exit`. It is a hint — the consumer is free to ignore it. The reaper itself does not restart processes; that is the consumer's responsibility.
+The `restart_on_exit` flag is set from `ProcessConfig::restart_on_exit`. It is a hint - the consumer is free to ignore it. The reaper itself does not restart processes; that is the consumer's responsibility.
 
 ## Event Flow
 
@@ -78,7 +78,7 @@ loop {
 
 ### 2. GTK Consumer (Forwarding Thread)
 
-**Important:** Do not call `receiver.recv()` directly in `MainContext::spawn_local` — it is a blocking call that will freeze the GTK main loop.
+**Important:** Do not call `receiver.recv()` directly in `MainContext::spawn_local` - it is a blocking call that will freeze the GTK main loop.
 
 Instead, use a forwarding thread to bridge the blocking `std::sync::mpsc` to a non-blocking `tokio::sync::mpsc` channel:
 
@@ -94,7 +94,7 @@ let (async_sender, mut async_receiver) = unbounded_channel();
 std::thread::spawn(move || {
     while let Ok(event) = sync_receiver.recv() {
         if async_sender.send(event).is_err() {
-            break; // Async receiver dropped — exit thread
+            break; // Async receiver dropped - exit thread
         }
     }
 });
@@ -102,7 +102,7 @@ std::thread::spawn(move || {
 let manager = ProcessManager::with_reaper(Duration::from_secs(2), sync_sender);
 manager.start("task", &config)?;
 
-// In GTK main context — non-blocking
+// In GTK main context - non-blocking
 let main_context = MainContext::default();
 main_context.spawn_local(async move {
     while let Some(event) = async_receiver.recv().await {

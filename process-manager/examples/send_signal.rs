@@ -19,14 +19,14 @@ fn main() {
     assert_eq!(manager.is_running(id), Some(true));
     assert_eq!(manager.state(id), Some(ProcessState::Running));
 
-    // Send SIGWINCH — sleep ignores it, process keeps running
+    // Send SIGWINCH - sleep ignores it, process keeps running
     manager.send_signal(id, Signal::Sigwinch).expect("failed to send SIGWINCH");
     std::thread::sleep(std::time::Duration::from_millis(100));
     assert_eq!(manager.is_running(id), Some(true));
     assert_eq!(manager.state(id), Some(ProcessState::Running));
     println!("After SIGWINCH: still running");
 
-    // Send SIGTERM — sleep terminates
+    // Send SIGTERM - sleep terminates
     manager.send_signal(id, Signal::Sigterm).expect("failed to send SIGTERM");
     std::thread::sleep(std::time::Duration::from_millis(200));
     assert_eq!(manager.is_running(id), Some(false));

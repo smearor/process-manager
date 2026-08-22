@@ -13,27 +13,27 @@ use crate::signal::KillSignal;
 #[serde(rename_all = "UPPERCASE")]
 #[must_use]
 pub enum Signal {
-    /// `SIGHUP` — hang up, often used to reload configuration.
+    /// `SIGHUP` - hang up, often used to reload configuration.
     Sighup,
-    /// `SIGINT` — interrupt (Ctrl+C).
+    /// `SIGINT` - interrupt (Ctrl+C).
     Sigint,
-    /// `SIGQUIT` — quit with core dump.
+    /// `SIGQUIT` - quit with core dump.
     Sigquit,
-    /// `SIGTERM` — graceful termination request.
+    /// `SIGTERM` - graceful termination request.
     Sigterm,
-    /// `SIGKILL` — immediate forced termination, cannot be caught.
+    /// `SIGKILL` - immediate forced termination, cannot be caught.
     Sigkill,
-    /// `SIGUSR1` — user-defined signal 1.
+    /// `SIGUSR1` - user-defined signal 1.
     Sigusr1,
-    /// `SIGUSR2` — user-defined signal 2.
+    /// `SIGUSR2` - user-defined signal 2.
     Sigusr2,
-    /// `SIGWINCH` — window size change.
+    /// `SIGWINCH` - window size change.
     Sigwinch,
-    /// `SIGSTOP` — pause execution, cannot be caught.
+    /// `SIGSTOP` - pause execution, cannot be caught.
     Sigstop,
-    /// `SIGCONT` — resume execution after `SIGSTOP`.
+    /// `SIGCONT` - resume execution after `SIGSTOP`.
     Sigcont,
-    /// `SIGALRM` — timer alarm.
+    /// `SIGALRM` - timer alarm.
     Sigalrm,
 }
 

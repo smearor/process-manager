@@ -6,15 +6,15 @@
 
 `ProcessManager` is the central component of the `process-manager` crate. It provides:
 
-- **Concurrent tracking** — All processes are stored in a `DashMap` keyed by `ProcessId`, allowing concurrent access from multiple threads
-- **Label-based grouping** — Multiple processes can share a label for grouped start/stop operations
-- **Optional reaper thread** — A background thread that polls `try_wait()` to detect exits and emit `ProcessExitEvent`s
-- **Signal-based termination** — `SIGTERM` with configurable timeout, automatic `SIGKILL` escalation
-- **Graceful shutdown** — Processes with `terminate_on_exit = true` are killed when the manager is dropped
+- **Concurrent tracking** - All processes are stored in a `DashMap` keyed by `ProcessId`, allowing concurrent access from multiple threads
+- **Label-based grouping** - Multiple processes can share a label for grouped start/stop operations
+- **Optional reaper thread** - A background thread that polls `try_wait()` to detect exits and emit `ProcessExitEvent`s
+- **Signal-based termination** - `SIGTERM` with configurable timeout, automatic `SIGKILL` escalation
+- **Graceful shutdown** - Processes with `terminate_on_exit = true` are killed when the manager is dropped
 
 ## Construction
 
-### `new()` — Without reaper
+### `new()` - Without reaper
 
 ```rust
 use process_manager::ProcessManager;
@@ -24,7 +24,7 @@ let manager = ProcessManager::new();
 
 Use this when you don't need exit notifications. Processes are still tracked and can be stopped manually. Without the reaper, exited processes remain as zombies until `stop()` or `drop()` is called.
 
-### `with_reaper(poll_interval, sender)` — With reaper
+### `with_reaper(poll_interval, sender)` - With reaper
 
 ```rust
 use process_manager::ProcessManager;

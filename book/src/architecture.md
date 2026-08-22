@@ -6,8 +6,8 @@
 
 The workspace is composed of two crates:
 
-- **`process-manager-socket`** — Wayland socket path management with `Socket`, `SocketBuilder`, and `SocketManager`
-- **`process-manager`** — Child process lifecycle management with `ProcessConfig`, `ProcessManager`, and reaper thread
+- **`process-manager-socket`** - Wayland socket path management with `Socket`, `SocketBuilder`, and `SocketManager`
+- **`process-manager`** - Child process lifecycle management with `ProcessConfig`, `ProcessManager`, and reaper thread
 
 ## Crate Relationships
 
@@ -40,18 +40,18 @@ graph TD
 
 The socket crate provides three main types:
 
-- **`Socket`** — A `PathBuf` newtype representing a Wayland socket path. Implements `Deref<Target = Path>`, `Display`, `AsRef<OsStr>`, and `AsRef<str>`.
-- **`SocketBuilder`** — Constructs socket paths in `XDG_RUNTIME_DIR`. If a name is provided, it validates uniqueness. If no name is provided, it auto-generates a unique name like `wayland-{N}`.
-- **`SocketManager`** — A concurrent multi-socket manager using `DashMap`. Sockets are registered by name and can be retrieved, removed, or listed. Shareable via `Arc` across threads.
+- **`Socket`** - A `PathBuf` newtype representing a Wayland socket path. Implements `Deref<Target = Path>`, `Display`, `AsRef<OsStr>`, and `AsRef<str>`.
+- **`SocketBuilder`** - Constructs socket paths in `XDG_RUNTIME_DIR`. If a name is provided, it validates uniqueness. If no name is provided, it auto-generates a unique name like `wayland-{N}`.
+- **`SocketManager`** - A concurrent multi-socket manager using `DashMap`. Sockets are registered by name and can be retrieved, removed, or listed. Shareable via `Arc` across threads.
 
 ### 2. Process Management (`process-manager`)
 
 The process crate provides the `ProcessManager` as its central component:
 
-- **`ProcessConfig`** — Built via `TypedBuilder`. Contains all configuration for spawning a child: command, args, env, working_dir, shell mode, forked mode, terminate_on_exit, kill_signal, terminate_timeout, restart_on_exit, stdio config, and optional Wayland socket.
-- **`ProcessManager`** — Tracks child processes in a `DashMap` keyed by `ProcessId`. Supports label-based grouping, concurrent start/stop operations, and an optional reaper thread.
-- **`Process`** — A handle to a managed child process. Contains the `ProcessId`, PID, label, config, and the `std::process::Child` handle.
-- **`ProcessExitEvent`** — Emitted by the reaper thread when a process exits. Contains `id`, `pid`, `label`, `restart_on_exit`, `exit_status`, and `state` (`Stopped` or `Crashed`).
+- **`ProcessConfig`** - Built via `TypedBuilder`. Contains all configuration for spawning a child: command, args, env, working_dir, shell mode, forked mode, terminate_on_exit, kill_signal, terminate_timeout, restart_on_exit, stdio config, and optional Wayland socket.
+- **`ProcessManager`** - Tracks child processes in a `DashMap` keyed by `ProcessId`. Supports label-based grouping, concurrent start/stop operations, and an optional reaper thread.
+- **`Process`** - A handle to a managed child process. Contains the `ProcessId`, PID, label, config, and the `std::process::Child` handle.
+- **`ProcessExitEvent`** - Emitted by the reaper thread when a process exits. Contains `id`, `pid`, `label`, `restart_on_exit`, `exit_status`, and `state` (`Stopped` or `Crashed`).
 
 ## Process Lifecycle
 
@@ -190,11 +190,11 @@ graph TD
 
 ### Why split socket and process into separate crates?
 
-Socket management is a lightweight concern (path manipulation, `DashMap` for multi-socket support). Process management is heavier (child spawning, signal handling, reaper threads). Separating them allows consumers to depend on only what they need — `smearor-swipe-launcher` uses only `process-manager` without needing the socket crate directly.
+Socket management is a lightweight concern (path manipulation, `DashMap` for multi-socket support). Process management is heavier (child spawning, signal handling, reaper threads). Separating them allows consumers to depend on only what they need - `smearor-swipe-launcher` uses only `process-manager` without needing the socket crate directly.
 
 ### Why `DashMap` instead of `Mutex<HashMap>`?
 
-Both `SocketManager` and `ProcessManager` are accessed concurrently from multiple threads. `DashMap` provides shard-level locking, avoiding the contention of a single `Mutex`. The reaper thread iterates processes while the main thread may start/stop others — `DashMap` handles this without blocking.
+Both `SocketManager` and `ProcessManager` are accessed concurrently from multiple threads. `DashMap` provides shard-level locking, avoiding the contention of a single `Mutex`. The reaper thread iterates processes while the main thread may start/stop others - `DashMap` handles this without blocking.
 
 ### Why `std::sync::mpsc` for reaper events?
 
@@ -206,8 +206,8 @@ The reaper thread is a plain `std::thread`, not async. `std::sync::mpsc::Sender`
 
 ### Why not `tokio::process::Child`?
 
-The `ProcessManager` is deliberately synchronous. It works with GTK's `MainContext` and Smithay's event loop without requiring an async runtime. The reaper thread uses non-blocking `try_wait()` polling instead — simpler, no runtime dependency, and sufficient for the use case (exit detection with configurable latency).
+The `ProcessManager` is deliberately synchronous. It works with GTK's `MainContext` and Smithay's event loop without requiring an async runtime. The reaper thread uses non-blocking `try_wait()` polling instead - simpler, no runtime dependency, and sufficient for the use case (exit detection with configurable latency).
 
 ### Why `setsid()` instead of double-fork?
 
-`setsid()` detaches the process from the controlling terminal. A double-fork (grandchild) would lose the `Child` handle, preventing tracking and `try_wait()` reaping. With `setsid()`, the process is still a direct child — the `Child` handle is stored, `try_wait()` works, and `stop()` can send signals. This is the correct trade-off for a process manager that needs to track and terminate its children.
+`setsid()` detaches the process from the controlling terminal. A double-fork (grandchild) would lose the `Child` handle, preventing tracking and `try_wait()` reaping. With `setsid()`, the process is still a direct child - the `Child` handle is stored, `try_wait()` works, and `stop()` can send signals. This is the correct trade-off for a process manager that needs to track and terminate its children.

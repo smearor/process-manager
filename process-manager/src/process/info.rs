@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 /// A lightweight snapshot of a managed process.
 ///
-/// Contains metadata only — no `Child` handle. Returned by inspection methods
+/// Contains metadata only - no `Child` handle. Returned by inspection methods
 /// like `get_by_label()`. Cannot be used for `is_running()`, `wait()`, or
 /// signal operations; use `stop()` / `stop_label()` for process control.
 #[derive(Debug, Clone, PartialEq, Eq)]

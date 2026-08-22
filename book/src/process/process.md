@@ -4,13 +4,13 @@
 
 A unique identifier assigned by `ProcessManager` to each spawned process. Implemented as a `u64` newtype.
 
-`ProcessId` is generated atomically from an internal counter in `ProcessManager`. It is unique within a single `ProcessManager` instance — no two processes will share the same `ProcessId`.
+`ProcessId` is generated atomically from an internal counter in `ProcessManager`. It is unique within a single `ProcessManager` instance - no two processes will share the same `ProcessId`.
 
 ### Trait Implementations
 
-- `Display` — formats as a number
-- `PartialEq`, `Eq`, `Hash` — comparison and hashing
-- `Clone`, `Copy` — lightweight value type
+- `Display` - formats as a number
+- `PartialEq`, `Eq`, `Hash` - comparison and hashing
+- `Clone`, `Copy` - lightweight value type
 
 ### Usage
 
@@ -83,14 +83,14 @@ graph TD
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `is_running()` | `bool` | Non-blocking check via `try_wait()` — `true` if still running (delegates to `state().is_alive()`) |
-| `state()` | `ProcessState` | Non-blocking check via `try_wait()` — returns the current lifecycle state, updating it if the process has exited |
+| `is_running()` | `bool` | Non-blocking check via `try_wait()` - `true` if still running (delegates to `state().is_alive()`) |
+| `state()` | `ProcessState` | Non-blocking check via `try_wait()` - returns the current lifecycle state, updating it if the process has exited |
 | `send_signal(signal)` | `Result<(), nix::Error>` | Send a signal to the process via `nix::sys::signal::kill` |
 | `force_kill()` | `Result<(), nix::Error>` | Send `SIGKILL` immediately |
 
 ### Clone Behavior
 
-`Process` implements `Clone` manually because `std::process::Child` does not implement `Clone`. The clone shares the PID and config but does not duplicate the `Child` handle — the clone's `child` field is `None`. This is sufficient for read-only access patterns (checking `is_running()`, reading PID/label).
+`Process` implements `Clone` manually because `std::process::Child` does not implement `Clone`. The clone shares the PID and config but does not duplicate the `Child` handle - the clone's `child` field is `None`. This is sufficient for read-only access patterns (checking `is_running()`, reading PID/label).
 
 ### Usage
 

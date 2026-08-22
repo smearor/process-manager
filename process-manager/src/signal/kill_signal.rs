@@ -4,21 +4,21 @@ use serde::Serialize;
 
 /// Signal used for process termination.
 ///
-/// Restricted to `SIGTERM` and `SIGKILL` — the only signals that make sense
+/// Restricted to `SIGTERM` and `SIGKILL` - the only signals that make sense
 /// for the `stop()` path. Use [`crate::Signal`] for general-purpose signaling
 /// via `send_signal()`.
 ///
-/// Made framework-agnostic — the conversion to `nix::sys::signal::Signal`
+/// Made framework-agnostic - the conversion to `nix::sys::signal::Signal`
 /// is internal. This allows the type to be used without importing `nix`
 /// in consumer crates.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
 #[must_use]
 pub enum KillSignal {
-    /// Send `SIGTERM` — allows the process to clean up gracefully.
+    /// Send `SIGTERM` - allows the process to clean up gracefully.
     #[default]
     Sigterm,
-    /// Send `SIGKILL` — immediate termination, no cleanup possible.
+    /// Send `SIGKILL` - immediate termination, no cleanup possible.
     Sigkill,
 }
 

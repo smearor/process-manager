@@ -13,16 +13,16 @@ Used by both `smearor-wrot` (to spawn compositor clients) and `smearor-swipe-lau
 
 ## Features
 
-- **`ProcessConfig` with `TypedBuilder`** — Compile-time enforcement of required fields, ergonomic optional fields
-- **`ProcessManager`** — Concurrent process tracking via `DashMap`, label-based grouping, optional reaper thread
-- **Label-based operations** — Start/stop multiple processes under a shared label
-- **Forked/detached processes** — `setsid()` via `pre_exec` for terminal detachment
-- **Reaper thread** — Non-blocking `try_wait()` polling with `ProcessExitEvent` channel
-- **Signal escalation** — `SIGTERM` with configurable timeout, automatic `SIGKILL` escalation
-- **Wayland socket binding** — Sets `WAYLAND_DISPLAY` from `Socket`
-- **`StdioConfig`** — Inherit/Null/Piped with reader threads for output capture
-- **`KillSignal`** — `Sigterm`/`Sigkill` with serde support
-- **Graceful shutdown** — `terminate_on_exit` flag kills processes on drop
+- **`ProcessConfig` with `TypedBuilder`** - Compile-time enforcement of required fields, ergonomic optional fields
+- **`ProcessManager`** - Concurrent process tracking via `DashMap`, label-based grouping, optional reaper thread
+- **Label-based operations** - Start/stop multiple processes under a shared label
+- **Forked/detached processes** - `setsid()` via `pre_exec` for terminal detachment
+- **Reaper thread** - Non-blocking `try_wait()` polling with `ProcessExitEvent` channel
+- **Signal escalation** - `SIGTERM` with configurable timeout, automatic `SIGKILL` escalation
+- **Wayland socket binding** - Sets `WAYLAND_DISPLAY` from `Socket`
+- **`StdioConfig`** - Inherit/Null/Piped with reader threads for output capture
+- **`KillSignal`** - `Sigterm`/`Sigkill` with serde support
+- **Graceful shutdown** - `terminate_on_exit` flag kills processes on drop
 
 ## Quick Start
 

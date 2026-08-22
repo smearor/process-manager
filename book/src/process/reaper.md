@@ -8,7 +8,7 @@ When a child process exits, it becomes a zombie until someone calls `wait()` or 
 
 1. Spawns a `std::thread` named `"process-reaper"`
 2. Every `poll_interval`, iterates all tracked processes in the `DashMap`
-3. Calls `try_wait()` on each — if the process has exited, removes it from the `DashMap` and sends a `ProcessExitEvent` with the derived `ProcessState` (`Stopped` for normal exit, `Crashed` for non-zero)
+3. Calls `try_wait()` on each - if the process has exited, removes it from the `DashMap` and sends a `ProcessExitEvent` with the derived `ProcessState` (`Stopped` for normal exit, `Crashed` for non-zero)
 4. Runs until `ProcessManager` is dropped (via a `stop_flag` `AtomicBool`)
 
 ## Polling Cycle
@@ -44,9 +44,9 @@ sequenceDiagram
 
 The reaper uses polling (`try_wait()`) rather than `pidfd_open` (Linux ≥ 5.3). This means:
 
-- **Exit detection latency** — Up to `poll_interval` delay between process exit and event emission. With the default 2-second interval, a process exit is detected within 2 seconds.
-- **CPU usage** — The thread wakes up every `poll_interval` and iterates all processes. For a small number of processes (< 100), this is negligible.
-- **Portability** — `try_wait()` works on all Unix systems. `pidfd_open` is Linux-only.
+- **Exit detection latency** - Up to `poll_interval` delay between process exit and event emission. With the default 2-second interval, a process exit is detected within 2 seconds.
+- **CPU usage** - The thread wakes up every `poll_interval` and iterates all processes. For a small number of processes (< 100), this is negligible.
+- **Portability** - `try_wait()` works on all Unix systems. `pidfd_open` is Linux-only.
 
 A future improvement could use `pidfd_open` for instant notification, but the current approach is sufficient for the use case (compositor clients and launcher apps).
 
@@ -54,15 +54,15 @@ A future improvement could use `pidfd_open` for instant notification, but the cu
 
 Without the reaper, exited child processes remain as zombies until someone calls `wait()`. Zombies consume a PID and a small amount of kernel memory. In long-running applications (like a Wayland compositor or desktop launcher), zombies accumulate over time.
 
-The reaper calls `try_wait()` which reaps the zombie immediately upon detection. Even without the reaper, `ProcessManager::drop` will clean up remaining processes — but the reaper is recommended for long-lived managers.
+The reaper calls `try_wait()` which reaps the zombie immediately upon detection. Even without the reaper, `ProcessManager::drop` will clean up remaining processes - but the reaper is recommended for long-lived managers.
 
 ## Thread Safety
 
 The reaper thread accesses the `DashMap` via an `Arc`, so it works concurrently with `start()`, `stop()`, and other operations from the main thread. `DashMap`'s shard-level locking ensures no contention:
 
 - The reaper iterates with `DashMap::iter()` which takes a snapshot of shard read locks
-- `start()` inserts into a shard — may briefly block the reaper on that shard
-- `stop()` removes from a shard — may briefly block the reaper on that shard
+- `start()` inserts into a shard - may briefly block the reaper on that shard
+- `stop()` removes from a shard - may briefly block the reaper on that shard
 
 This is acceptable for the use case (low-frequency operations, small number of processes).
 

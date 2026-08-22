@@ -106,8 +106,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Next Steps
 
-- [Architecture](architecture.md) — Visual overview of crate internals and design decisions
-- [ProcessConfig](process/config.md) — Full configuration reference
-- [ProcessManager](process/manager.md) — Complete API documentation
-- [Usage Examples](examples.md) — More practical examples
-- [Migration Guide](migration.md) — Migrating from old patterns
+- [Architecture](architecture.md) - Visual overview of crate internals and design decisions
+- [ProcessConfig](process/config.md) - Full configuration reference
+- [ProcessManager](process/manager.md) - Complete API documentation
+- [Usage Examples](examples.md) - More practical examples
+- [Migration Guide](migration.md) - Migrating from old patterns

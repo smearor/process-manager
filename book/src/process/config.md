@@ -13,7 +13,7 @@
 - Standard I/O configuration (stdin, stdout, stderr)
 - Optional Wayland socket binding
 
-The `TypedBuilder` pattern enforces required fields at compile time — only `command` is required. All other fields have sensible defaults.
+The `TypedBuilder` pattern enforces required fields at compile time - only `command` is required. All other fields have sensible defaults.
 
 ## Fields
 
@@ -24,15 +24,15 @@ The `TypedBuilder` pattern enforces required fields at compile time — only `co
 | `env` | `HashMap<String, String>` | `HashMap::new()` | Additional environment variables merged into the child's environment |
 | `working_dir` | `Option<PathBuf>` | `None` | Working directory for the child process |
 | `shell` | `bool` | `false` | Run command via `sh -c` instead of direct execution |
-| `forked` | `bool` | `false` | Detach via `setsid()` in `pre_exec` — process gets its own session |
+| `forked` | `bool` | `false` | Detach via `setsid()` in `pre_exec` - process gets its own session |
 | `terminate_on_exit` | `bool` | `false` | Kill this process when `ProcessManager` is dropped |
 | `kill_signal` | `KillSignal` | `Sigterm` | Signal to send on termination (`Sigterm` or `Sigkill`) |
 | `terminate_timeout_ms` | `u64` | `5000` | Grace period (ms) before escalating from `SIGTERM` to `SIGKILL` |
-| `restart_on_exit` | `bool` | `false` | Flag in `ProcessExitEvent` — consumer decides whether to restart |
+| `restart_on_exit` | `bool` | `false` | Flag in `ProcessExitEvent` - consumer decides whether to restart |
 | `stdin` | `StdioConfig` | `Null` | Standard input configuration |
 | `stdout` | `StdioConfig` | `Null` | Standard output configuration |
 | `stderr` | `StdioConfig` | `Null` | Standard error configuration |
-| `socket` | `Option<Socket>` | `None` | Wayland socket — sets `WAYLAND_DISPLAY` in child environment |
+| `socket` | `Option<Socket>` | `None` | Wayland socket - sets `WAYLAND_DISPLAY` in child environment |
 
 ## Builder Flow
 

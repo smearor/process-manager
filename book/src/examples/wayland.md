@@ -78,4 +78,4 @@ When `config.socket` is `Some(socket)`:
 2. The socket name is inserted into the child's environment as `WAYLAND_DISPLAY=wayland-0`
 3. The child process connects to the Wayland display using this environment variable
 
-If `config.socket` is `None`, `WAYLAND_DISPLAY` is not set — the child inherits the parent's `WAYLAND_DISPLAY` if present.
+If `config.socket` is `None`, `WAYLAND_DISPLAY` is not set - the child inherits the parent's `WAYLAND_DISPLAY` if present.

@@ -10,15 +10,15 @@ This crate is used by both `smearor-wrot` (to spawn compositor clients like pane
 
 ## Types
 
-- **`ProcessConfig`** — Unified configuration via `TypedBuilder` (command, args, env, working_dir, shell, forked, terminate_on_exit, kill_signal, restart_on_exit, stdio, socket)
-- **`ProcessManager`** — Concurrent process tracking via `DashMap`, label-based grouping, optional reaper thread
-- **`Process`** / **`ProcessId`** / **`ProcessInfo`** — Process handle, unique identifier, and lightweight snapshot type
-- **`ProcessState`** — Explicit lifecycle state enum (`Starting`, `Running`, `Stopping`, `Stopped`, `Crashed`, `Restarting`, `Failed`)
-- **`ProcessExitEvent`** — Reaper exit notification with `id`, `pid`, `label`, `restart_on_exit`, `exit_status`, `state`
-- **`StdioConfig`** — Inherit/Null/Piped enum for standard streams
-- **`KillSignal`** — Sigterm/Sigkill enum for termination config
-- **`Signal`** — Broader signal enum (SIGHUP, SIGUSR1, SIGSTOP, etc.) for general process control
-- **`ProcessManagerError`** / **`ProcessConfigError`** — Error types
+- **`ProcessConfig`** - Unified configuration via `TypedBuilder` (command, args, env, working_dir, shell, forked, terminate_on_exit, kill_signal, restart_on_exit, stdio, socket)
+- **`ProcessManager`** - Concurrent process tracking via `DashMap`, label-based grouping, optional reaper thread
+- **`Process`** / **`ProcessId`** / **`ProcessInfo`** - Process handle, unique identifier, and lightweight snapshot type
+- **`ProcessState`** - Explicit lifecycle state enum (`Starting`, `Running`, `Stopping`, `Stopped`, `Crashed`, `Restarting`, `Failed`)
+- **`ProcessExitEvent`** - Reaper exit notification with `id`, `pid`, `label`, `restart_on_exit`, `exit_status`, `state`
+- **`StdioConfig`** - Inherit/Null/Piped enum for standard streams
+- **`KillSignal`** - Sigterm/Sigkill enum for termination config
+- **`Signal`** - Broader signal enum (SIGHUP, SIGUSR1, SIGSTOP, etc.) for general process control
+- **`ProcessManagerError`** / **`ProcessConfigError`** - Error types
 
 ## Architecture
 
@@ -55,20 +55,20 @@ graph TD
 
 ## Features
 
-- **`ProcessConfig` with `TypedBuilder`** — Compile-time enforcement of required fields, ergonomic optional fields
-- **Label-based grouping** — Start/stop multiple processes under a shared label
-- **Forked/detached processes** — `setsid()` via `pre_exec` for terminal detachment
-- **Reaper thread** — Non-blocking `try_wait()` polling with `ProcessExitEvent` channel
-- **Signal escalation** — `SIGTERM` with configurable timeout, automatic `SIGKILL` escalation
-- **Wayland socket binding** — Sets `WAYLAND_DISPLAY` from `Socket`
-- **`StdioConfig`** — Inherit/Null/Piped with reader threads for output capture
-- **`KillSignal`** — `Sigterm`/`Sigkill` with serde support for termination config
-- **`Signal`** — Broader signal enum for general process control via `send_signal()`
-- **Restart** — `restart()` / `restart_label()` preserve config and label across restarts
-- **Serde** — `ProcessConfig`, `StdioConfig`, `KillSignal`, and `Signal` implement `Serialize`/`Deserialize`
-- **Executable resolution** — `which` integration for PATH lookup
-- **Graceful shutdown** — `terminate_on_exit` flag kills processes on drop
-- **`#[must_use]`** — All public structs and enums are `#[must_use]`
+- **`ProcessConfig` with `TypedBuilder`** - Compile-time enforcement of required fields, ergonomic optional fields
+- **Label-based grouping** - Start/stop multiple processes under a shared label
+- **Forked/detached processes** - `setsid()` via `pre_exec` for terminal detachment
+- **Reaper thread** - Non-blocking `try_wait()` polling with `ProcessExitEvent` channel
+- **Signal escalation** - `SIGTERM` with configurable timeout, automatic `SIGKILL` escalation
+- **Wayland socket binding** - Sets `WAYLAND_DISPLAY` from `Socket`
+- **`StdioConfig`** - Inherit/Null/Piped with reader threads for output capture
+- **`KillSignal`** - `Sigterm`/`Sigkill` with serde support for termination config
+- **`Signal`** - Broader signal enum for general process control via `send_signal()`
+- **Restart** - `restart()` / `restart_label()` preserve config and label across restarts
+- **Serde** - `ProcessConfig`, `StdioConfig`, `KillSignal`, and `Signal` implement `Serialize`/`Deserialize`
+- **Executable resolution** - `which` integration for PATH lookup
+- **Graceful shutdown** - `terminate_on_exit` flag kills processes on drop
+- **`#[must_use]`** - All public structs and enums are `#[must_use]`
 
 ## Dependencies
 

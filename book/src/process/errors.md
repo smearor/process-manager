@@ -9,7 +9,7 @@ Errors returned by `ProcessManager` operations.
 | `ExecutableNotFound(String)` | `start()` | The command could not be resolved via `which` and is not an absolute path |
 | `SpawnFailed(String)` | `start()` | `std::process::Command::spawn()` returned an error |
 | `NotFound(ProcessId)` | `stop()`, `get()` | No process with the given `ProcessId` exists in the `DashMap` |
-| `NixError(nix::Error)` | `stop()` | A `nix` signal operation failed — the process may have already exited |
+| `NixError(nix::Error)` | `stop()` | A `nix` signal operation failed - the process may have already exited |
 
 ## ProcessConfigError
 

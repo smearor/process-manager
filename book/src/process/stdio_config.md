@@ -6,9 +6,9 @@
 
 When spawning a child process, each standard stream can be configured independently:
 
-- **`Inherit`** — The child inherits the parent's stream. Output appears in the parent's terminal. Useful for debugging.
-- **`Null`** — The child's stream is connected to `/dev/null`. All output is discarded. Suitable for background processes.
-- **`Piped`** — The child's stream is piped. `ProcessManager::start()` spawns reader threads that forward output to `tracing`. This prevents pipe buffer deadlocks when a child produces significant output.
+- **`Inherit`** - The child inherits the parent's stream. Output appears in the parent's terminal. Useful for debugging.
+- **`Null`** - The child's stream is connected to `/dev/null`. All output is discarded. Suitable for background processes.
+- **`Piped`** - The child's stream is piped. `ProcessManager::start()` spawns reader threads that forward output to `tracing`. This prevents pipe buffer deadlocks when a child produces significant output.
 
 ```mermaid
 graph TD
@@ -33,7 +33,7 @@ graph TD
 
 ## Default
 
-`StdioConfig::Null` — all streams are null by default. This is the safest default for background processes and services that should not pollute the parent's output.
+`StdioConfig::Null` - all streams are null by default. This is the safest default for background processes and services that should not pollute the parent's output.
 
 ## Serde
 
@@ -41,14 +41,14 @@ graph TD
 
 ## Why Reader Threads for Piped?
 
-When `StdioConfig::Piped` is used, the OS creates a pipe with a fixed buffer size (typically 64KB). If the child writes more than the buffer can hold and nobody reads the pipe, the child blocks — causing a deadlock. `ProcessManager::start()` spawns dedicated reader threads that continuously read from the pipe and forward lines to `tracing::debug!` / `tracing::error!`, preventing this deadlock.
+When `StdioConfig::Piped` is used, the OS creates a pipe with a fixed buffer size (typically 64KB). If the child writes more than the buffer can hold and nobody reads the pipe, the child blocks - causing a deadlock. `ProcessManager::start()` spawns dedicated reader threads that continuously read from the pipe and forward lines to `tracing::debug!` / `tracing::error!`, preventing this deadlock.
 
 ## Usage
 
 ```rust
 use process_manager::{ProcessConfig, StdioConfig};
 
-// Background process — discard all output
+// Background process - discard all output
 let config = ProcessConfig::builder()
     .command("daemon".to_string())
     .stdin(StdioConfig::Null)
@@ -56,7 +56,7 @@ let config = ProcessConfig::builder()
     .stderr(StdioConfig::Null)
     .build();
 
-// Debug mode — inherit parent's streams
+// Debug mode - inherit parent's streams
 let config = ProcessConfig::builder()
     .command("my-app".to_string())
     .stdin(StdioConfig::Inherit)

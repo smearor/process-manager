@@ -10,11 +10,11 @@ In a Wayland compositor, each output may need its own socket. `SocketManager` al
 
 ## Types
 
-- **`Socket`** — `PathBuf` newtype with `path()` accessor, `Deref<Target = Path>`, `Display`, `AsRef<OsStr>`, `AsRef<str>`, `Serialize`/`Deserialize` implementations
-- **`SocketBuilder`** — Builds socket paths in `XDG_RUNTIME_DIR`, validates existing names or generates unique ones
-- **`SocketManager`** — Multi-socket manager using `DashMap`, shareable via `Arc` across threads
-- **`SocketBuilderError`** — Error type for socket construction failures
-- **`SocketManagerError`** — Error type for socket management operations
+- **`Socket`** - `PathBuf` newtype with `path()` accessor, `Deref<Target = Path>`, `Display`, `AsRef<OsStr>`, `AsRef<str>`, `Serialize`/`Deserialize` implementations
+- **`SocketBuilder`** - Builds socket paths in `XDG_RUNTIME_DIR`, validates existing names or generates unique ones
+- **`SocketManager`** - Multi-socket manager using `DashMap`, shareable via `Arc` across threads
+- **`SocketBuilderError`** - Error type for socket construction failures
+- **`SocketManagerError`** - Error type for socket management operations
 
 ## Architecture
 
@@ -43,9 +43,9 @@ graph TD
 
 ## Dependencies
 
-- `dashmap` — concurrent map for `SocketManager`
-- `thiserror` — error types
-- `serde` — `Serialize`/`Deserialize` for `Socket`
+- `dashmap` - concurrent map for `SocketManager`
+- `thiserror` - error types
+- `serde` - `Serialize`/`Deserialize` for `Socket`
 
 ## Usage
 

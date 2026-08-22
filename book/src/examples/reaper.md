@@ -6,9 +6,9 @@ Use the reaper thread to detect process exits and implement restart logic.
 
 The reaper thread polls `try_wait()` on all tracked processes at a configurable interval. When a process exits, it emits a `ProcessExitEvent` through an `mpsc` channel. This enables:
 
-- **Zombie prevention** — Exited processes are reaped automatically
-- **Exit notifications** — The consumer is informed when processes exit
-- **Restart logic** — The consumer can restart crashed processes
+- **Zombie prevention** - Exited processes are reaped automatically
+- **Exit notifications** - The consumer is informed when processes exit
+- **Restart logic** - The consumer can restart crashed processes
 
 ## Basic Exit Detection
 
@@ -53,7 +53,7 @@ if let Ok(event) = receiver.try_recv() {
 
 ## GTK Integration
 
-In GTK applications, **do not** call `receiver.recv()` directly in `MainContext::spawn_local` — it is a blocking call that will freeze the GTK main loop. Instead, use a forwarding thread to bridge the blocking `std::sync::mpsc` to a non-blocking `tokio::sync::mpsc` channel:
+In GTK applications, **do not** call `receiver.recv()` directly in `MainContext::spawn_local` - it is a blocking call that will freeze the GTK main loop. Instead, use a forwarding thread to bridge the blocking `std::sync::mpsc` to a non-blocking `tokio::sync::mpsc` channel:
 
 ```rust
 use tokio::sync::mpsc::unbounded_channel;
@@ -63,7 +63,7 @@ let (event_tx, mut event_rx) = unbounded_channel();
 std::thread::spawn(move || {
     while let Ok(event) = receiver.recv() {
         if event_tx.send(event).is_err() {
-            break; // Async receiver dropped — exit thread
+            break; // Async receiver dropped - exit thread
         }
     }
 });
@@ -106,4 +106,4 @@ The forwarding thread terminates automatically when:
 1. `ProcessManager` is dropped → reaper stops → `mpsc::Sender` dropped → `recv()` returns `Err`
 2. `MainContext` task completes → `event_rx` dropped → `event_tx.send()` returns `Err`
 
-No explicit join is needed — the forwarding thread exits cleanly in both cases.
+No explicit join is needed - the forwarding thread exits cleanly in both cases.

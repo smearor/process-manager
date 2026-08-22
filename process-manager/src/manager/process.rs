@@ -220,7 +220,7 @@ impl ProcessManager {
 
     /// Get a lightweight snapshot of a managed process by ID.
     ///
-    /// Returns a `ProcessInfo` containing metadata only — no `Child` handle.
+    /// Returns a `ProcessInfo` containing metadata only - no `Child` handle.
     /// Safe to hold across mutating calls since it does not hold a DashMap lock.
     pub fn get_info(&self, id: ProcessId) -> Option<ProcessInfo> {
         self.processes.get_mut(&id).map(|mut entry| {
@@ -278,7 +278,7 @@ impl ProcessManager {
     /// Get all processes with a given label.
     ///
     /// Returns a list of `(ProcessId, ProcessInfo)` snapshots. The processes
-    /// remain in the manager. Snapshots contain metadata only — no `Child`
+    /// remain in the manager. Snapshots contain metadata only - no `Child`
     /// handle. Use `stop()` / `stop_label()` for process control.
     pub fn get_by_label(&self, label: &str) -> Vec<(ProcessId, ProcessInfo)> {
         self.processes
@@ -299,7 +299,7 @@ impl ProcessManager {
 
     /// Send a signal to a specific process by ID.
     ///
-    /// The process remains in the manager — this does not stop or remove it.
+    /// The process remains in the manager - this does not stop or remove it.
     /// Use [`stop`](Self::stop) for termination with grace period and escalation.
     pub fn send_signal(&self, id: ProcessId, signal: crate::Signal) -> Result<(), ProcessManagerError> {
         let process = self.processes.get_mut(&id).ok_or(ProcessManagerError::NotFound(id))?;
@@ -354,7 +354,7 @@ impl ProcessManager {
         // 0. Mark as Stopping
         process.state = ProcessState::Stopping;
 
-        // 1. Send kill signal (ignore ESRCH — process may have already exited)
+        // 1. Send kill signal (ignore ESRCH - process may have already exited)
         if let Err(e) = process.send_signal(kill_signal) {
             if e.raw_os_error() == Some(libc::ESRCH) {
                 debug!("Process {} (pid={}) already exited, skipping signal", id, pid);
@@ -364,7 +364,7 @@ impl ProcessManager {
             return Err(ProcessManagerError::SignalFailed(pid, e.to_string()));
         }
 
-        // 2. Grace period — poll is_running()
+        // 2. Grace period - poll is_running()
         let deadline = Instant::now() + Duration::from_millis(timeout_ms);
         while Instant::now() < deadline {
             if !process.is_running() {
@@ -386,7 +386,7 @@ impl ProcessManager {
             return Err(ProcessManagerError::SignalFailed(pid, e.to_string()));
         }
 
-        // Wait for SIGKILL to take effect (bounded — process may be in D state)
+        // Wait for SIGKILL to take effect (bounded - process may be in D state)
         let kill_deadline = Instant::now() + Duration::from_millis(500);
         while Instant::now() < kill_deadline {
             if process.child.as_mut().is_some_and(|child| child.try_wait().ok().flatten().is_some()) {
@@ -425,7 +425,7 @@ impl ProcessManager {
         }
 
         // 2. Send kill signal to all processes.
-        // Signal failures are logged — the process will escalate to SIGKILL
+        // Signal failures are logged - the process will escalate to SIGKILL
         // if still alive, so we don't record an error here.
         for (process, _) in &mut entries {
             process.state = ProcessState::Stopping;
@@ -482,7 +482,7 @@ impl ProcessManager {
             }
         }
 
-        // 5. Wait for SIGKILL to take effect (bounded — process may be in D state)
+        // 5. Wait for SIGKILL to take effect (bounded - process may be in D state)
         for process in &mut to_reap {
             let kill_deadline = Instant::now() + Duration::from_millis(500);
             while Instant::now() < kill_deadline {
@@ -1052,7 +1052,7 @@ mod tests {
             .build();
         let _ = manager.start("test", &config).unwrap();
         assert_eq!(manager.len(), 1);
-        // Drop the manager — should terminate the process
+        // Drop the manager - should terminate the process
         drop(manager);
         // If the process wasn't terminated, it would linger as a zombie
         // but we can't easily verify from here. The test passes if no panic.

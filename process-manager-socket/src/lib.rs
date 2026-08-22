@@ -6,11 +6,11 @@
 //!
 //! # Key types
 //!
-//! - [`Socket`] — newtype wrapping a `PathBuf` representing a Wayland socket path
-//! - [`SocketBuilder`] — creates sockets with automatic unique name generation
-//! - [`SocketManager`] — concurrent registry of named sockets (`DashMap`-backed)
-//! - [`SocketBuilderError`] — errors during socket creation
-//! - [`SocketManagerError`] — errors during registration or lookup
+//! - [`Socket`] - newtype wrapping a `PathBuf` representing a Wayland socket path
+//! - [`SocketBuilder`] - creates sockets with automatic unique name generation
+//! - [`SocketManager`] - concurrent registry of named sockets (`DashMap`-backed)
+//! - [`SocketBuilderError`] - errors during socket creation
+//! - [`SocketManagerError`] - errors during registration or lookup
 //!
 //! # Usage
 //!

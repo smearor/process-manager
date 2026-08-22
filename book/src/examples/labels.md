@@ -6,11 +6,11 @@ Start and stop multiple processes under a shared label.
 
 Labels provide a way to group related processes. Multiple processes can share the same label, and operations like `stop_label()` and `pids_by_label()` act on all processes with that label. This is useful for:
 
-- **Worker pools** — Start N workers under a shared label, stop them all at once
-- **Application groups** — Group auxiliary processes (e.g. a main app + its helpers)
-- **Service management** — Start/stop services by name rather than tracking individual `ProcessId`s
+- **Worker pools** - Start N workers under a shared label, stop them all at once
+- **Application groups** - Group auxiliary processes (e.g. a main app + its helpers)
+- **Service management** - Start/stop services by name rather than tracking individual `ProcessId`s
 
-Labels are **not** unique identifiers — multiple processes can share the same label. Use `ProcessId` for individual process operations and labels for grouped operations.
+Labels are **not** unique identifiers - multiple processes can share the same label. Use `ProcessId` for individual process operations and labels for grouped operations.
 
 ```mermaid
 graph TD

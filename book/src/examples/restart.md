@@ -46,7 +46,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let id = manager.start("worker", &config)?;
     println!("Started worker (PID {})", manager.get_pid(id).unwrap());
 
-    // Restart — stops the old process, starts a new one with same config+label
+    // Restart - stops the old process, starts a new one with same config+label
     let new_id = manager.restart(id)?;
     println!("Restarted worker (new PID {})", manager.get_pid(new_id).unwrap());
     assert_ne!(id, new_id);

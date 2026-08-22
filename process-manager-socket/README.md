@@ -13,10 +13,10 @@ In a multi-output Wayland compositor, each output may need its own socket. `Sock
 
 ## Features
 
-- **`Socket` newtype** — `PathBuf` wrapper with `Deref<Target = Path>`, `Display`, `AsRef<OsStr>`, `AsRef<str>`
-- **`SocketBuilder`** — Builds socket paths in `XDG_RUNTIME_DIR`, validates existing names or generates unique ones
-- **`SocketManager`** — Multi-socket manager using `DashMap`, shareable via `Arc` across threads
-- **Error types** — `SocketBuilderError` and `SocketManagerError` via `thiserror`
+- **`Socket` newtype** - `PathBuf` wrapper with `Deref<Target = Path>`, `Display`, `AsRef<OsStr>`, `AsRef<str>`
+- **`SocketBuilder`** - Builds socket paths in `XDG_RUNTIME_DIR`, validates existing names or generates unique ones
+- **`SocketManager`** - Multi-socket manager using `DashMap`, shareable via `Arc` across threads
+- **Error types** - `SocketBuilderError` and `SocketManagerError` via `thiserror`
 
 ## Quick Start
 

@@ -2,8 +2,8 @@
 
 The `signal` module provides two signal enums for different use cases:
 
-- **[`KillSignal`]** — Restricted to `SIGTERM`/`SIGKILL`, used for process termination via `stop()`
-- **[`Signal`]** — Broader enum for general-purpose signaling via `send_signal()`
+- **[`KillSignal`]** - Restricted to `SIGTERM`/`SIGKILL`, used for process termination via `stop()`
+- **[`Signal`]** - Broader enum for general-purpose signaling via `send_signal()`
 
 ## KillSignal
 
@@ -13,8 +13,8 @@ The `signal` module provides two signal enums for different use cases:
 
 | Variant | Signal | Description |
 |---------|--------|-------------|
-| `Sigterm` | `SIGTERM` (15) | Graceful termination — the process can catch and handle it |
-| `Sigkill` | `SIGKILL` (9) | Immediate termination — cannot be caught or handled |
+| `Sigterm` | `SIGTERM` (15) | Graceful termination - the process can catch and handle it |
+| `Sigkill` | `SIGKILL` (9) | Immediate termination - cannot be caught or handled |
 
 ### Serde
 
@@ -72,8 +72,8 @@ let config = ProcessConfig::builder()
 
 ### When to Use Which
 
-- **`Sigterm`** (default) — Use for well-behaved processes that clean up on `SIGTERM` (save state, close connections, flush buffers). The configurable timeout gives them time to shut down gracefully.
-- **`Sigkill`** — Use for processes that don't respond to `SIGTERM` or when you need immediate termination. `SIGKILL` cannot be caught, so the process is killed instantly by the kernel.
+- **`Sigterm`** (default) - Use for well-behaved processes that clean up on `SIGTERM` (save state, close connections, flush buffers). The configurable timeout gives them time to shut down gracefully.
+- **`Sigkill`** - Use for processes that don't respond to `SIGTERM` or when you need immediate termination. `SIGKILL` cannot be caught, so the process is killed instantly by the kernel.
 
 ## Signal
 
@@ -83,7 +83,7 @@ let config = ProcessConfig::builder()
 
 | Variant | Signal | Description |
 |---------|--------|-------------|
-| `Sighup` | `SIGHUP` (1) | Hang up — often used to reload configuration |
+| `Sighup` | `SIGHUP` (1) | Hang up - often used to reload configuration |
 | `Sigint` | `SIGINT` (2) | Interrupt (Ctrl+C) |
 | `Sigquit` | `SIGQUIT` (3) | Quit with core dump |
 | `Sigterm` | `SIGTERM` (15) | Graceful termination request |
@@ -141,7 +141,7 @@ manager.stop(id)?;
 | Variants | `Sigterm`, `Sigkill` | 11 common Unix signals |
 | Used by | `ProcessConfig::kill_signal`, `stop()` | `send_signal()`, `send_signal_label()` |
 | Purpose | Termination with escalation | General process control |
-| Removes process | Yes (via `stop()`) | No — process stays in manager |
+| Removes process | Yes (via `stop()`) | No - process stays in manager |
 
 ```mermaid
 graph LR

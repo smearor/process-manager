@@ -40,7 +40,7 @@ pub struct ProcessConfig {
     /// the controlling terminal. The process is still tracked by the
     /// `ProcessManager` (stored in the `DashMap` with its `Child` handle).
     /// The reaper thread uses non-blocking `try_wait()` to detect exit and
-    /// prevent zombies — no thread-per-process blocking `wait()` needed.
+    /// prevent zombies - no thread-per-process blocking `wait()` needed.
     #[builder(default)]
     pub forked: bool,
 

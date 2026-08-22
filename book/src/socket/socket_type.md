@@ -4,8 +4,8 @@
 
 It exists as a distinct type rather than using `PathBuf` directly for two reasons:
 
-1. **Type safety** — Functions that expect a Wayland socket can take `&Socket` instead of `&Path`, preventing accidental misuse with arbitrary paths.
-2. **Ergonomic trait implementations** — `AsRef<str>` and `Display` make it easy to extract the socket name (e.g. `wayland-0`) for setting `WAYLAND_DISPLAY` in child environments.
+1. **Type safety** - Functions that expect a Wayland socket can take `&Socket` instead of `&Path`, preventing accidental misuse with arbitrary paths.
+2. **Ergonomic trait implementations** - `AsRef<str>` and `Display` make it easy to extract the socket name (e.g. `wayland-0`) for setting `WAYLAND_DISPLAY` in child environments.
 
 ## Accessing the Path
 

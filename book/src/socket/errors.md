@@ -6,8 +6,8 @@ Errors that can occur when building a socket path via `SocketBuilder::build()`.
 
 | Variant | When | Description |
 |---------|------|-------------|
-| `XdgRuntimeDirNotSet` | `build()` | `XDG_RUNTIME_DIR` environment variable is not set — the user session may not be properly initialized |
-| `SocketAlreadyExists` | `build()` | A socket file with the given name already exists in `XDG_RUNTIME_DIR` — only returned when a specific name is requested |
+| `XdgRuntimeDirNotSet` | `build()` | `XDG_RUNTIME_DIR` environment variable is not set - the user session may not be properly initialized |
+| `SocketAlreadyExists` | `build()` | A socket file with the given name already exists in `XDG_RUNTIME_DIR` - only returned when a specific name is requested |
 
 ## SocketManagerError
 

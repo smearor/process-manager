@@ -12,7 +12,7 @@ use std::thread::JoinHandle;
 /// A managed child process.
 ///
 /// Represents a running or completed child process tracked by `ProcessManager`.
-/// The `child` handle is always `Some` — even forked processes (with `setsid()`)
+/// The `child` handle is always `Some` - even forked processes (with `setsid()`)
 /// are tracked with their `Child` handle for stop/reaper operations.
 #[derive(Debug)]
 #[must_use]
@@ -35,7 +35,7 @@ pub struct Process {
     /// The configuration this process was started with.
     pub config: Arc<ProcessConfig>,
 
-    /// The child process handle. Always `Some` — forked processes are also
+    /// The child process handle. Always `Some` - forked processes are also
     /// tracked (with `setsid()` applied via `pre_exec`).
     pub child: Option<Child>,
 

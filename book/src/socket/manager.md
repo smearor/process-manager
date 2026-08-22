@@ -10,7 +10,7 @@ In a multi-output Wayland compositor, each output may have its own socket. `Sock
 - Retrieve sockets when spawning compositor clients
 - Share socket references across threads via `Arc`
 
-The `DashMap` backend allows concurrent reads and writes without a single `Mutex` lock — multiple threads can register and retrieve sockets simultaneously.
+The `DashMap` backend allows concurrent reads and writes without a single `Mutex` lock - multiple threads can register and retrieve sockets simultaneously.
 
 `register()` uses the `DashMap` entry API for atomic check-and-insert, preventing TOCTOU race conditions when multiple threads register sockets concurrently.
 

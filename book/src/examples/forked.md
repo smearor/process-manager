@@ -56,12 +56,12 @@ let id = manager.start("daemon", &config)?;
 
 ## When to Use `forked`
 
-- **Daemons** — Processes that should run independently of the parent's terminal session
-- **Terminal applications** — Processes that should not receive `SIGHUP` when the parent terminal closes
-- **Long-running services** — Processes that outlive the parent and should not be tied to the parent's session
+- **Daemons** - Processes that should run independently of the parent's terminal session
+- **Terminal applications** - Processes that should not receive `SIGHUP` when the parent terminal closes
+- **Long-running services** - Processes that outlive the parent and should not be tied to the parent's session
 
 ## When NOT to Use `forked`
 
-- **Compositor clients** — Wayland clients should share the compositor's session
-- **Short-lived commands** — No need to detach processes that finish quickly
-- **Processes you want to receive terminal signals** — `setsid()` detaches from the terminal, so terminal-generated signals (Ctrl+C, SIGHUP) won't reach the child
+- **Compositor clients** - Wayland clients should share the compositor's session
+- **Short-lived commands** - No need to detach processes that finish quickly
+- **Processes you want to receive terminal signals** - `setsid()` detaches from the terminal, so terminal-generated signals (Ctrl+C, SIGHUP) won't reach the child

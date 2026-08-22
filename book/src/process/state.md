@@ -45,14 +45,14 @@ graph TD
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `is_alive()` | `bool` | `true` for `Starting`, `Running`, `Stopping`, `Restarting` — equivalent to the old `is_running()` semantics |
+| `is_alive()` | `bool` | `true` for `Starting`, `Running`, `Stopping`, `Restarting` - equivalent to the old `is_running()` semantics |
 | `is_terminated()` | `bool` | `true` for `Stopped`, `Crashed`, `Failed` |
 
 ## Trait Implementations
 
 - `Debug`, `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`
-- `Default` — defaults to `Starting`
-- `Display` — lowercase string (`"starting"`, `"running"`, etc.)
+- `Default` - defaults to `Starting`
+- `Display` - lowercase string (`"starting"`, `"running"`, etc.)
 
 ## Usage
 

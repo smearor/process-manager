@@ -4,12 +4,12 @@ Send arbitrary Unix signals to running processes without stopping them.
 
 ## Overview
 
-The `send_signal()` and `send_signal_label()` methods allow sending any [`Signal`](../process/signal.md) to a managed process. Unlike `stop()`, the process remains in the manager — this is useful for:
+The `send_signal()` and `send_signal_label()` methods allow sending any [`Signal`](../process/signal.md) to a managed process. Unlike `stop()`, the process remains in the manager - this is useful for:
 
-- **Config reloads** — Send `SIGHUP` to trigger a reload
-- **Pause/resume** — Send `SIGSTOP` / `SIGCONT`
-- **Custom protocols** — Send `SIGUSR1` / `SIGUSR2` for application-specific events
-- **Window resize** — Send `SIGWINCH` to notify terminal applications
+- **Config reloads** - Send `SIGHUP` to trigger a reload
+- **Pause/resume** - Send `SIGSTOP` / `SIGCONT`
+- **Custom protocols** - Send `SIGUSR1` / `SIGUSR2` for application-specific events
+- **Window resize** - Send `SIGWINCH` to notify terminal applications
 
 ```mermaid
 sequenceDiagram
@@ -46,14 +46,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(manager.is_running(id), Some(true));
     assert_eq!(manager.state(id), Some(ProcessState::Running));
 
-    // Send SIGWINCH — sleep ignores it, process keeps running
+    // Send SIGWINCH - sleep ignores it, process keeps running
     manager.send_signal(id, Signal::Sigwinch)?;
     std::thread::sleep(std::time::Duration::from_millis(100));
     assert_eq!(manager.is_running(id), Some(true));
     assert_eq!(manager.state(id), Some(ProcessState::Running));
     println!("After SIGWINCH: still running");
 
-    // Send SIGTERM — sleep terminates
+    // Send SIGTERM - sleep terminates
     manager.send_signal(id, Signal::Sigterm)?;
     std::thread::sleep(std::time::Duration::from_millis(200));
     assert_eq!(manager.is_running(id), Some(false));
