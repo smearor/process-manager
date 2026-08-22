@@ -7,10 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## [0.0.0-alpha-1] - 2026-xx-xx
-
 ### Added
 
+- `ProcessState` enum with lifecycle states: `Starting`, `Running`, `Stopping`, `Stopped`, `Crashed`, `Restarting`, `Failed`
+  - `ProcessState::is_alive()` - `true` for `Starting`, `Running`, `Stopping`, `Restarting`
+  - `ProcessState::is_terminated()` - `true` for `Stopped`, `Crashed`, `Failed`
+  - `Default` (defaults to `Starting`), `Display` (lowercase string), `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`
+- `Process.state` field and `Process::state()` method - lazily updates state via non-blocking `try_wait()`
+- `ProcessInfo.state` field - lifecycle state snapshot in `ProcessInfo`
+- `ProcessExitEvent.state` field - lifecycle state at exit (`Stopped` or `Crashed`), derived from exit status by the reaper
+- `ProcessExitEvent.exit_status` field - the `ExitStatus` of the exited process
+- `ProcessManager::state(id)` - returns the current `ProcessState` for a process
+- `ExitedProcess` internal struct for the reaper loop (replaces tuple-based collection)
+- Book page for `ProcessState` at `book/src/process/state.md`
+- Integration tests for `ProcessState` transitions: `Stopped` after normal exit, `Crashed` after failure, state in `ProcessInfo`, state in reaper exit events
+- Unit tests for `ProcessState`: `Display`, `is_alive()`, `is_terminated()`, `Default`, equality, `Clone`/`Copy`
 - `ProcessManager` for concurrent child process lifecycle management via `DashMap`
 - `ProcessConfig` with `TypedBuilder` (command, args, env, working_dir, shell, forked, terminate_on_exit, kill_signal, restart_on_exit, stdio, socket)
 - `Process` / `ProcessId` / `ProcessInfo` types for process handles and snapshots
@@ -42,6 +53,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Crates renamed from `smearor-wrot-process` / `smearor-wrot-socket` to `process-manager` / `process-manager-socket`
+- Repository URL changed from `smearor/smearor-wrot-process-manager` to `smearor/process-manager`
+- `Process::is_running()` now delegates to `state().is_alive()` instead of directly calling `try_wait()`
+- `ProcessManager::stop()` and `stop_many()` now set `ProcessState::Stopping` before sending signals
+- `ProcessManager::stop_many()` now sets `ProcessState::Failed` when re-inserting a process after `force_kill()` failure
+- `ProcessManager::restart()` and `restart_label()` now set `ProcessState::Restarting` before stopping the old process
+- `ProcessManager::get_info()` now calls `state()` on the process before snapshotting to ensure the state is up-to-date
+- `Process::state()` short-circuits for `Stopping`, `Restarting`, and terminated states without calling `try_wait()`
+- Reaper loop now derives `ProcessState::Stopped` or `ProcessState::Crashed` from `exit_status.success()` and includes it in `ProcessExitEvent`
+- `ProcessInfo` and `ProcessConfig` now derive `PartialEq` and `Eq`
+- Reader threads are now joined early when the process exits (detected via `try_wait()` in reaper or during `stop()`), not only during `stop()`
+- Book documentation updated: `process.md`, `exit_event.md`, `manager.md`, `reaper.md`, `index.md`, `architecture.md`, `introduction.md`, and all example pages now reference `ProcessState`
+- Examples updated: `basic_spawn`, `reaper`, `send_signal`, `wayland_socket` now demonstrate `state()` and `event.state`
+- Em dashes (`—`) replaced with hyphens (`-`) across book and changelog for consistency
 - `Socket` field made private - use `path()`, `Deref`, or `AsRef` instead of accessing `.0` directly
 - `SocketManager::register()` now uses `DashMap` entry API for atomic check-and-insert (TOCTOU fix)
 - `ProcessManager::get()` is now `pub(crate)` - use `get_info()` for a `ProcessInfo` snapshot or the convenience getter methods instead
@@ -56,6 +81,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Potential endless blocking when a process is in an unkillable state (e.g. state D / uninterruptible sleep) - `stop()` now handles this gracefully
+- `Process::send_signal()` now uses `nix::Error::from_raw_os_error` consistently (was `Error::other` in some paths, losing the OS error code)
+- Removed leftover no-ops in process management code
 - TOCTOU race condition in `SocketManager::register()` (contains_key + insert was not atomic)
 - Deadlock risk from exposing `ProcessManager::get()` - replaced with `get_info()` snapshot and dedicated getters
 - Defensive fix if setting process group leader fails
