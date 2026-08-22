@@ -45,12 +45,8 @@ fn get_nonexistent_returns_none() {
 #[test]
 fn names_returns_all_registered() {
     let manager = SocketManager::new();
-    manager
-        .register("a", Socket::from(PathBuf::from("/tmp/a")))
-        .unwrap();
-    manager
-        .register("b", Socket::from(PathBuf::from("/tmp/b")))
-        .unwrap();
+    manager.register("a", Socket::from(PathBuf::from("/tmp/a"))).unwrap();
+    manager.register("b", Socket::from(PathBuf::from("/tmp/b"))).unwrap();
 
     let mut names = manager.names();
     names.sort();
