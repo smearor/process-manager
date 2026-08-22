@@ -7,9 +7,6 @@ pub enum ProcessConfigError {
     /// The command string is empty.
     #[error("Command cannot be empty")]
     EmptyCommand,
-    /// The `ProcessConfig` is missing a required field.
-    #[error("Missing required field: {0}")]
-    MissingField(String),
 }
 
 impl ProcessConfigError {
