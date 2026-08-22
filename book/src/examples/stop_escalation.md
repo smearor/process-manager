@@ -28,7 +28,7 @@ sequenceDiagram
 ## Example
 
 ```rust
-use smearor_wrot_process::{KillSignal, ProcessConfig, ProcessManager, StdioConfig};
+use process_manager::{KillSignal, ProcessConfig, ProcessManager, StdioConfig};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let manager = ProcessManager::new();

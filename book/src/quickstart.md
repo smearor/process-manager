@@ -8,9 +8,9 @@ Add the crates to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-smearor-wrot-process = { git = "https://github.com/smearor/smearor-wrot-process-manager" }
+process-manager = { git = "https://github.com/smearor/smearor-wrot-process-manager" }
 # Optional: only if you need Wayland socket management
-smearor-wrot-socket = { git = "https://github.com/smearor/smearor-wrot-process-manager" }
+process-manager-socket = { git = "https://github.com/smearor/smearor-wrot-process-manager" }
 ```
 
 ## Minimal Example
@@ -18,7 +18,7 @@ smearor-wrot-socket = { git = "https://github.com/smearor/smearor-wrot-process-m
 Spawn a child process, let it run, and stop it:
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, ProcessManager, StdioConfig};
+use process_manager::{ProcessConfig, ProcessManager, StdioConfig};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let manager = ProcessManager::new();
@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 Spawn a process that auto-restarts on exit:
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, ProcessManager, StdioConfig};
+use process_manager::{ProcessConfig, ProcessManager, StdioConfig};
 use std::time::Duration;
 
 fn main() -> Result<(), Box<dyn std::Error::Error>> {
@@ -83,8 +83,8 @@ fn main() -> Result<(), Box<dyn std::Error::Error>> {
 Spawn a Wayland client bound to a specific socket:
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, ProcessManager, StdioConfig};
-use smearor_wrot_socket::SocketBuilder;
+use process_manager::{ProcessConfig, ProcessManager, StdioConfig};
+use process_manager_socket::SocketBuilder;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let manager = ProcessManager::new();

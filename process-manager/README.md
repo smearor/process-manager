@@ -1,4 +1,4 @@
-# smearor-wrot-process
+# process-manager
 
 [![Rust Edition](https://img.shields.io/badge/rust-2024-f5b700.svg)](https://doc.rust-lang.org/edition-guide/rust-2024/index.html)
 [![License](https://img.shields.io/badge/license-MIT-89fc00.svg)](LICENSE.md)
@@ -7,7 +7,7 @@ Child process lifecycle management with Wayland socket binding.
 
 ## Overview
 
-`smearor-wrot-process` provides a `ProcessManager` for spawning, tracking, and terminating child processes. It supports label-based grouping, forked/detached processes, and an optional reaper thread for zombie prevention and exit notifications.
+`process-manager` provides a `ProcessManager` for spawning, tracking, and terminating child processes. It supports label-based grouping, forked/detached processes, and an optional reaper thread for zombie prevention and exit notifications.
 
 Used by both `smearor-wrot` (to spawn compositor clients) and `smearor-swipe-launcher` (to launch terminal commands and desktop applications).
 
@@ -29,7 +29,7 @@ Used by both `smearor-wrot` (to spawn compositor clients) and `smearor-swipe-lau
 ### Spawn a child process
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, ProcessManager, StdioConfig};
+use process_manager::{ProcessConfig, ProcessManager, StdioConfig};
 
 let manager = ProcessManager::new();
 let config = ProcessConfig::builder()
@@ -82,7 +82,7 @@ manager.stop_label("worker-pool")?; // Stops all three
 ### Wayland socket binding
 
 ```rust
-use smearor_wrot_socket::SocketBuilder;
+use process_manager_socket::SocketBuilder;
 
 let socket = SocketBuilder::build(&None)?;
 let config = ProcessConfig::builder()
@@ -123,7 +123,7 @@ Controls standard streams: `Inherit` (parent's streams), `Null` (`/dev/null`), `
 | `libc` | `setsid()` for forked processes |
 | `typed-builder` | `ProcessConfig` builder pattern |
 | `which` | Executable path resolution |
-| `smearor-wrot-socket` | Wayland socket binding |
+| `process-manager-socket` | Wayland socket binding |
 | `thiserror` | Error types |
 | `tracing` | Logging |
 

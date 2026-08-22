@@ -2,8 +2,8 @@
 resolver = "3"
 
 members = [
-    "smearor-wrot-socket",
-    "smearor-wrot-process"
+    "process-manager-socket",
+    "process-manager"
 ]
 
 [workspace.package]
@@ -12,7 +12,7 @@ authors = ["Andreas Schaeffer <hanack@nooblounge.net>"]
 edition = "2024"
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/smearor/smearor-wrot-process-manager"
+repository = "https://github.com/smearor/process-manager"
 homepage = "https://smearor.io/"
 rust-version = "1.92.0"
 

@@ -1,5 +1,5 @@
 [package]
-name = "smearor-wrot-process"
+name = "process-manager"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -14,7 +14,7 @@ dashmap = { workspace = true }
 libc = { workspace = true }
 nix = { workspace = true }
 serde = { workspace = true }
-smearor-wrot-socket = { path = "../smearor-wrot-socket" }
+process-manager-socket = { path = "../process-manager-socket" }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 typed-builder = { workspace = true }

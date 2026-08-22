@@ -1,4 +1,4 @@
-# smearor-wrot-socket
+# process-manager-socket
 
 [![Rust Edition](https://img.shields.io/badge/rust-2024-f5b700.svg)](https://doc.rust-lang.org/edition-guide/rust-2024/index.html)
 [![License](https://img.shields.io/badge/license-MIT-89fc00.svg)](LICENSE.md)
@@ -7,7 +7,7 @@ Wayland socket path management for `smearor-wrot` and `smearor-swipe-launcher`.
 
 ## Overview
 
-`smearor-wrot-socket` provides types for building, registering, and managing Wayland socket paths. Sockets are created in `XDG_RUNTIME_DIR` and can be shared across threads via `Arc<SocketManager>`.
+`process-manager-socket` provides types for building, registering, and managing Wayland socket paths. Sockets are created in `XDG_RUNTIME_DIR` and can be shared across threads via `Arc<SocketManager>`.
 
 In a multi-output Wayland compositor, each output may need its own socket. `SocketManager` allows registering multiple sockets by name and retrieving them when spawning compositor clients.
 
@@ -21,7 +21,7 @@ In a multi-output Wayland compositor, each output may need its own socket. `Sock
 ## Quick Start
 
 ```rust
-use smearor_wrot_socket::{SocketBuilder, SocketManager};
+use process_manager_socket::{SocketBuilder, SocketManager};
 use std::sync::Arc;
 
 // Build a socket (auto-generates unique name if None)

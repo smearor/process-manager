@@ -40,7 +40,7 @@ graph TD
 ## Usage
 
 ```rust
-use smearor_wrot_socket::SocketBuilder;
+use process_manager_socket::SocketBuilder;
 
 // Auto-generate unique name (recommended)
 let socket = SocketBuilder::build(&None)?;

@@ -4,7 +4,7 @@
 
 ## Overview
 
-`ProcessManager` is the central component of the `smearor-wrot-process` crate. It provides:
+`ProcessManager` is the central component of the `process-manager` crate. It provides:
 
 - **Concurrent tracking** — All processes are stored in a `DashMap` keyed by `ProcessId`, allowing concurrent access from multiple threads
 - **Label-based grouping** — Multiple processes can share a label for grouped start/stop operations
@@ -17,7 +17,7 @@
 ### `new()` — Without reaper
 
 ```rust
-use smearor_wrot_process::ProcessManager;
+use process_manager::ProcessManager;
 
 let manager = ProcessManager::new();
 ```
@@ -27,7 +27,7 @@ Use this when you don't need exit notifications. Processes are still tracked and
 ### `with_reaper(poll_interval, sender)` — With reaper
 
 ```rust
-use smearor_wrot_process::ProcessManager;
+use process_manager::ProcessManager;
 use std::time::Duration;
 
 let (sender, receiver) = std::sync::mpsc::channel();
@@ -222,7 +222,7 @@ When `ProcessManager` is dropped:
 ### Without reaper
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, ProcessManager, StdioConfig};
+use process_manager::{ProcessConfig, ProcessManager, StdioConfig};
 
 let manager = ProcessManager::new();
 let config = ProcessConfig::builder()
@@ -240,7 +240,7 @@ manager.stop(id)?;
 ### With reaper and restart
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, ProcessManager, StdioConfig};
+use process_manager::{ProcessConfig, ProcessManager, StdioConfig};
 use std::time::Duration;
 
 let (sender, receiver) = std::sync::mpsc::channel();

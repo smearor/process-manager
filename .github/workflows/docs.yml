@@ -4,14 +4,14 @@ on:
   push:
     branches: [ main ]
     paths:
-      - "smearor-wrot-*/src/**/*.rs"
+      - "process-manager-*/src/**/*.rs"
       - "Cargo.toml"
       - "Cargo.lock"
       - ".github/workflows/docs.yml"
   pull_request:
     branches: [ main ]
     paths:
-      - "smearor-wrot-*/src/**/*.rs"
+      - "process-manager-*/src/**/*.rs"
       - "Cargo.toml"
       - "Cargo.lock"
       - ".github/workflows/docs.yml"

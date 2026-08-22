@@ -13,8 +13,8 @@ Both `smearor-wrot` and `smearor-swipe-launcher` need to spawn and manage child 
 
 This workspace consolidates that logic into two reusable, framework-agnostic crates:
 
-1. **`smearor-wrot-socket`** — Wayland socket path management with `Socket`, `SocketBuilder`, and `SocketManager`
-2. **`smearor-wrot-process`** — Child process lifecycle management with `ProcessConfig`, `ProcessManager`, and an optional reaper thread
+1. **`process-manager-socket`** — Wayland socket path management with `Socket`, `SocketBuilder`, and `SocketManager`
+2. **`process-manager`** — Child process lifecycle management with `ProcessConfig`, `ProcessManager`, and an optional reaper thread
 
 ## Key Benefits
 
@@ -35,8 +35,8 @@ graph TD
     classDef crate fill: #00a1e4, stroke: #ffffff, stroke-width: 2px, color: #ffffff
     classDef consumer fill: #89fc00, stroke: #333333, stroke-width: 2px, color: #000000
 
-    Socket["smearor-wrot-socket"]
-    Process["smearor-wrot-process"]
+    Socket["process-manager-socket"]
+    Process["process-manager"]
     Wrot["smearor-wrot"]
     Launcher["smearor-swipe-launcher"]
 

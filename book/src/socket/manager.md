@@ -57,7 +57,7 @@ graph TD
 ### Basic
 
 ```rust
-use smearor_wrot_socket::{SocketBuilder, SocketManager};
+use process_manager_socket::{SocketBuilder, SocketManager};
 
 let manager = SocketManager::new();
 let socket = SocketBuilder::build(&None)?;
@@ -70,7 +70,7 @@ assert!(socket.is_some());
 ### Multi-output with Arc
 
 ```rust
-use smearor_wrot_socket::{SocketBuilder, SocketManager};
+use process_manager_socket::{SocketBuilder, SocketManager};
 use std::sync::Arc;
 
 let manager = Arc::new(SocketManager::new());

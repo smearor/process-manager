@@ -1,5 +1,5 @@
 [package]
-name = "smearor-wrot-socket"
+name = "process-manager-socket"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

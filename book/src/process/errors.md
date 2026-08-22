@@ -18,7 +18,7 @@ Errors returned during `ProcessConfig` construction. Currently minimal since `Ty
 ## Usage
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, ProcessManager, ProcessManagerError};
+use process_manager::{ProcessConfig, ProcessManager, ProcessManagerError};
 
 let manager = ProcessManager::new();
 

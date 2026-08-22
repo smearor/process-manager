@@ -31,5 +31,5 @@ p:dependencies:
       - any-glob-to-any-file:
           - Cargo.toml
           - Cargo.lock
-          - smearor-wrot-*/Cargo.toml
+          - process-manager-*/Cargo.toml
           - .github/workflows/dependabot-approve-and-auto-merge.yml

@@ -68,7 +68,7 @@ This is acceptable for the use case (low-frequency operations, small number of p
 ## Usage
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, ProcessManager, StdioConfig};
+use process_manager::{ProcessConfig, ProcessManager, StdioConfig};
 use std::time::Duration;
 
 let (sender, receiver) = std::sync::mpsc::channel();

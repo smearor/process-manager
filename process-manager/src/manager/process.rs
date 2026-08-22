@@ -597,7 +597,7 @@ mod tests {
     use super::*;
     use crate::config::ProcessConfig;
     use crate::signal::KillSignal;
-    use smearor_wrot_socket::Socket;
+    use process_manager_socket::Socket;
     use std::collections::HashMap;
 
     #[test]

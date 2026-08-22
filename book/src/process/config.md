@@ -66,7 +66,7 @@ graph TD
 ### Minimal
 
 ```rust
-use smearor_wrot_process::ProcessConfig;
+use process_manager::ProcessConfig;
 
 let config = ProcessConfig::builder()
     .command("echo".to_string())
@@ -76,8 +76,8 @@ let config = ProcessConfig::builder()
 ### Full
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, StdioConfig, KillSignal};
-use smearor_wrot_socket::Socket;
+use process_manager::{ProcessConfig, StdioConfig, KillSignal};
+use process_manager_socket::Socket;
 use std::path::PathBuf;
 use std::collections::HashMap;
 

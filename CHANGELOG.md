@@ -31,9 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Socket`, `SocketBuilder`, `SocketManager` for Wayland socket management
 - `Socket::path()` accessor (field made private)
 - Serde support for `Socket`, `StdioConfig`, `ProcessConfig`, and `KillSignal`
-- Crate-level rustdoc for both `smearor-wrot-process` and `smearor-wrot-socket`
+- Crate-level rustdoc for both `process-manager` and `process-manager-socket`
 - 7 examples: `basic_spawn`, `forked`, `reaper`, `restart`, `stop_escalation`, `wayland_socket`, `send_signal`
-- `socket_basic` example for `smearor-wrot-socket`
+- `socket_basic` example for `process-manager-socket`
 - Integration tests for process lifecycle, socket management, and TOCTOU concurrency safety
 - Tests for `stop_label` / `stop_all` escalation timing and correctness
 - mdBook documentation with architecture diagrams, type references, and usage examples

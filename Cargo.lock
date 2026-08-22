@@ -120,6 +120,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "process-manager"
+version = "0.1.0"
+dependencies = [
+ "dashmap",
+ "libc",
+ "nix",
+ "process-manager-socket",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tracing",
+ "typed-builder",
+ "which",
+]
+
+[[package]]
+name = "process-manager-socket"
+version = "0.1.0"
+dependencies = [
+ "dashmap",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -191,31 +216,6 @@ name = "smallvec"
 version = "1.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ed6a63f02c8539c91a8685a86f4099661ba3da017932f6ebbea6de3f0fa7c90"
-
-[[package]]
-name = "smearor-wrot-process"
-version = "0.1.0"
-dependencies = [
- "dashmap",
- "libc",
- "nix",
- "serde",
- "serde_json",
- "smearor-wrot-socket",
- "thiserror",
- "tracing",
- "typed-builder",
- "which",
-]
-
-[[package]]
-name = "smearor-wrot-socket"
-version = "0.1.0"
-dependencies = [
- "dashmap",
- "serde",
- "thiserror",
-]
 
 [[package]]
 name = "syn"

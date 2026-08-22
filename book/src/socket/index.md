@@ -1,4 +1,4 @@
-# smearor-wrot-socket
+# process-manager-socket
 
 Wayland socket path management crate.
 
@@ -50,7 +50,7 @@ graph TD
 ## Usage
 
 ```rust
-use smearor_wrot_socket::{SocketBuilder, SocketManager};
+use process_manager_socket::{SocketBuilder, SocketManager};
 use std::sync::Arc;
 
 // Build a socket (auto-generates unique name if None)

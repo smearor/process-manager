@@ -11,8 +11,8 @@ When spawning a Wayland client (e.g. a GTK4 app, a panel, a wallpaper daemon), t
 ## Example
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, ProcessManager, StdioConfig};
-use smearor_wrot_socket::{SocketBuilder, SocketManager};
+use process_manager::{ProcessConfig, ProcessManager, StdioConfig};
+use process_manager_socket::{SocketBuilder, SocketManager};
 
 // Create and register a socket
 let socket = SocketBuilder::build(&None)?;
@@ -37,8 +37,8 @@ let id = manager.start("wayland-client", &config)?;
 In a multi-output compositor, each output may have its own socket. Clients spawned for a specific output should be bound to that output's socket:
 
 ```rust
-use smearor_wrot_socket::{SocketBuilder, SocketManager};
-use smearor_wrot_process::{ProcessConfig, ProcessManager, StdioConfig};
+use process_manager_socket::{SocketBuilder, SocketManager};
+use process_manager::{ProcessConfig, ProcessManager, StdioConfig};
 
 let socket_manager = SocketManager::new();
 

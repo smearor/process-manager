@@ -6,8 +6,8 @@
 
 The workspace is composed of two crates:
 
-- **`smearor-wrot-socket`** — Wayland socket path management with `Socket`, `SocketBuilder`, and `SocketManager`
-- **`smearor-wrot-process`** — Child process lifecycle management with `ProcessConfig`, `ProcessManager`, and reaper thread
+- **`process-manager-socket`** — Wayland socket path management with `Socket`, `SocketBuilder`, and `SocketManager`
+- **`process-manager`** — Child process lifecycle management with `ProcessConfig`, `ProcessManager`, and reaper thread
 
 ## Crate Relationships
 
@@ -18,8 +18,8 @@ graph TD
     classDef process fill: #f5b700, stroke: #333333, stroke-width: 2px, color: #000000
     classDef consumer fill: #89fc00, stroke: #333333, stroke-width: 2px, color: #000000
 
-    Socket["smearor-wrot-socket<br/><small>Socket, SocketBuilder, SocketManager</small>"]
-    Process["smearor-wrot-process<br/><small>ProcessConfig, ProcessManager, Reaper</small>"]
+    Socket["process-manager-socket<br/><small>Socket, SocketBuilder, SocketManager</small>"]
+    Process["process-manager<br/><small>ProcessConfig, ProcessManager, Reaper</small>"]
     Wrot["smearor-wrot<br/><small>Compositor + clients</small>"]
     Launcher["smearor-swipe-launcher<br/><small>terminal_command + app-launcher</small>"]
 
@@ -36,7 +36,7 @@ graph TD
 
 ## Core Components
 
-### 1. Socket Management (`smearor-wrot-socket`)
+### 1. Socket Management (`process-manager-socket`)
 
 The socket crate provides three main types:
 
@@ -44,7 +44,7 @@ The socket crate provides three main types:
 - **`SocketBuilder`** — Constructs socket paths in `XDG_RUNTIME_DIR`. If a name is provided, it validates uniqueness. If no name is provided, it auto-generates a unique name like `wayland-{N}`.
 - **`SocketManager`** — A concurrent multi-socket manager using `DashMap`. Sockets are registered by name and can be retrieved, removed, or listed. Shareable via `Arc` across threads.
 
-### 2. Process Management (`smearor-wrot-process`)
+### 2. Process Management (`process-manager`)
 
 The process crate provides the `ProcessManager` as its central component:
 
@@ -190,7 +190,7 @@ graph TD
 
 ### Why split socket and process into separate crates?
 
-Socket management is a lightweight concern (path manipulation, `DashMap` for multi-socket support). Process management is heavier (child spawning, signal handling, reaper threads). Separating them allows consumers to depend on only what they need — `smearor-swipe-launcher` uses only `smearor-wrot-process` without needing the socket crate directly.
+Socket management is a lightweight concern (path manipulation, `DashMap` for multi-socket support). Process management is heavier (child spawning, signal handling, reaper threads). Separating them allows consumers to depend on only what they need — `smearor-swipe-launcher` uses only `process-manager` without needing the socket crate directly.
 
 ### Why `DashMap` instead of `Mutex<HashMap>`?
 

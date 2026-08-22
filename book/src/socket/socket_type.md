@@ -27,7 +27,7 @@ The inner `PathBuf` is private. Use one of these methods to access it:
 ## Usage
 
 ```rust
-use smearor_wrot_socket::Socket;
+use process_manager_socket::Socket;
 use std::path::PathBuf;
 
 // Construct from a path
@@ -50,8 +50,8 @@ assert_eq!(socket_str, "/run/user/1000/wayland-0");
 When a `Socket` is passed to `ProcessConfig::socket(Some(socket))`, the `ProcessManager::start()` method extracts the socket name (the last path component) and sets it as the `WAYLAND_DISPLAY` environment variable in the child process. This allows the child to connect to the correct Wayland display.
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, ProcessManager, StdioConfig};
-use smearor_wrot_socket::Socket;
+use process_manager::{ProcessConfig, ProcessManager, StdioConfig};
+use process_manager_socket::Socket;
 use std::path::PathBuf;
 
 let socket = Socket::from(PathBuf::from("/run/user/1000/wayland-1"));

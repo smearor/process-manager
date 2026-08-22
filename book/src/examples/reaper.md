@@ -13,7 +13,7 @@ The reaper thread polls `try_wait()` on all tracked processes at a configurable 
 ## Basic Exit Detection
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, ProcessManager, StdioConfig};
+use process_manager::{ProcessConfig, ProcessManager, StdioConfig};
 use std::time::Duration;
 
 let (sender, receiver) = std::sync::mpsc::channel();

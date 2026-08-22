@@ -2,7 +2,7 @@ use crate::config::StdioConfig;
 use crate::signal::KillSignal;
 use serde::Deserialize;
 use serde::Serialize;
-use smearor_wrot_socket::Socket;
+use process_manager_socket::Socket;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use typed_builder::TypedBuilder;

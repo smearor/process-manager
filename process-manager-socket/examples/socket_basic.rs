@@ -1,5 +1,5 @@
-use smearor_wrot_socket::SocketBuilder;
-use smearor_wrot_socket::SocketManager;
+use process_manager_socket::SocketBuilder;
+use process_manager_socket::SocketManager;
 
 fn main() {
     if std::env::var("XDG_RUNTIME_DIR").is_err() {

@@ -24,7 +24,7 @@
 //! # Usage
 //!
 //! ```no_run
-//! use smearor_wrot_process::{ProcessConfig, ProcessManager, StdioConfig};
+//! use process_manager::{ProcessConfig, ProcessManager, StdioConfig};
 //!
 //! let manager = ProcessManager::new();
 //!
@@ -44,7 +44,7 @@
 //!
 //! [`stop_label`]: ProcessManager::stop_label
 //! [`restart_label`]: ProcessManager::restart_label
-//! [`Socket`]: smearor_wrot_socket::Socket
+//! [`Socket`]: process_manager_socket::Socket
 
 pub mod config;
 pub mod manager;

@@ -46,7 +46,7 @@ When `StdioConfig::Piped` is used, the OS creates a pipe with a fixed buffer siz
 ## Usage
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, StdioConfig};
+use process_manager::{ProcessConfig, StdioConfig};
 
 // Background process — discard all output
 let config = ProcessConfig::builder()

@@ -1,4 +1,4 @@
-# smearor-wrot-process
+# process-manager
 
 Child process lifecycle management with Wayland socket binding.
 
@@ -78,7 +78,7 @@ graph TD
 | `libc` | `setsid()` for forked processes |
 | `typed-builder` | `ProcessConfig` builder pattern |
 | `which` | Executable path resolution |
-| `smearor-wrot-socket` | Wayland socket binding |
+| `process-manager-socket` | Wayland socket binding |
 | `thiserror` | Error types |
 | `tracing` | Logging |
 

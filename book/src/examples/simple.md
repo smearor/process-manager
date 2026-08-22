@@ -9,7 +9,7 @@ This is the most basic usage of `ProcessManager`: spawn a process, let it run, a
 ## Example
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, ProcessManager, StdioConfig};
+use process_manager::{ProcessConfig, ProcessManager, StdioConfig};
 
 let manager = ProcessManager::new();
 let config = ProcessConfig::builder()

@@ -149,7 +149,7 @@ graph TD
 | Signal handling | `nix` in each service | `nix` in `ProcessManager` only |
 | Executable resolution | `which` in each service | `which` in `ProcessManager` only |
 | Drop/cleanup | Manual `Drop` impl per service | `ProcessManager::drop` handles all |
-| Dependencies per service | `dashmap`, `nix`, `which` | `smearor-wrot-process` only |
+| Dependencies per service | `dashmap`, `nix`, `which` | `process-manager` only |
 | Code duplication | Duplicated across services | Single shared crate |
 
 ### GTK Integration Pattern

@@ -31,7 +31,7 @@ graph TD
 ## Example
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, ProcessManager, StdioConfig};
+use process_manager::{ProcessConfig, ProcessManager, StdioConfig};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let manager = ProcessManager::new();
@@ -62,7 +62,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ## Label-based Restart
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, ProcessManager, StdioConfig};
+use process_manager::{ProcessConfig, ProcessManager, StdioConfig};
 
 let manager = ProcessManager::new();
 let config = ProcessConfig::builder()

@@ -20,7 +20,7 @@ Errors that can occur when managing sockets in `SocketManager`.
 ## Usage
 
 ```rust
-use smearor_wrot_socket::{SocketBuilder, SocketBuilderError};
+use process_manager_socket::{SocketBuilder, SocketBuilderError};
 
 match SocketBuilder::build(&Some("wayland-0".to_string())) {
     Ok(socket) => println!("Socket: {}", socket),

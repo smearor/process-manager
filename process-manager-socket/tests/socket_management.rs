@@ -1,6 +1,6 @@
-use smearor_wrot_socket::Socket;
-use smearor_wrot_socket::SocketBuilder;
-use smearor_wrot_socket::SocketManager;
+use process_manager_socket::Socket;
+use process_manager_socket::SocketBuilder;
+use process_manager_socket::SocketManager;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Barrier;

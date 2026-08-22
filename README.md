@@ -12,19 +12,19 @@ Shared socket and process management crates for `smearor-wrot` and `smearor-swip
 
 ## Workspace Structure
 
-- **[`smearor-wrot-socket`](smearor-wrot-socket/)** — Wayland socket path management (`Socket`, `SocketBuilder`, `SocketManager`)
-- **[`smearor-wrot-process`](smearor-wrot-process/)** — Child process lifecycle management (`ProcessConfig`, `ProcessManager`, reaper thread)
+- **[`process-manager-socket`](process-manager-socket/)** — Wayland socket path management (`Socket`, `SocketBuilder`, `SocketManager`)
+- **[`process-manager`](process-manager/)** — Child process lifecycle management (`ProcessConfig`, `ProcessManager`, reaper thread)
 
 ## Features
 
-### smearor-wrot-socket
+### process-manager-socket
 
 - **`Socket` newtype** — `PathBuf` wrapper with `Deref<Target = Path>`, `Display`, `AsRef<OsStr>`, `AsRef<str>` implementations
 - **`SocketBuilder`** — Builds socket paths in `XDG_RUNTIME_DIR`, validates existing names or generates unique ones
 - **`SocketManager`** — Multi-socket manager using `DashMap`, shareable via `Arc` across threads
 - **Error types** — `SocketBuilderError` and `SocketManagerError` via `thiserror`
 
-### smearor-wrot-process
+### process-manager
 
 - **`ProcessConfig`** — Unified configuration via `TypedBuilder` (command, args, env, working_dir, shell, forked, terminate_on_exit, kill_signal, restart_on_exit, stdio, socket)
 - **`ProcessManager`** — Concurrent process tracking via `DashMap`, label-based grouping, optional reaper thread
@@ -43,7 +43,7 @@ Shared socket and process management crates for `smearor-wrot` and `smearor-swip
 ### Spawn a child process
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, ProcessManager, StdioConfig};
+use process_manager::{ProcessConfig, ProcessManager, StdioConfig};
 
 let manager = ProcessManager::new();
 let config = ProcessConfig::builder()
@@ -96,7 +96,7 @@ manager.stop_label("worker-pool")?; // Stops all three
 ### Wayland socket binding
 
 ```rust
-use smearor_wrot_socket::{SocketBuilder, SocketManager};
+use process_manager_socket::{SocketBuilder, SocketManager};
 
 let socket = SocketBuilder::build(&None)?;
 let config = ProcessConfig::builder()

@@ -54,7 +54,7 @@ graph TD
 ### Usage in Config
 
 ```rust
-use smearor_wrot_process::{KillSignal, ProcessConfig};
+use process_manager::{KillSignal, ProcessConfig};
 
 // Graceful termination with 3 second timeout
 let config = ProcessConfig::builder()
@@ -104,7 +104,7 @@ let config = ProcessConfig::builder()
 `Signal` implements `From<KillSignal>`, so a `KillSignal` can be converted to a `Signal` when needed:
 
 ```rust
-use smearor_wrot_process::{KillSignal, Signal};
+use process_manager::{KillSignal, Signal};
 
 let signal: Signal = KillSignal::Sigterm.into();
 assert_eq!(signal, Signal::Sigterm);
@@ -113,7 +113,7 @@ assert_eq!(signal, Signal::Sigterm);
 ### Usage with send_signal
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, ProcessManager, Signal, StdioConfig};
+use process_manager::{ProcessConfig, ProcessManager, Signal, StdioConfig};
 
 let manager = ProcessManager::new();
 let config = ProcessConfig::builder()
@@ -161,4 +161,4 @@ graph LR
 
 ## Why Not `Child::kill()`?
 
-`std::process::Child::kill()` always sends `SIGKILL`. There is no way to send `SIGTERM` using the standard library alone. The `nix` crate provides `nix::sys::signal::kill(pid, signal)` which allows sending any signal, including `SIGTERM`. This is why `smearor-wrot-process` depends on `nix`.
+`std::process::Child::kill()` always sends `SIGKILL`. There is no way to send `SIGTERM` using the standard library alone. The `nix` crate provides `nix::sys::signal::kill(pid, signal)` which allows sending any signal, including `SIGTERM`. This is why `process-manager` depends on `nix`.

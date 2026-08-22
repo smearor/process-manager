@@ -1,7 +1,7 @@
-use smearor_wrot_process::KillSignal;
-use smearor_wrot_process::ProcessConfig;
-use smearor_wrot_process::ProcessManager;
-use smearor_wrot_process::StdioConfig;
+use process_manager::KillSignal;
+use process_manager::ProcessConfig;
+use process_manager::ProcessManager;
+use process_manager::StdioConfig;
 use std::sync::mpsc;
 use std::time::Duration;
 
@@ -148,7 +148,7 @@ fn forked_process_detaches_and_stops() {
 #[test]
 fn stop_nonexistent_returns_error() {
     let manager = ProcessManager::new();
-    let result = manager.stop(smearor_wrot_process::ProcessId::new(999));
+    let result = manager.stop(process_manager::ProcessId::new(999));
     assert!(result.is_err());
 }
 

@@ -15,7 +15,7 @@
 //! # Usage
 //!
 //! ```no_run
-//! use smearor_wrot_socket::{SocketBuilder, SocketManager};
+//! use process_manager_socket::{SocketBuilder, SocketManager};
 //!
 //! let manager = SocketManager::new();
 //!

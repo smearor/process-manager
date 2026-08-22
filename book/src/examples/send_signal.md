@@ -29,7 +29,7 @@ sequenceDiagram
 ## Example
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, ProcessManager, Signal, StdioConfig};
+use process_manager::{ProcessConfig, ProcessManager, Signal, StdioConfig};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let manager = ProcessManager::new();
@@ -68,7 +68,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 Send a signal to all processes sharing a label:
 
 ```rust
-use smearor_wrot_process::{ProcessConfig, ProcessManager, Signal, StdioConfig};
+use process_manager::{ProcessConfig, ProcessManager, Signal, StdioConfig};
 
 let manager = ProcessManager::new();
 let config = ProcessConfig::builder()

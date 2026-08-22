@@ -1,6 +1,6 @@
-use smearor_wrot_process::ProcessConfig;
-use smearor_wrot_process::ProcessManager;
-use smearor_wrot_process::StdioConfig;
+use process_manager::ProcessConfig;
+use process_manager::ProcessManager;
+use process_manager::StdioConfig;
 use std::sync::mpsc;
 use std::time::Duration;
 
