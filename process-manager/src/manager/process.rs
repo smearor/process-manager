@@ -420,14 +420,13 @@ impl ProcessManager {
 
         // 3. Poll: wait for each process until it exits or its deadline passes
         let mut to_escalate: Vec<Process> = Vec::new();
-        let mut to_join: Vec<Process> = Vec::new();
         while !entries.is_empty() {
             let now = Instant::now();
             let mut still_waiting = Vec::new();
             for (mut process, deadline) in entries.drain(..) {
                 if !process.is_running() {
                     debug!("Process {} (pid={}) exited after signal", process.id, process.pid);
-                    to_join.push(process);
+                    process.join_readers(Duration::from_millis(500));
                 } else if now >= deadline {
                     to_escalate.push(process);
                 } else {
@@ -438,11 +437,6 @@ impl ProcessManager {
             if !entries.is_empty() {
                 thread::sleep(Duration::from_millis(50));
             }
-        }
-
-        // 3b. Join reader threads for processes that exited gracefully
-        for process in &mut to_join {
-            process.join_readers(Duration::from_millis(500));
         }
 
         // 4. Escalate to SIGKILL for processes that didn't exit in time.
