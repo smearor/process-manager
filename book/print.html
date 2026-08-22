@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c23d626c.js";
+            window.path_to_searchindex_js = "searchindex-b91aa8bd.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f05e57f.js"></script>
@@ -279,7 +279,7 @@ use std::time::Duration;
 
 fn main() -&gt; Result&lt;(), Box&lt;dyn std::Error::Error&gt;&gt; {
     let (sender, receiver) = std::sync::mpsc::channel();
-    let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender);
+    let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender)?;
 
     let config = ProcessConfig::builder()
         .command("true".to_string())
@@ -1085,7 +1085,7 @@ let manager = ProcessManager::new();
 use std::time::Duration;
 
 let (sender, receiver) = std::sync::mpsc::channel();
-let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender);
+let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender)?;
 <span class="boring">}</span></code></pre>
 <p>The reaper thread polls all tracked processes every <code>poll_interval</code> and emits <code>ProcessExitEvent</code>s via the <code>sender</code>. This prevents zombies and enables exit notifications and restart logic.</p>
 <h2 id="methods"><a class="header" href="#methods">Methods</a></h2>
@@ -1313,7 +1313,7 @@ manager.stop(id)?;
 use std::time::Duration;
 
 let (sender, receiver) = std::sync::mpsc::channel();
-let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender);
+let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender)?;
 
 let config = ProcessConfig::builder()
     .command("my-service".to_string())
@@ -1734,7 +1734,7 @@ manager.stop(id)?;
 use std::time::Duration;
 
 let (sender, receiver) = std::sync::mpsc::channel();
-let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender);
+let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender)?;
 
 let config = ProcessConfig::builder()
     .command("true".to_string())
@@ -1804,7 +1804,7 @@ println!("Process {} (PID {}) exited", event.label, event.pid);
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let (sender, receiver) = std::sync::mpsc::channel();
-let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender);
+let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender)?;
 
 manager.start("task", &amp;config)?;
 
@@ -2055,7 +2055,7 @@ let id = manager.start("daemon", &amp;config)?;
 use std::time::Duration;
 
 let (sender, receiver) = std::sync::mpsc::channel();
-let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender);
+let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender)?;
 
 let config = ProcessConfig::builder()
     .command("short-lived".to_string())
