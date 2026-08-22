@@ -16,6 +16,8 @@ The consumer receives this event and can decide what to do — log the exit, res
 | `pid` | `u32` | The OS process ID (for logging/debugging) |
 | `label` | `String` | The label under which the process was started |
 | `restart_on_exit` | `bool` | Whether the consumer should restart this process |
+| `exit_status` | `Option<ExitStatus>` | The exit status of the process (`None` if the child handle was missing or `try_wait()` returned an error) |
+| `state` | `ProcessState` | The lifecycle state at exit — `Stopped` if normal exit, `Crashed` if non-zero exit code or signal |
 
 The `restart_on_exit` flag is set from `ProcessConfig::restart_on_exit`. It is a hint — the consumer is free to ignore it. The reaper itself does not restart processes; that is the consumer's responsibility.
 
@@ -35,10 +37,11 @@ graph TD
     D -->|Sync| E["receiver.recv()<br/>or try_recv()"]
     D -->|GTK/Async| F["Forwarding thread<br/>std → tokio::mpsc"]
     F --> G["MainContext::spawn_local<br/>async event handling"]
-    E --> H{"restart_on_exit?"}
+    E --> H{"state?"}
     G --> H
-    H -->|true| I["manager.start(label, &config)"]
-    H -->|false| J["Log / update UI"]
+    H -->|"Stopped"| J["Log / update UI"]
+    H -->|"Crashed"| I["manager.start(label, &config)"]
+    H -->|"restart_on_exit"| I
 
     class A reaper
     class B event
@@ -65,9 +68,9 @@ manager.start("task", &config)?;
 
 loop {
     let event = receiver.recv()?;
-    println!("Process {} (PID {}) exited", event.label, event.pid);
+    println!("Process {} (PID {}) exited: {}", event.label, event.pid, event.state);
     
-    if event.restart_on_exit {
+    if event.restart_on_exit || event.state == ProcessState::Crashed {
         manager.start(&event.label, &config)?;
     }
 }
@@ -103,8 +106,8 @@ manager.start("task", &config)?;
 let main_context = MainContext::default();
 main_context.spawn_local(async move {
     while let Some(event) = async_receiver.recv().await {
-        println!("Process {} exited", event.label);
-        if event.restart_on_exit {
+        println!("Process {} exited: {}", event.label, event.state);
+        if event.restart_on_exit || event.state == ProcessState::Crashed {
             manager.start(&event.label, &config);
         }
     }
@@ -119,8 +122,8 @@ For simple applications that already have a periodic timer:
 loop {
     // Process exit events
     while let Ok(event) = receiver.try_recv() {
-        println!("Process {} exited", event.label);
-        if event.restart_on_exit {
+        println!("Process {} exited: {}", event.label, event.state);
+        if event.restart_on_exit || event.state == ProcessState::Crashed {
             manager.start(&event.label, &config)?;
         }
     }

@@ -1,5 +1,6 @@
 use process_manager::ProcessConfig;
 use process_manager::ProcessManager;
+use process_manager::ProcessState;
 use process_manager::StdioConfig;
 
 fn main() {
@@ -17,6 +18,7 @@ fn main() {
 
     assert_eq!(manager.get_label(id), Some("example".to_string()));
     assert_eq!(manager.is_running(id), Some(true));
+    assert_eq!(manager.state(id), Some(ProcessState::Running));
 
     manager.stop(id).expect("failed to stop process");
     println!("Process stopped, manager empty: {}", manager.is_empty());

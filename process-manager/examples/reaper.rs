@@ -18,7 +18,7 @@ fn main() {
     println!("Started process with ID {} (reaper active)", id);
 
     let event = rx.recv_timeout(Duration::from_secs(5)).expect("no exit event received");
-    println!("Reaper detected exit: id={}, label={}, pid={}", event.id, event.label, event.pid);
+    println!("Reaper detected exit: id={}, label={}, pid={}, state={}", event.id, event.label, event.pid, event.state);
     assert_eq!(event.id, id);
 
     manager.stop_all();

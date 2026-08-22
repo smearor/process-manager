@@ -22,6 +22,7 @@ This workspace consolidates that logic into two reusable, framework-agnostic cra
 - **Zombie prevention** — The reaper thread calls `try_wait()` on all tracked processes, preventing zombies without per-process wait threads
 - **Graceful shutdown** — `terminate_on_exit` flag ensures processes are killed when the manager is dropped
 - **Signal escalation** — `SIGTERM` with configurable timeout, automatic `SIGKILL` escalation for stubborn processes
+- **Explicit lifecycle states** — `ProcessState` enum (`Starting`, `Running`, `Stopping`, `Stopped`, `Crashed`, `Restarting`, `Failed`) for precise decision-making
 - **Label-based grouping** — Start and stop multiple processes under a shared label (e.g. all workers in a pool)
 - **Forked/detached support** — `setsid()` via `pre_exec` for processes that should survive parent exit
 - **Wayland socket binding** — Automatically sets `WAYLAND_DISPLAY` in child environment

@@ -28,7 +28,7 @@ manager.start("task", &config)?;
 
 // Receive exit event (blocks until process exits or timeout)
 let event = receiver.recv_timeout(Duration::from_secs(10))?;
-println!("Process {} (PID {}) exited", event.label, event.pid);
+println!("Process {} (PID {}) exited: {}", event.label, event.pid, event.state);
 ```
 
 ## Restart on Exit
@@ -44,7 +44,7 @@ manager.start("service", &config)?;
 
 // In your event loop:
 if let Ok(event) = receiver.try_recv() {
-    if event.restart_on_exit {
+    if event.restart_on_exit || event.state == ProcessState::Crashed {
         // Restart the process with the same label and config
         manager.start(&event.label, &config)?;
     }
@@ -70,8 +70,8 @@ std::thread::spawn(move || {
 
 MainContext::default().spawn_local(async move {
     while let Some(event) = event_rx.recv().await {
-        println!("Process {} exited", event.label);
-        if event.restart_on_exit {
+        println!("Process {} exited: {}", event.label, event.state);
+        if event.restart_on_exit || event.state == ProcessState::Crashed {
             // Restart in main thread
         }
     }

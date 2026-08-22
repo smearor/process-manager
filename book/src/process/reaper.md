@@ -8,7 +8,7 @@ When a child process exits, it becomes a zombie until someone calls `wait()` or 
 
 1. Spawns a `std::thread` named `"process-reaper"`
 2. Every `poll_interval`, iterates all tracked processes in the `DashMap`
-3. Calls `try_wait()` on each — if the process has exited, removes it from the `DashMap` and sends a `ProcessExitEvent`
+3. Calls `try_wait()` on each — if the process has exited, removes it from the `DashMap` and sends a `ProcessExitEvent` with the derived `ProcessState` (`Stopped` for normal exit, `Crashed` for non-zero)
 4. Runs until `ProcessManager` is dropped (via a `stop_flag` `AtomicBool`)
 
 ## Polling Cycle
@@ -27,6 +27,7 @@ sequenceDiagram
             alt Still running
                 Reaper->>Reaper: Skip
             else Exited
+                Reaper->>Reaper: Determine state (Stopped/Crashed)
                 Reaper->>DashMap: Remove process
                 Reaper->>Channel: Send ProcessExitEvent
                 Channel-->>Consumer: receiver.recv()
@@ -83,5 +84,5 @@ manager.start("task", &config)?;
 
 // Receive exit event
 let event = receiver.recv_timeout(Duration::from_secs(10))?;
-println!("Process {} (PID {}) exited", event.label, event.pid);
+println!("Process {} (PID {}) exited: {}", event.label, event.pid, event.state);
 ```

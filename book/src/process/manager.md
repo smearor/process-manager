@@ -151,7 +151,8 @@ graph TD
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `is_running(id)` | `Option<bool>` | Check if a process is still running |
+| `is_running(id)` | `Option<bool>` | Check if a process is still running (delegates to `state().is_alive()`) |
+| `state(id)` | `Option<ProcessState>` | Get the explicit lifecycle state of a process |
 | `is_forked(id)` | `Option<bool>` | Check if a process was spawned with `setsid()` |
 | `get_pid(id)` | `Option<u32>` | Get the OS PID for a process |
 | `get_label(id)` | `Option<String>` | Get the label for a process |
@@ -256,7 +257,7 @@ manager.start("service", &config)?;
 
 // In your event loop:
 if let Ok(event) = receiver.try_recv() {
-    if event.restart_on_exit {
+    if event.restart_on_exit || event.state == ProcessState::Crashed {
         manager.start(&event.label, &config)?;
     }
 }

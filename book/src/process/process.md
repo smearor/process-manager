@@ -37,19 +37,33 @@ graph TD
     classDef signal fill: #f5b700, stroke: #333333, stroke-width: 2px, color: #000000
     classDef stop fill: #dc0073, stroke: #333333, stroke-width: 2px, color: #ffffff
     classDef done fill: #04e762, stroke: #333333, stroke-width: 1px, color: #000
+    classDef failed fill: #dc0073, stroke: #333333, stroke-width: 1px, color: #ffffff
 
-    A["start()"] --> B["Running<br/>in DashMap"]
-    B -->|"send_signal()"| B
-    B -->|"stop()"| C["SIGTERM<br/>→ wait → SIGKILL"]
-    B -->|"process exits<br/>(reaper detects)"| D["ProcessExitEvent"]
-    C --> E["Removed from<br/>DashMap"]
-    D --> E
+    A["start()"] --> B["Starting<br/>transient"]
+    B --> C["Running<br/>in DashMap"]
+    B -->|"spawn fails"| F["Failed"]
+    C -->|"send_signal()"| C
+    C -->|"stop()"| D["Stopping<br/>SIGTERM sent"]
+    C -->|"restart()"| G["Restarting"]
+    C -->|"process exits<br/>(reaper detects)"| E["ProcessExitEvent"]
+    D -->|"exits normally"| H["Stopped"]
+    D -->|"exits with error"| I["Crashed"]
+    G -->|"stop old, start new"| B
+    E --> E2["Removed from<br/>DashMap"]
+    H --> E2
+    I --> E2
+    F --> E2
 
     class A start
     class B running
-    class C stop
-    class D signal
-    class E done
+    class C running
+    class D stop
+    class E signal
+    class E2 done
+    class F failed
+    class G signal
+    class H done
+    class I done
 ```
 
 ### Fields
@@ -63,12 +77,14 @@ graph TD
 | `terminate_on_exit` | `bool` | Whether to terminate on `ProcessManager` drop |
 | `config` | `ProcessConfig` | The configuration this process was started with |
 | `child` | `Option<Child>` | The `std::process::Child` handle (always `Some`) |
+| `state` | `ProcessState` | The current lifecycle state (updated lazily by `state()`, explicitly by `stop()` / `restart()`) |
 
 ### Methods
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `is_running()` | `bool` | Non-blocking check via `try_wait()` — `true` if still running |
+| `is_running()` | `bool` | Non-blocking check via `try_wait()` — `true` if still running (delegates to `state().is_alive()`) |
+| `state()` | `ProcessState` | Non-blocking check via `try_wait()` — returns the current lifecycle state, updating it if the process has exited |
 | `send_signal(signal)` | `Result<(), nix::Error>` | Send a signal to the process via `nix::sys::signal::kill` |
 | `force_kill()` | `Result<(), nix::Error>` | Send `SIGKILL` immediately |
 
@@ -85,6 +101,7 @@ let id = manager.start("task", &config)?;
 let process = manager.get(id).unwrap();
 println!("PID: {}, Label: {}", process.pid, process.label);
 println!("Running: {}", process.is_running());
+println!("State: {}", process.state);
 drop(process); // Release DashMap guard
 
 // Stop the process

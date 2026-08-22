@@ -1,5 +1,6 @@
 use process_manager::ProcessConfig;
 use process_manager::ProcessManager;
+use process_manager::ProcessState;
 use process_manager::Signal;
 use process_manager::StdioConfig;
 
@@ -16,17 +17,20 @@ fn main() {
     let id = manager.start("target", &config).expect("failed to start process");
     println!("Started process with ID {} (PID {})", id, manager.get_pid(id).unwrap());
     assert_eq!(manager.is_running(id), Some(true));
+    assert_eq!(manager.state(id), Some(ProcessState::Running));
 
     // Send SIGWINCH — sleep ignores it, process keeps running
     manager.send_signal(id, Signal::Sigwinch).expect("failed to send SIGWINCH");
     std::thread::sleep(std::time::Duration::from_millis(100));
     assert_eq!(manager.is_running(id), Some(true));
+    assert_eq!(manager.state(id), Some(ProcessState::Running));
     println!("After SIGWINCH: still running");
 
     // Send SIGTERM — sleep terminates
     manager.send_signal(id, Signal::Sigterm).expect("failed to send SIGTERM");
     std::thread::sleep(std::time::Duration::from_millis(200));
     assert_eq!(manager.is_running(id), Some(false));
+    assert_eq!(manager.state(id), Some(ProcessState::Crashed));
     println!("After SIGTERM: process exited");
 
     manager.stop(id).expect("failed to clean up");

@@ -29,7 +29,7 @@ sequenceDiagram
 ## Example
 
 ```rust
-use process_manager::{ProcessConfig, ProcessManager, Signal, StdioConfig};
+use process_manager::{ProcessConfig, ProcessManager, ProcessState, Signal, StdioConfig};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let manager = ProcessManager::new();
@@ -44,17 +44,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let id = manager.start("target", &config)?;
     println!("Started process with ID {} (PID {})", id, manager.get_pid(id).unwrap());
     assert_eq!(manager.is_running(id), Some(true));
+    assert_eq!(manager.state(id), Some(ProcessState::Running));
 
     // Send SIGWINCH — sleep ignores it, process keeps running
     manager.send_signal(id, Signal::Sigwinch)?;
     std::thread::sleep(std::time::Duration::from_millis(100));
     assert_eq!(manager.is_running(id), Some(true));
+    assert_eq!(manager.state(id), Some(ProcessState::Running));
     println!("After SIGWINCH: still running");
 
     // Send SIGTERM — sleep terminates
     manager.send_signal(id, Signal::Sigterm)?;
     std::thread::sleep(std::time::Duration::from_millis(200));
     assert_eq!(manager.is_running(id), Some(false));
+    assert_eq!(manager.state(id), Some(ProcessState::Crashed));
     println!("After SIGTERM: process exited");
 
     manager.stop(id)?;

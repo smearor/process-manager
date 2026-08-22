@@ -51,7 +51,7 @@ The process crate provides the `ProcessManager` as its central component:
 - **`ProcessConfig`** — Built via `TypedBuilder`. Contains all configuration for spawning a child: command, args, env, working_dir, shell mode, forked mode, terminate_on_exit, kill_signal, terminate_timeout, restart_on_exit, stdio config, and optional Wayland socket.
 - **`ProcessManager`** — Tracks child processes in a `DashMap` keyed by `ProcessId`. Supports label-based grouping, concurrent start/stop operations, and an optional reaper thread.
 - **`Process`** — A handle to a managed child process. Contains the `ProcessId`, PID, label, config, and the `std::process::Child` handle.
-- **`ProcessExitEvent`** — Emitted by the reaper thread when a process exits. Contains `id`, `pid`, `label`, and `restart_on_exit` flag.
+- **`ProcessExitEvent`** — Emitted by the reaper thread when a process exits. Contains `id`, `pid`, `label`, `restart_on_exit`, `exit_status`, and `state` (`Stopped` or `Crashed`).
 
 ## Process Lifecycle
 
@@ -66,8 +66,8 @@ graph TD
     A["ProcessConfig::builder()"] --> B["manager.start(label, &config)"]
     B --> C["Process spawned<br/>tracked in DashMap"]
     C --> D{Process exits?}
-    D -->|No| E["Running<br/>is_running() == true"]
-    D -->|Yes, reaper active| F["ProcessExitEvent<br/>sent via mpsc channel"]
+    D -->|No| E["Running<br/>state() == Running"]
+    D -->|Yes, reaper active| F["ProcessExitEvent<br/>state: Stopped/Crashed<br/>sent via mpsc channel"]
     D -->|Yes, no reaper| G["Zombie until<br/>stop() or drop()"]
     E --> H["manager.stop(id)"]
     H --> I["SIGTERM sent"]

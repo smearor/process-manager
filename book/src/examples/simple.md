@@ -24,6 +24,7 @@ let id = manager.start("echo-app", &config)?;
 
 // Check if the process is still running
 println!("Running: {}", manager.is_running(id).unwrap_or(false));
+println!("State: {}", manager.state(id).unwrap_or(process_manager::ProcessState::Failed));
 
 // Stop when done
 manager.stop(id)?;

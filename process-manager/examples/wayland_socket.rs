@@ -28,7 +28,7 @@ fn main() {
     println!("Started process with ID {} bound to socket", id);
 
     let info = process_manager.get_info(id).expect("process not found");
-    println!("Process info: pid={}, label={}, program={}", info.pid, info.label, info.program_name);
+    println!("Process info: pid={}, label={}, program={}, state={}", info.pid, info.label, info.program_name, info.state);
     assert_eq!(info.config.socket, Some(socket));
 
     process_manager.stop(id).expect("failed to stop process");

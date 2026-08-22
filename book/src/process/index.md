@@ -13,7 +13,8 @@ This crate is used by both `smearor-wrot` (to spawn compositor clients like pane
 - **`ProcessConfig`** — Unified configuration via `TypedBuilder` (command, args, env, working_dir, shell, forked, terminate_on_exit, kill_signal, restart_on_exit, stdio, socket)
 - **`ProcessManager`** — Concurrent process tracking via `DashMap`, label-based grouping, optional reaper thread
 - **`Process`** / **`ProcessId`** / **`ProcessInfo`** — Process handle, unique identifier, and lightweight snapshot type
-- **`ProcessExitEvent`** — Reaper exit notification with `id`, `pid`, `label`, `restart_on_exit`
+- **`ProcessState`** — Explicit lifecycle state enum (`Starting`, `Running`, `Stopping`, `Stopped`, `Crashed`, `Restarting`, `Failed`)
+- **`ProcessExitEvent`** — Reaper exit notification with `id`, `pid`, `label`, `restart_on_exit`, `exit_status`, `state`
 - **`StdioConfig`** — Inherit/Null/Piped enum for standard streams
 - **`KillSignal`** — Sigterm/Sigkill enum for termination config
 - **`Signal`** — Broader signal enum (SIGHUP, SIGUSR1, SIGSTOP, etc.) for general process control
@@ -86,6 +87,7 @@ See the individual pages for detailed documentation:
 - [ProcessConfig](config.md)
 - [ProcessManager](manager.md)
 - [Process & ProcessId](process.md)
+- [ProcessState](state.md)
 - [StdioConfig](stdio_config.md)
 - [Signal](signal.md)
 - [Reaper Thread](reaper.md)
