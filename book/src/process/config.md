@@ -37,7 +37,7 @@ The `TypedBuilder` pattern enforces required fields at compile time — only `co
 ## Builder Flow
 
 ```mermaid
-graph LR
+graph TD
     classDef default fill: #1e1e1e, stroke: #333333, stroke-width: 1px, color: #ffffff
     classDef required fill: #dc0073, stroke: #333333, stroke-width: 2px, color: #ffffff
     classDef optional fill: #00a1e4, stroke: #ffffff, stroke-width: 1px, color: #ffffff
@@ -111,3 +111,7 @@ let config = ProcessConfig::builder()
 - **`terminate_timeout_ms = 5000`**: 5 seconds grace period before `SIGKILL`. Adjust for processes that need more cleanup time.
 - **`stdio = Null`**: All streams are null by default, suitable for background processes. Use `Piped` for output capture or `Inherit` for debugging.
 - **`socket = None`**: No Wayland binding by default. Set when spawning Wayland clients.
+
+## Serde
+
+`ProcessConfig` implements `Serialize` and `Deserialize`, making it suitable for JSON/TOML configuration files. All nested types (`StdioConfig`, `KillSignal`, `Socket`) also implement serde traits.

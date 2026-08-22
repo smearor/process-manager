@@ -10,6 +10,27 @@ When spawning a child process, each standard stream can be configured independen
 - **`Null`** — The child's stream is connected to `/dev/null`. All output is discarded. Suitable for background processes.
 - **`Piped`** — The child's stream is piped. `ProcessManager::start()` spawns reader threads that forward output to `tracing`. This prevents pipe buffer deadlocks when a child produces significant output.
 
+```mermaid
+graph TD
+    classDef default fill: #1e1e1e, stroke: #333333, stroke-width: 1px, color: #ffffff
+    classDef inherit fill: #00a1e4, stroke: #ffffff, stroke-width: 2px, color: #ffffff
+    classDef null fill: #f5b700, stroke: #333333, stroke-width: 2px, color: #000000
+    classDef piped fill: #89fc00, stroke: #333333, stroke-width: 2px, color: #000000
+    classDef thread fill: #dc0073, stroke: #333333, stroke-width: 1px, color: #000000
+
+    Child["Child Process"]
+    Child -->|"Inherit"| Parent["Parent's terminal<br/><small>output visible</small>"]
+    Child -->|"Null"| DevNull[" /dev/null<br/><small>output discarded</small>"]
+    Child -->|"Piped"| Pipe["OS Pipe<br/><small>64KB buffer</small>"]
+    Pipe --> Reader["Reader Thread<br/><small>tracing::debug! / error!</small>"]
+
+    class Child inherit
+    class Parent inherit
+    class DevNull null
+    class Pipe piped
+    class Reader thread
+```
+
 ## Default
 
 `StdioConfig::Null` — all streams are null by default. This is the safest default for background processes and services that should not pollute the parent's output.

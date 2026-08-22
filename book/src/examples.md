@@ -8,7 +8,10 @@ This section provides practical examples for common use cases of `smearor-wrot-p
 - [Forked / Detached Process](forked.md) — Spawn a daemon that detaches from the controlling terminal via `setsid()`
 - [Reaper Monitoring](reaper.md) — Detect process exits with `ProcessExitEvent`, implement restart logic, and integrate with GTK
 - [Label-based Grouping](labels.md) — Manage multiple processes under a shared label for grouped start/stop
+- [Stop Escalation](stop_escalation.md) — Observe SIGTERM to SIGKILL escalation with a short timeout
+- [Restart](restart.md) — Restart a process preserving its config and label
 - [Wayland Socket Binding](wayland.md) — Bind a child process to a Wayland socket by setting `WAYLAND_DISPLAY`
+- [Send Signal](send_signal.md) — Send arbitrary signals (SIGHUP, SIGUSR1, etc.) to running processes
 
 ## Common Patterns
 

@@ -56,7 +56,7 @@ The process crate provides the `ProcessManager` as its central component:
 ## Process Lifecycle
 
 ```mermaid
-graph LR
+graph TD
     classDef default fill: #1e1e1e, stroke: #333333, stroke-width: 1px, color: #ffffff
     classDef config fill: #00a1e4, stroke: #ffffff, stroke-width: 2px, color: #ffffff
     classDef manager fill: #f5b700, stroke: #333333, stroke-width: 2px, color: #000000

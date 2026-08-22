@@ -23,9 +23,7 @@ let id = manager.start("echo-app", &config)?;
 // Reader threads capture stdout/stderr and forward to tracing
 
 // Check if the process is still running
-let process = manager.get(id).unwrap();
-println!("Running: {}", process.is_running());
-drop(process); // Release DashMap guard
+println!("Running: {}", manager.is_running(id).unwrap_or(false));
 
 // Stop when done
 manager.stop(id)?;

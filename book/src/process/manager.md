@@ -60,19 +60,106 @@ The reaper thread polls all tracked processes every `poll_interval` and emits `P
 | `stop_label(label)` | `Result<(), ProcessManagerError>` | Stop all processes under a label |
 | `stop_all()` | `()` | Stop all tracked processes |
 
-`stop()` sends the configured `kill_signal`, waits up to `terminate_timeout_ms`, and escalates to `SIGKILL` if the process is still running.
+`stop()` sends the configured `kill_signal`, waits up to `terminate_timeout_ms`, and escalates to `SIGKILL` if the process is still running. If the process has already exited (ESRCH), it joins readers and returns `Ok(())`.
+
+### Stop Flow
+
+```mermaid
+sequenceDiagram
+    participant Consumer
+    participant Manager as ProcessManager
+    participant Process
+    participant OS
+
+    Consumer->>Manager: stop(id)
+    Manager->>Process: send_signal(kill_signal)
+    alt ESRCH (already exited)
+        Process-->>Manager: Ok (process gone)
+        Manager->>Process: join_readers(500ms)
+        Manager-->>Consumer: Ok
+    else Signal sent
+        Process->>OS: kill(pid, SIGTERM)
+        Manager->>Process: wait(terminate_timeout_ms)
+        alt Process exited in time
+            Process-->>Manager: exited
+            Manager->>Process: join_readers
+            Manager-->>Consumer: Ok
+        else Process still running
+            Manager->>Process: force_kill (SIGKILL)
+            Process->>OS: kill(pid, SIGKILL)
+            Process-->>Manager: killed
+            Manager-->>Consumer: Ok
+        end
+    end
+```
+
+### Restarting
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `restart(id)` | `Result<ProcessId, ProcessManagerError>` | Restart a single process, preserving config and label |
+| `restart_label(label)` | `Result<(), StopManyError>` | Restart all processes under a label |
+
+`restart()` stops the process (with escalation), then starts a new one with the same config and label. Returns the new `ProcessId`.
+
+### Restart Flow
+
+```mermaid
+graph TD
+    classDef default fill: #1e1e1e, stroke: #333333, stroke-width: 1px, color: #ffffff
+    classDef input fill: #00a1e4, stroke: #ffffff, stroke-width: 2px, color: #ffffff
+    classDef stop fill: #f5b700, stroke: #333333, stroke-width: 2px, color: #000000
+    classDef start fill: #89fc00, stroke: #333333, stroke-width: 2px, color: #000
+    classDef done fill: #04e762, stroke: #333333, stroke-width: 1px, color: #000
+
+    A["restart(id)"] --> B["stop(id)<br/><small>SIGTERM → wait → SIGKILL</small>"]
+    B --> C["Remove old Process<br/>from DashMap"]
+    C --> D["start(label, &config)<br/><small>same config + label</small>"]
+    D --> E["New Process<br/>in DashMap"]
+    E --> F["Return new ProcessId"]
+
+    class A input
+    class B stop
+    class C stop
+    class D start
+    class E start
+    class F done
+```
+
+### Signaling
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `send_signal(id, signal)` | `Result<(), ProcessManagerError>` | Send a signal to a process by `ProcessId` (process stays in manager) |
+| `send_signal_label(label, signal)` | `Result<(), StopManyError>` | Send a signal to all processes under a label |
+
+`send_signal()` sends any [`Signal`](signal.md) (SIGHUP, SIGUSR1, SIGWINCH, etc.) without removing the process from the manager. This is useful for triggering config reloads, pausing/resuming, or other non-terminating signals.
 
 ### Querying
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `get(id)` | `Option<Process>` | Get a process by `ProcessId` (returns `DashMap` guard) |
-| `get_by_label(label)` | `Vec<Process>` | Get all processes with a label |
+| `get_info(id)` | `Option<ProcessInfo>` | Get a process snapshot by `ProcessId` (no deadlock risk) |
+| `get_by_label(label)` | `Vec<(ProcessId, ProcessInfo)>` | Get all process snapshots with a label |
 | `pids_by_label(label)` | `Vec<u32>` | Get PIDs for a label |
 | `labels()` | `Vec<String>` | List all distinct labels |
 | `ids()` | `Vec<ProcessId>` | List all `ProcessId`s |
 | `is_empty()` | `bool` | Check if manager has no processes |
 | `len()` | `usize` | Number of tracked processes |
+
+### Convenience Getters
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `is_running(id)` | `Option<bool>` | Check if a process is still running |
+| `is_forked(id)` | `Option<bool>` | Check if a process was spawned with `setsid()` |
+| `get_pid(id)` | `Option<u32>` | Get the OS PID for a process |
+| `get_label(id)` | `Option<String>` | Get the label for a process |
+| `get_program_name(id)` | `Option<String>` | Get the command/program name |
+| `get_terminate_on_exit(id)` | `Option<bool>` | Check if process has `terminate_on_exit` set |
+| `get_config(id)` | `Option<Arc<ProcessConfig>>` | Get the process config (shared via `Arc`) |
+
+`get()` is `pub(crate)` to avoid deadlock risks from holding `DashMap` guards. Use `get_info()` for a lightweight `ProcessInfo` snapshot or the convenience getters for specific fields.
 
 ## Start Flow
 

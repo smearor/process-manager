@@ -13,6 +13,29 @@ Unlike a double-fork (which would create a grandchild and lose the `Child` handl
 - `stop()` / `stop_label()` can still terminate it
 - The reaper thread can detect its exit
 
+```mermaid
+graph TD
+    classDef default fill: #1e1e1e, stroke: #333333, stroke-width: 1px, color: #ffffff
+    classDef parent fill: #00a1e4, stroke: #ffffff, stroke-width: 2px, color: #ffffff
+    classDef fork fill: #f5b700, stroke: #333333, stroke-width: 2px, color: #000000
+    classDef child fill: #89fc00, stroke: #333333, stroke-width: 2px, color: #000
+    classDef detached fill: #dc0073, stroke: #333333, stroke-width: 1px, color: #ffffff
+
+    P["Parent Process<br/><small>ProcessManager</small>"]
+    P -->|"fork + exec<br/>+ setsid() in pre_exec"| C["Child Process<br/><small>new session leader</small>"]
+    C --> D["Detached from<br/>controlling terminal"]
+    D --> E["Survives terminal close<br/><small>no SIGHUP</small>"]
+    C --> F["Child handle<br/>retained in DashMap"]
+    F --> G["stop() / reaper<br/>still work"]
+
+    class P parent
+    class C child
+    class D detached
+    class E detached
+    class F fork
+    class G fork
+```
+
 ## Example
 
 ```rust

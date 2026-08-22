@@ -25,7 +25,32 @@ let process = manager.get(id);
 
 ## Process
 
-A handle to a managed child process. Stored in `ProcessManager`'s `DashMap` and accessed via `get()` which returns a `DashMap` read guard.
+A handle to a managed child process. Stored in `ProcessManager`'s `DashMap` and accessed via `get_info()` which returns a `ProcessInfo` snapshot.
+
+### Lifecycle
+
+```mermaid
+graph TD
+    classDef default fill: #1e1e1e, stroke: #333333, stroke-width: 1px, color: #ffffff
+    classDef start fill: #89fc00, stroke: #333333, stroke-width: 2px, color: #000
+    classDef running fill: #00a1e4, stroke: #ffffff, stroke-width: 2px, color: #ffffff
+    classDef signal fill: #f5b700, stroke: #333333, stroke-width: 2px, color: #000000
+    classDef stop fill: #dc0073, stroke: #333333, stroke-width: 2px, color: #ffffff
+    classDef done fill: #04e762, stroke: #333333, stroke-width: 1px, color: #000
+
+    A["start()"] --> B["Running<br/>in DashMap"]
+    B -->|"send_signal()"| B
+    B -->|"stop()"| C["SIGTERM<br/>→ wait → SIGKILL"]
+    B -->|"process exits<br/>(reaper detects)"| D["ProcessExitEvent"]
+    C --> E["Removed from<br/>DashMap"]
+    D --> E
+
+    class A start
+    class B running
+    class C stop
+    class D signal
+    class E done
+```
 
 ### Fields
 
