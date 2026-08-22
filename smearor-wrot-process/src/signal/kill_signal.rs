@@ -1,8 +1,12 @@
-use nix::sys::signal::Signal;
+use nix::sys::signal::Signal as NixSignal;
 use serde::Deserialize;
 use serde::Serialize;
 
 /// Signal used for process termination.
+///
+/// Restricted to `SIGTERM` and `SIGKILL` — the only signals that make sense
+/// for the `stop()` path. Use [`crate::Signal`] for general-purpose signaling
+/// via `send_signal()`.
 ///
 /// Made framework-agnostic — the conversion to `nix::sys::signal::Signal`
 /// is internal. This allows the type to be used without importing `nix`
@@ -20,10 +24,10 @@ pub enum KillSignal {
 
 impl KillSignal {
     /// Convert `KillSignal` to `nix::sys::signal::Signal`.
-    pub fn to_signal(self) -> Signal {
+    pub fn to_nix_signal(self) -> NixSignal {
         match self {
-            KillSignal::Sigterm => Signal::SIGTERM,
-            KillSignal::Sigkill => Signal::SIGKILL,
+            KillSignal::Sigterm => NixSignal::SIGTERM,
+            KillSignal::Sigkill => NixSignal::SIGKILL,
         }
     }
 }
@@ -38,12 +42,12 @@ mod tests {
     }
 
     #[test]
-    fn test_kill_signal_to_signal_sigterm() {
-        assert_eq!(KillSignal::Sigterm.to_signal(), Signal::SIGTERM);
+    fn test_kill_signal_to_nix_signal_sigterm() {
+        assert_eq!(KillSignal::Sigterm.to_nix_signal(), NixSignal::SIGTERM);
     }
 
     #[test]
-    fn test_kill_signal_to_signal_sigkill() {
-        assert_eq!(KillSignal::Sigkill.to_signal(), Signal::SIGKILL);
+    fn test_kill_signal_to_nix_signal_sigkill() {
+        assert_eq!(KillSignal::Sigkill.to_nix_signal(), NixSignal::SIGKILL);
     }
 }

@@ -289,6 +289,48 @@ impl ProcessManager {
             .collect()
     }
 
+    /// Send a signal to a specific process by ID.
+    ///
+    /// The process remains in the manager — this does not stop or remove it.
+    /// Use [`stop`](Self::stop) for termination with grace period and escalation.
+    pub fn send_signal(&self, id: ProcessId, signal: crate::Signal) -> Result<(), ProcessManagerError> {
+        let process = self.processes.get_mut(&id).ok_or(ProcessManagerError::NotFound(id))?;
+        let nix_signal = signal.to_nix_signal();
+        nix::sys::signal::kill(nix::unistd::Pid::from_raw(process.pid as i32), nix_signal)
+            .map_err(|e| ProcessManagerError::SignalFailed(process.pid, e.to_string()))?;
+        debug!("Sent signal {:?} to process {} (pid={})", signal, process.id, process.pid);
+        Ok(())
+    }
+
+    /// Send a signal to all processes with a given label.
+    ///
+    /// Processes remain in the manager. Returns an error if any signal delivery
+    /// fails, but still attempts all processes.
+    pub fn send_signal_label(&self, label: &str, signal: crate::Signal) -> Result<(), StopManyError> {
+        let ids: Vec<ProcessId> = self
+            .processes
+            .iter()
+            .filter(|entry| entry.value().label == label)
+            .map(|entry| *entry.key())
+            .collect();
+
+        if ids.is_empty() {
+            return Ok(());
+        }
+
+        let mut errors: Vec<ProcessManagerError> = Vec::new();
+        for id in ids {
+            if let Err(e) = self.send_signal(id, signal) {
+                errors.push(e);
+            }
+        }
+
+        if !errors.is_empty() {
+            return Err(StopManyError::new(errors));
+        }
+        Ok(())
+    }
+
     /// Stop (kill) a specific process by ID.
     ///
     /// Sends the configured kill signal via `nix::sys::signal::kill`,
@@ -301,8 +343,13 @@ impl ProcessManager {
         let timeout_ms = process.config.terminate_timeout_ms;
         let pid = process.pid;
 
-        // 1. Send kill signal
+        // 1. Send kill signal (ignore ESRCH — process may have already exited)
         if let Err(e) = process.send_signal(kill_signal) {
+            if e.raw_os_error() == Some(libc::ESRCH) {
+                debug!("Process {} (pid={}) already exited, skipping signal", id, pid);
+                process.join_readers(Duration::from_millis(500));
+                return Ok(());
+            }
             return Err(ProcessManagerError::SignalFailed(pid, e.to_string()));
         }
 
@@ -549,7 +596,7 @@ impl Drop for ProcessManager {
 mod tests {
     use super::*;
     use crate::config::ProcessConfig;
-    use crate::kill_signal::KillSignal;
+    use crate::signal::KillSignal;
     use smearor_wrot_socket::Socket;
     use std::collections::HashMap;
 
@@ -731,6 +778,89 @@ mod tests {
         let manager = ProcessManager::new();
         let result = manager.stop(ProcessId::new(999));
         assert!(matches!(result, Err(ProcessManagerError::NotFound(_))));
+    }
+
+    #[test]
+    fn test_send_signal_to_running_process() {
+        let manager = ProcessManager::new();
+        let config = ProcessConfig::builder()
+            .command("sleep".to_string())
+            .args(vec!["30".to_string()])
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Null)
+            .build();
+        let id = manager.start("signal-test", &config).unwrap();
+        assert_eq!(manager.is_running(id), Some(true));
+
+        // SIGTERM should cause sleep to exit
+        manager.send_signal(id, crate::Signal::Sigterm).unwrap();
+
+        // Give it time to exit
+        std::thread::sleep(Duration::from_millis(200));
+        assert_eq!(manager.is_running(id), Some(false));
+
+        manager.stop(id).unwrap();
+    }
+
+    #[test]
+    fn test_send_signal_nonexistent() {
+        let manager = ProcessManager::new();
+        let result = manager.send_signal(ProcessId::new(999), crate::Signal::Sigusr1);
+        assert!(matches!(result, Err(ProcessManagerError::NotFound(_))));
+    }
+
+    #[test]
+    fn test_send_signal_label() {
+        let manager = ProcessManager::new();
+        let config = ProcessConfig::builder()
+            .command("sleep".to_string())
+            .args(vec!["30".to_string()])
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Null)
+            .build();
+
+        let id1 = manager.start("group", &config).unwrap();
+        let id2 = manager.start("group", &config).unwrap();
+        let _ = manager.start("other", &config).unwrap();
+
+        assert_eq!(manager.len(), 3);
+
+        // Send SIGTERM to all "group" processes
+        manager.send_signal_label("group", crate::Signal::Sigterm).unwrap();
+
+        std::thread::sleep(Duration::from_millis(200));
+        assert_eq!(manager.is_running(id1), Some(false));
+        assert_eq!(manager.is_running(id2), Some(false));
+        // "other" should still be running
+        assert_eq!(manager.pids_by_label("other").len(), 1);
+
+        manager.stop_all();
+    }
+
+    #[test]
+    fn test_send_signal_label_nonexistent() {
+        let manager = ProcessManager::new();
+        let result = manager.send_signal_label("nonexistent", crate::Signal::Sigusr1);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_send_signal_sigwinch_does_not_terminate() {
+        let manager = ProcessManager::new();
+        let config = ProcessConfig::builder()
+            .command("sleep".to_string())
+            .args(vec!["30".to_string()])
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Null)
+            .build();
+        let id = manager.start("winch-test", &config).unwrap();
+
+        // SIGWINCH is ignored by default, process should keep running
+        manager.send_signal(id, crate::Signal::Sigwinch).unwrap();
+        std::thread::sleep(Duration::from_millis(100));
+        assert_eq!(manager.is_running(id), Some(true));
+
+        manager.stop(id).unwrap();
     }
 
     #[test]

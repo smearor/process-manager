@@ -1,5 +1,5 @@
 use crate::config::ProcessConfig;
-use crate::kill_signal::KillSignal;
+use crate::signal::KillSignal;
 use crate::process::ProcessId;
 use nix::sys::signal::Signal;
 use nix::unistd::Pid;
@@ -90,8 +90,9 @@ impl Process {
     /// forked and tracked processes, since `std::process::Child::kill()`
     /// always sends `SIGKILL` and does not respect `kill_signal`.
     pub fn send_signal(&mut self, signal: KillSignal) -> std::io::Result<()> {
-        let nix_signal = signal.to_signal();
-        nix::sys::signal::kill(Pid::from_raw(self.pid as i32), nix_signal).map_err(|e| std::io::Error::other(e.to_string()))
+        let nix_signal = signal.to_nix_signal();
+        nix::sys::signal::kill(Pid::from_raw(self.pid as i32), nix_signal)
+            .map_err(|e| std::io::Error::from_raw_os_error(e as i32))
     }
 
     /// Force-kill the child process with `SIGKILL`.

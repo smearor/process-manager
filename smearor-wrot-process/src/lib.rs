@@ -17,7 +17,8 @@
 //! - [`ProcessId`] — opaque identifier assigned by the manager
 //! - [`ProcessInfo`] — lightweight snapshot of a running process (no `Child` handle)
 //! - [`ProcessExitEvent`] — emitted by the reaper when a process exits
-//! - [`KillSignal`] — `SIGTERM` or `SIGKILL`
+//! - [`KillSignal`] — `SIGTERM` or `SIGKILL` (used for termination config)
+//! - [`Signal`] — broader signal enum for general process control (`SIGHUP`, `SIGUSR1`, `SIGSTOP`, etc.)
 //! - [`StdioConfig`] — `Inherit`, `Null`, or `Piped` for stdin/stdout/stderr
 //!
 //! # Usage
@@ -46,15 +47,14 @@
 //! [`Socket`]: smearor_wrot_socket::Socket
 
 pub mod config;
-pub mod kill_signal;
 pub mod manager;
 pub mod process;
 pub mod reaper;
+pub mod signal;
 
 pub use config::ProcessConfig;
 pub use config::ProcessConfigError;
 pub use config::StdioConfig;
-pub use kill_signal::KillSignal;
 pub use manager::ProcessManager;
 pub use manager::ProcessManagerError;
 pub use manager::StopManyError;
@@ -62,3 +62,5 @@ pub use process::Process;
 pub use process::ProcessExitEvent;
 pub use process::ProcessId;
 pub use process::ProcessInfo;
+pub use signal::KillSignal;
+pub use signal::Signal;

@@ -1,5 +1,5 @@
 use crate::config::StdioConfig;
-use crate::kill_signal::KillSignal;
+use crate::signal::KillSignal;
 use serde::Deserialize;
 use serde::Serialize;
 use smearor_wrot_socket::Socket;
