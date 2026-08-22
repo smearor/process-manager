@@ -427,6 +427,47 @@ impl ProcessManager {
         }
     }
 
+    /// Restart a process by ID.
+    ///
+    /// Stops the process (with grace period and SIGKILL escalation), then
+    /// starts a new process with the same config and label. Returns the
+    /// new `ProcessId`.
+    pub fn restart(&self, id: ProcessId) -> Result<ProcessId, ProcessManagerError> {
+        let process = self.processes.get(&id).ok_or(ProcessManagerError::NotFound(id))?;
+        let config = Arc::clone(&process.config);
+        let label = process.label.clone();
+        drop(process);
+
+        self.stop(id)?;
+        self.start(&label, &config)
+    }
+
+    /// Restart all processes with a given label.
+    ///
+    /// Stops all matching processes concurrently, then starts new ones
+    /// with the same configs and label. Returns the new `ProcessId`s.
+    pub fn restart_label(&self, label: &str) -> Result<Vec<ProcessId>, ProcessManagerError> {
+        let entries: Vec<(ProcessId, Arc<ProcessConfig>)> = self
+            .processes
+            .iter()
+            .filter(|entry| entry.value().label == label)
+            .map(|entry| (*entry.key(), Arc::clone(&entry.value().config)))
+            .collect();
+
+        if entries.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let ids: Vec<ProcessId> = entries.iter().map(|(id, _)| *id).collect();
+        self.stop_many(ids)?;
+
+        let mut new_ids = Vec::with_capacity(entries.len());
+        for (_, config) in entries {
+            new_ids.push(self.start(label, &config)?);
+        }
+        Ok(new_ids)
+    }
+
     /// List all managed process IDs.
     pub fn ids(&self) -> Vec<ProcessId> {
         self.processes.iter().map(|entry| *entry.key()).collect()
@@ -845,5 +886,60 @@ mod tests {
         // Wait for the process to finish
         thread::sleep(Duration::from_millis(200));
         manager.stop(id).unwrap();
+    }
+
+    #[test]
+    fn test_restart_single_process() {
+        let manager = ProcessManager::new();
+        let config = ProcessConfig::builder()
+            .command("sleep".to_string())
+            .args(vec!["10".to_string()])
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Null)
+            .build();
+        let id = manager.start("test", &config).unwrap();
+        assert_eq!(manager.len(), 1);
+        let new_id = manager.restart(id).unwrap();
+        assert_eq!(manager.len(), 1);
+        assert_ne!(id, new_id);
+        assert!(manager.get(new_id).is_some());
+        manager.stop(new_id).unwrap();
+    }
+
+    #[test]
+    fn test_restart_nonexistent() {
+        let manager = ProcessManager::new();
+        let result = manager.restart(ProcessId::new(999));
+        assert!(matches!(result, Err(ProcessManagerError::NotFound(_))));
+    }
+
+    #[test]
+    fn test_restart_label() {
+        let manager = ProcessManager::new();
+        let config = ProcessConfig::builder()
+            .command("sleep".to_string())
+            .args(vec!["10".to_string()])
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Null)
+            .build();
+        let _ = manager.start("group", &config).unwrap();
+        let _ = manager.start("group", &config).unwrap();
+        let _ = manager.start("other", &config).unwrap();
+        assert_eq!(manager.len(), 3);
+
+        let new_ids = manager.restart_label("group").unwrap();
+        assert_eq!(new_ids.len(), 2);
+        assert_eq!(manager.len(), 3);
+        assert_eq!(manager.pids_by_label("group").len(), 2);
+        assert_eq!(manager.pids_by_label("other").len(), 1);
+        manager.stop_all();
+    }
+
+    #[test]
+    fn test_restart_label_nonexistent() {
+        let manager = ProcessManager::new();
+        let result = manager.restart_label("nonexistent");
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_empty());
     }
 }
