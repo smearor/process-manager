@@ -5,6 +5,7 @@ use nix::sys::signal::Signal;
 use nix::unistd::Pid;
 use std::process::Child;
 use std::process::ExitStatus;
+use std::sync::Arc;
 use std::thread::JoinHandle;
 
 /// A managed child process.
@@ -30,7 +31,7 @@ pub struct Process {
     pub terminate_on_exit: bool,
 
     /// The configuration this process was started with.
-    pub config: ProcessConfig,
+    pub config: Arc<ProcessConfig>,
 
     /// The child process handle. Always `Some` — forked processes are also
     /// tracked (with `setsid()` applied via `pre_exec`).
@@ -147,7 +148,7 @@ mod tests {
             program_name: "sleep".to_string(),
             label: "test".to_string(),
             terminate_on_exit: false,
-            config: ProcessConfig::builder().command("sleep".to_string()).build(),
+            config: Arc::new(ProcessConfig::builder().command("sleep".to_string()).build()),
             child: Some(child),
             stdout_reader: None,
             stderr_reader: None,
@@ -170,7 +171,7 @@ mod tests {
             program_name: "true".to_string(),
             label: "test".to_string(),
             terminate_on_exit: false,
-            config: ProcessConfig::builder().command("true".to_string()).build(),
+            config: Arc::new(ProcessConfig::builder().command("true".to_string()).build()),
             child: Some(child),
             stdout_reader: None,
             stderr_reader: None,
@@ -188,7 +189,7 @@ mod tests {
             program_name: "sleep".to_string(),
             label: "test".to_string(),
             terminate_on_exit: false,
-            config: ProcessConfig::builder().command("sleep".to_string()).build(),
+            config: Arc::new(ProcessConfig::builder().command("sleep".to_string()).build()),
             child: Some(child),
             stdout_reader: None,
             stderr_reader: None,
@@ -208,7 +209,7 @@ mod tests {
             program_name: "sleep".to_string(),
             label: "test".to_string(),
             terminate_on_exit: false,
-            config: ProcessConfig::builder().command("sleep".to_string()).build(),
+            config: Arc::new(ProcessConfig::builder().command("sleep".to_string()).build()),
             child: Some(child),
             stdout_reader: None,
             stderr_reader: None,

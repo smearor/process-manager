@@ -1,6 +1,7 @@
 use crate::config::ProcessConfig;
 use crate::process::Process;
 use crate::process::ProcessId;
+use std::sync::Arc;
 
 /// A lightweight snapshot of a managed process.
 ///
@@ -25,7 +26,7 @@ pub struct ProcessInfo {
     pub terminate_on_exit: bool,
 
     /// The configuration this process was started with.
-    pub config: ProcessConfig,
+    pub config: Arc<ProcessConfig>,
 }
 
 impl From<&Process> for ProcessInfo {
@@ -36,7 +37,7 @@ impl From<&Process> for ProcessInfo {
             program_name: process.program_name.clone(),
             label: process.label.clone(),
             terminate_on_exit: process.terminate_on_exit,
-            config: process.config.clone(),
+            config: Arc::clone(&process.config),
         }
     }
 }

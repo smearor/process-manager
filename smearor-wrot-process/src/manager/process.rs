@@ -208,7 +208,7 @@ impl ProcessManager {
             program_name: program_name.clone(),
             label: label.to_string(),
             terminate_on_exit: config.terminate_on_exit,
-            config: config.clone(),
+            config: Arc::new(config.clone()),
             child: Some(child),
             stdout_reader,
             stderr_reader,
