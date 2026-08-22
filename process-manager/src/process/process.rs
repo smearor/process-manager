@@ -99,7 +99,7 @@ impl Process {
     /// This is the escalation step after `SIGTERM` + grace period.
     /// Uses `nix::sys::signal::kill(Pid::from_raw(pid), Signal::SIGKILL)`.
     pub fn force_kill(&mut self) -> std::io::Result<()> {
-        nix::sys::signal::kill(Pid::from_raw(self.pid as i32), Signal::SIGKILL).map_err(|e| std::io::Error::other(e.to_string()))
+        nix::sys::signal::kill(Pid::from_raw(self.pid as i32), Signal::SIGKILL).map_err(|e| std::io::Error::from_raw_os_error(e as i32))
     }
 
     /// Join reader threads with a timeout.

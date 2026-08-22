@@ -367,6 +367,11 @@ impl ProcessManager {
         // 3. Escalate to SIGKILL
         warn!("Process {} (pid={}) did not exit after {}ms, escalating to SIGKILL", id, pid, timeout_ms);
         if let Err(e) = process.force_kill() {
+            if e.raw_os_error() == Some(libc::ESRCH) {
+                debug!("Process {} (pid={}) already exited before SIGKILL", id, pid);
+                process.join_readers(Duration::from_millis(500));
+                return Ok(());
+            }
             return Err(ProcessManagerError::SignalFailed(pid, e.to_string()));
         }
 
@@ -449,6 +454,11 @@ impl ProcessManager {
             );
             match process.force_kill() {
                 Ok(()) => to_reap.push(process),
+                Err(e) if e.raw_os_error() == Some(libc::ESRCH) => {
+                    debug!("Process {} (pid={}) already exited before SIGKILL", process.id, process.pid);
+                    process.join_readers(Duration::from_millis(500));
+                    to_reap.push(process);
+                }
                 Err(e) => {
                     error!("Failed to force-kill process {} (pid={}): {}", process.id, process.pid, e);
                     errors.push(ProcessManagerError::SignalFailed(process.pid, e.to_string()));
