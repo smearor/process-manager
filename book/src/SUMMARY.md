@@ -26,4 +26,3 @@
     - [Restart](examples/restart.md)
     - [Wayland Socket Binding](examples/wayland.md)
     - [Send Signal](examples/send_signal.md)
-- [Migration Guide](migration.md)
