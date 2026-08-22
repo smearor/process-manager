@@ -9,40 +9,40 @@ Reusable Rust crates for managing Wayland sockets and child process lifecycles.
 
 ## Overview
 
-`process-manager` is a Rust workspace providing two framework-agnostic crates for managing Wayland sockets and child process lifecycles. Any application that needs to spawn, track, and gracefully terminate child processes — compositors, launchers, daemons, service managers — can use these crates. They have no dependency on GTK, Smithay, or any plugin API.
+`process-manager` is a Rust workspace providing two framework-agnostic crates for managing Wayland sockets and child process lifecycles. Any application that needs to spawn, track, and gracefully terminate child processes - compositors, launchers, daemons, service managers - can use these crates. They have no dependency on GTK, Smithay, or any plugin API.
 
 ## Workspace Structure
 
-- **[`process-manager-socket`](process-manager-socket/)** — Wayland socket path management (`Socket`, `SocketBuilder`, `SocketManager`)
-- **[`process-manager`](process-manager/)** — Child process lifecycle management (`ProcessConfig`, `ProcessManager`, reaper thread)
+- **[`process-manager-socket`](process-manager-socket/)** - Wayland socket path management (`Socket`, `SocketBuilder`, `SocketManager`)
+- **[`process-manager`](process-manager/)** - Child process lifecycle management (`ProcessConfig`, `ProcessManager`, reaper thread)
 
 ## Features
 
 ### process-manager-socket
 
-- **`Socket` newtype** — `PathBuf` wrapper with `Deref<Target = Path>`, `Display`, `AsRef<OsStr>`, `AsRef<str>` implementations
-- **`SocketBuilder`** — Builds socket paths in `XDG_RUNTIME_DIR`, validates existing names or generates unique ones
-- **`SocketManager`** — Multi-socket manager using `DashMap`, shareable via `Arc` across threads
-- **Error types** — `SocketBuilderError` and `SocketManagerError` via `thiserror`
+- **`Socket` newtype** - `PathBuf` wrapper with `Deref<Target = Path>`, `Display`, `AsRef<OsStr>`, `AsRef<str>` implementations
+- **`SocketBuilder`** - Builds socket paths in `XDG_RUNTIME_DIR`, validates existing names or generates unique ones
+- **`SocketManager`** - Multi-socket manager using `DashMap`, shareable via `Arc` across threads
+- **Error types** - `SocketBuilderError` and `SocketManagerError` via `thiserror`
 
 ### process-manager
 
-- **`ProcessConfig`** — Unified configuration via `TypedBuilder` (command, args, env, working_dir, shell, forked, terminate_on_exit, kill_signal, restart_on_exit, stdio, socket)
-- **`ProcessManager`** — Concurrent process tracking via `DashMap`, label-based grouping, optional reaper thread
-- **Label-based operations** — Start/stop multiple processes under a shared label
-- **Forked/detached processes** — `setsid()` via `pre_exec` for terminal detachment
-- **Reaper thread** — Non-blocking `try_wait()` polling with `ProcessExitEvent` channel for zombie prevention and exit notifications
-- **Signal escalation** — `SIGTERM` with configurable timeout, automatic `SIGKILL` escalation
-- **Wayland socket binding** — Sets `WAYLAND_DISPLAY` in child environment from `Socket`
-- **`StdioConfig`** — Inherit/Null/Piped enum with reader threads for output capture
-- **`KillSignal`** — `Sigterm`/`Sigkill` enum with serde support
-- **`Signal`** — Broader signal enum (`SIGHUP`, `SIGUSR1`, `SIGWINCH`, `SIGSTOP`, etc.) for general process control
-- **`send_signal` / `send_signal_label`** — Send arbitrary signals to processes without removing them from the manager
-- **`restart` / `restart_label`** — Restart processes preserving config and label
-- **`ProcessInfo`** — Lightweight process snapshot for inspection (no `Child` handle)
-- **Serde support** — `ProcessConfig`, `KillSignal`, `Signal`, and `Socket` implement `Serialize`/`Deserialize`
-- **Executable resolution** — `which` integration for PATH lookup
-- **Graceful shutdown** — `terminate_on_exit` flag kills processes on `ProcessManager` drop
+- **`ProcessConfig`** - Unified configuration via `TypedBuilder` (command, args, env, working_dir, shell, forked, terminate_on_exit, kill_signal, restart_on_exit, stdio, socket)
+- **`ProcessManager`** - Concurrent process tracking via `DashMap`, label-based grouping, optional reaper thread
+- **Label-based operations** - Start/stop multiple processes under a shared label
+- **Forked/detached processes** - `setsid()` via `pre_exec` for terminal detachment
+- **Reaper thread** - Non-blocking `try_wait()` polling with `ProcessExitEvent` channel for zombie prevention and exit notifications
+- **Signal escalation** - `SIGTERM` with configurable timeout, automatic `SIGKILL` escalation
+- **Wayland socket binding** - Sets `WAYLAND_DISPLAY` in child environment from `Socket`
+- **`StdioConfig`** - Inherit/Null/Piped enum with reader threads for output capture
+- **`KillSignal`** - `Sigterm`/`Sigkill` enum with serde support
+- **`Signal`** - Broader signal enum (`SIGHUP`, `SIGUSR1`, `SIGWINCH`, `SIGSTOP`, etc.) for general process control
+- **`send_signal` / `send_signal_label`** - Send arbitrary signals to processes without removing them from the manager
+- **`restart` / `restart_label`** - Restart processes preserving config and label
+- **`ProcessInfo`** - Lightweight process snapshot for inspection (no `Child` handle)
+- **Serde support** - `ProcessConfig`, `KillSignal`, `Signal`, and `Socket` implement `Serialize`/`Deserialize`
+- **Executable resolution** - `which` integration for PATH lookup
+- **Graceful shutdown** - `terminate_on_exit` flag kills processes on `ProcessManager` drop
 
 ## Quick Start
 
