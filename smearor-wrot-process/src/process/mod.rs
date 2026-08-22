@@ -1,6 +1,7 @@
 mod exit_event;
 mod id;
 mod info;
+#[allow(clippy::module_inception)]
 mod process;
 
 pub use exit_event::ProcessExitEvent;
