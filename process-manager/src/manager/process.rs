@@ -209,7 +209,7 @@ impl ProcessManager {
             stdout_reader,
             stderr_reader,
             state: ProcessState::Starting,
- };
+        };
         self.processes.insert(id, process);
 
         debug!("Started process '{}' (pid={}, id={}, label='{}')", program_name, pid, id, label);

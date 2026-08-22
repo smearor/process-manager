@@ -33,7 +33,11 @@ pub(crate) fn reaper_loop(
         for mut entry in processes.iter_mut() {
             let process = entry.value_mut();
             if let Some(exit_status) = process.try_wait_exit() {
-                let state = if exit_status.success() { ProcessState::Stopped } else { ProcessState::Crashed };
+                let state = if exit_status.success() {
+                    ProcessState::Stopped
+                } else {
+                    ProcessState::Crashed
+                };
                 exited.push(ExitedProcess {
                     id: process.id,
                     label: process.label.clone(),
