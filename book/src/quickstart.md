@@ -56,7 +56,7 @@ use std::time::Duration;
 
 fn main() -> Result<(), Box<dyn std::Error::Error>> {
     let (sender, receiver) = std::sync::mpsc::channel();
-    let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender);
+    let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender)?;
 
     let config = ProcessConfig::builder()
         .command("true".to_string())

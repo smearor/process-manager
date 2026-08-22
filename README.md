@@ -1,14 +1,15 @@
-# smearor-wrot-process-manager
+# process-manager
 
 [![Rust Edition](https://img.shields.io/badge/rust-2024-f5b700.svg)](https://doc.rust-lang.org/edition-guide/rust-2024/index.html)
 [![License](https://img.shields.io/badge/license-MIT-89fc00.svg)](LICENSE.md)
-[![Book](https://img.shields.io/badge/book-main-00a1e4.svg)](https://github.com/smearor/smearor-wrot-process-manager/tree/main/book)
+[![Book](https://img.shields.io/badge/book-main-00a1e4.svg)](https://smearor.github.io/process-manager/book/)
+[![Docs](https://img.shields.io/badge/docs-main-00a1e4.svg)](https://smearor.github.io/process-manager/docs/)
 
-Shared socket and process management crates for `smearor-wrot` and `smearor-swipe-launcher`.
+Reusable Rust crates for managing Wayland sockets and child process lifecycles.
 
 ## Overview
 
-`smearor-wrot-process-manager` is a Rust workspace providing two reusable crates for managing Wayland sockets and child process lifecycles. Both `smearor-wrot` (a Wayland compositor) and `smearor-swipe-launcher` (a desktop launcher) need to spawn and track child processes — compositor clients, terminal commands, desktop applications. This workspace consolidates that logic into two framework-agnostic crates with no dependency on GTK, Smithay, or any plugin API.
+`process-manager` is a Rust workspace providing two framework-agnostic crates for managing Wayland sockets and child process lifecycles. Any application that needs to spawn, track, and gracefully terminate child processes — compositors, launchers, daemons, service managers — can use these crates. They have no dependency on GTK, Smithay, or any plugin API.
 
 ## Workspace Structure
 
@@ -35,6 +36,11 @@ Shared socket and process management crates for `smearor-wrot` and `smearor-swip
 - **Wayland socket binding** — Sets `WAYLAND_DISPLAY` in child environment from `Socket`
 - **`StdioConfig`** — Inherit/Null/Piped enum with reader threads for output capture
 - **`KillSignal`** — `Sigterm`/`Sigkill` enum with serde support
+- **`Signal`** — Broader signal enum (`SIGHUP`, `SIGUSR1`, `SIGWINCH`, `SIGSTOP`, etc.) for general process control
+- **`send_signal` / `send_signal_label`** — Send arbitrary signals to processes without removing them from the manager
+- **`restart` / `restart_label`** — Restart processes preserving config and label
+- **`ProcessInfo`** — Lightweight process snapshot for inspection (no `Child` handle)
+- **Serde support** — `ProcessConfig`, `KillSignal`, `Signal`, and `Socket` implement `Serialize`/`Deserialize`
 - **Executable resolution** — `which` integration for PATH lookup
 - **Graceful shutdown** — `terminate_on_exit` flag kills processes on `ProcessManager` drop
 
@@ -76,7 +82,7 @@ let id = manager.start("daemon", &config)?;
 use std::time::Duration;
 
 let (sender, receiver) = std::sync::mpsc::channel();
-let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender);
+let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender)?;
 
 manager.start("task", &config)?;
 
@@ -124,6 +130,10 @@ Multi-socket manager using `DashMap`. Register, retrieve, and remove sockets by 
 
 Emitted by the reaper thread when a process exits. Contains `id`, `pid`, `label`, and `restart_on_exit` flag.
 
+### `Signal`
+
+Broader signal enum for general process control. Supports `SIGHUP`, `SIGUSR1`, `SIGUSR2`, `SIGWINCH`, `SIGSTOP`, `SIGCONT`, `SIGALRM`, and more. Use `send_signal()` / `send_signal_label()` to deliver signals without stopping the process.
+
 ## Dependencies
 
 | Crate | Purpose |
@@ -131,15 +141,11 @@ Emitted by the reaper thread when a process exits. Contains `id`, `pid`, `label`
 | `dashmap` | Concurrent process/socket tracking |
 | `nix` | Signal handling (`SIGTERM`, `SIGKILL`) |
 | `libc` | `setsid()` for forked processes |
+| `serde` | Serialization for configs, signals, and sockets |
 | `typed-builder` | `ProcessConfig` builder pattern |
 | `which` | Executable path resolution |
 | `thiserror` | Error types |
 | `tracing` | Logging |
-
-## Consumers
-
-- **`smearor-wrot`** — Uses `SocketManager` for multi-output Wayland sockets and `ProcessManager` for spawning compositor clients
-- **`smearor-swipe-launcher`** — Uses `ProcessManager` in `terminal_command` and `app-launcher` services
 
 ## License
 

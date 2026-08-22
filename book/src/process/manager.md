@@ -31,7 +31,7 @@ use process_manager::ProcessManager;
 use std::time::Duration;
 
 let (sender, receiver) = std::sync::mpsc::channel();
-let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender);
+let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender)?;
 ```
 
 The reaper thread polls all tracked processes every `poll_interval` and emits `ProcessExitEvent`s via the `sender`. This prevents zombies and enables exit notifications and restart logic.
@@ -244,7 +244,7 @@ use process_manager::{ProcessConfig, ProcessManager, StdioConfig};
 use std::time::Duration;
 
 let (sender, receiver) = std::sync::mpsc::channel();
-let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender);
+let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender)?;
 
 let config = ProcessConfig::builder()
     .command("my-service".to_string())

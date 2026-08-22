@@ -1,6 +1,6 @@
 //! Process management for Wayland compositors and desktop launchers.
 //!
-//! `smearor-wrot-process` provides a [`ProcessManager`] that spawns, tracks,
+//! `process-manager` provides a [`ProcessManager`] that spawns, tracks,
 //! and terminates child processes with support for:
 //!
 //! - **Labels** — group processes and operate on them collectively ([`stop_label`], [`restart_label`])

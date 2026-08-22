@@ -62,7 +62,7 @@ let id = manager.start("daemon", &config)?;
 use std::time::Duration;
 
 let (sender, receiver) = std::sync::mpsc::channel();
-let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender);
+let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender)?;
 
 manager.start("task", &config)?;
 

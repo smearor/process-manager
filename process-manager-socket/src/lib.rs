@@ -1,8 +1,8 @@
 //! Wayland socket management for desktop launchers.
 //!
-//! `smearor-wrot-socket` provides utilities for creating, registering, and
+//! `process-manager-socket` provides utilities for creating, registering, and
 //! managing Wayland socket paths. It is designed to work alongside
-//! [`smearor-wrot-process`] to bind spawned processes to specific sockets.
+//! [`process-manager`] to bind spawned processes to specific sockets.
 //!
 //! # Key types
 //!
@@ -28,7 +28,7 @@
 //! assert_eq!(retrieved, socket);
 //! ```
 //!
-//! [`smearor-wrot-process`]: https://docs.rs/smearor-wrot-process
+//! [`process-manager`]: https://docs.rs/process-manager
 
 pub mod builder;
 pub mod error;

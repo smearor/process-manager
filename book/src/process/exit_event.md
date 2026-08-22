@@ -59,7 +59,7 @@ For non-UI applications, the consumer simply calls `receiver.recv()` or `receive
 
 ```rust
 let (sender, receiver) = std::sync::mpsc::channel();
-let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender);
+let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender)?;
 
 manager.start("task", &config)?;
 
