@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c573271c.js";
+            window.path_to_searchindex_js = "searchindex-c23d626c.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a73b4eb7.js"></script>
+        <script src="toc-2f05e57f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -231,7 +231,7 @@
 <li><strong><code>smearor-swipe-launcher</code></strong> — Uses <code>ProcessManager</code> in its <code>terminal_command</code> and <code>app-launcher</code> services for launching and tracking commands and applications.</li>
 </ul>
 <h2 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h2>
-<p>Head over to the <a href="#architecture">Architecture</a> page for a visual overview of how the crates work internally. For code examples, see <a href="#usage-examples">Usage Examples</a>. To migrate from the old approach, see the <a href="#migration-guide">Migration Guide</a>.</p>
+<p>Head over to the <a href="#architecture">Architecture</a> page for a visual overview of how the crates work internally. For code examples, see <a href="#usage-examples">Usage Examples</a>. To migrate from the old approach, see the <a href="migration.html">Migration Guide</a>.</p>
 <h2 id="license"><a class="header" href="#license">License</a></h2>
 <p>MIT</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -326,7 +326,7 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <li><a href="#processconfig">ProcessConfig</a> — Full configuration reference</li>
 <li><a href="#processmanager">ProcessManager</a> — Complete API documentation</li>
 <li><a href="#usage-examples">Usage Examples</a> — More practical examples</li>
-<li><a href="#migration-guide">Migration Guide</a> — Migrating from old patterns</li>
+<li><a href="migration.html">Migration Guide</a> — Migrating from old patterns</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="architecture"><a class="header" href="#architecture">Architecture</a></h1>
@@ -2516,180 +2516,6 @@ manager.send_signal_label("worker-pool", Signal::Sighup)?;
 <h2 id="running-the-example-2"><a class="header" href="#running-the-example-2">Running the Example</a></h2>
 <pre><code class="language-sh">cargo run --example send_signal
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="migration-guide"><a class="header" href="#migration-guide">Migration Guide</a></h1>
-<p>This guide covers migrating from the old ad-hoc process management patterns to <code>ProcessManager</code>.</p>
-<h2 id="from-launch_application-smearor-wrot"><a class="header" href="#from-launch_application-smearor-wrot">From <code>launch_application()</code> (smearor-wrot)</a></h2>
-<p>The old <code>launch_application()</code> function in <code>smearor-wrot-application</code> has been replaced by <code>ProcessManager::start()</code>.</p>
-<h3 id="before"><a class="header" href="#before">Before</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let child = launch_application(
-    &amp;socket,
-    &amp;command,
-    &amp;args,
-    &amp;env,
-    working_dir,
-    forked,
-    terminate_on_exit,
-)?;
-<span class="boring">}</span></code></pre>
-<h3 id="after"><a class="header" href="#after">After</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let config = ProcessConfig::builder()
-    .command(command)
-    .args(args)
-    .env(env)
-    .working_dir(working_dir)
-    .forked(forked)
-    .terminate_on_exit(terminate_on_exit)
-    .socket(Some(socket))
-    .build();
-let id = process_manager.start("client", &amp;config)?;
-<span class="boring">}</span></code></pre>
-<h3 id="key-differences"><a class="header" href="#key-differences">Key Differences</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Aspect</th><th>Old (<code>launch_application</code>)</th><th>New (<code>ProcessManager</code>)</th></tr>
-</thead>
-<tbody>
-<tr><td>Process tracking</td><td>None — returns raw <code>Child</code></td><td><code>DashMap</code> with <code>ProcessId</code> and labels</td></tr>
-<tr><td>Executable resolution</td><td>Manual <code>which</code> calls</td><td>Built-in via <code>which</code> in <code>start()</code></td></tr>
-<tr><td>Termination</td><td>Manual <code>child.kill()</code></td><td><code>stop()</code>, <code>stop_label()</code>, or drop</td></tr>
-<tr><td>Zombie prevention</td><td>None</td><td>Optional reaper thread</td></tr>
-<tr><td>Graceful shutdown</td><td>Manual <code>Drop</code> impl</td><td><code>terminate_on_exit</code> flag + <code>ProcessManager::drop</code></td></tr>
-<tr><td>Signal handling</td><td><code>Child::kill()</code> (SIGKILL only)</td><td><code>SIGTERM</code> with timeout, <code>SIGKILL</code> escalation</td></tr>
-<tr><td>Wayland socket</td><td>Manual <code>WAYLAND_DISPLAY</code> set</td><td>Automatic via <code>ProcessConfig::socket()</code></td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="from-trackedprocess-smearor-swipe-launcher"><a class="header" href="#from-trackedprocess-smearor-swipe-launcher">From <code>TrackedProcess</code> (smearor-swipe-launcher)</a></h2>
-<p>The <code>TrackedProcess</code> struct and manual reaper threads in both <code>terminal_command</code> and <code>app-launcher</code> services have been replaced by <code>ProcessManager</code>.</p>
-<h3 id="before-1"><a class="header" href="#before-1">Before</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct TrackedProcess {
-    pub pid: u32,
-    pub terminate_on_exit: bool,
-}
-
-// Manual DashMap for tracking
-tracked_processes: DashMap&lt;String, TrackedProcess&gt;,
-
-// Manual reaper thread checking /proc/{pid}
-fn check_process_status(&amp;self) {
-    for entry in self.tracked_processes.iter() {
-        let pid = entry.pid;
-        if !Path::new(&amp;format!("/proc/{}", pid)).exists() {
-            // Process exited
-        }
-    }
-}
-
-// Manual nix::sys::signal::kill for termination
-nix::sys::signal::kill(Pid::from_raw(pid), Signal::SIGTERM)?;
-
-// Manual Drop impl iterating tracked_processes
-impl Drop for Service {
-    fn drop(&amp;mut self) {
-        for entry in self.tracked_processes.iter() {
-            if entry.terminate_on_exit {
-                nix::sys::signal::kill(Pid::from_raw(entry.pid), Signal::SIGTERM)?;
-            }
-        }
-    }
-}
-<span class="boring">}</span></code></pre>
-<h3 id="after-1"><a class="header" href="#after-1">After</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct AppLauncherService {
-    pub process_manager: Arc&lt;ProcessManager&gt;,
-}
-
-// Reaper is built into ProcessManager::with_reaper()
-// Termination is ProcessManager::stop_label()
-// Drop is handled by ProcessManager::drop()
-// No DashMap, no nix, no which in the service
-<span class="boring">}</span></code></pre>
-<h3 id="architecture-comparison"><a class="header" href="#architecture-comparison">Architecture Comparison</a></h3>
-<pre class="mermaid">graph TD
-    classDef default fill: #1e1e1e, stroke: #333333, stroke-width: 1px, color: #ffffff
-    classDef old fill: #dc0073, stroke: #333333, stroke-width: 2px, color: #ffffff
-    classDef new fill: #89fc00, stroke: #333333, stroke-width: 2px, color: #000
-
-    subgraph Old["Before (per-service)"]
-        A["Service"] --&gt; B["DashMap&amp;lt;String, TrackedProcess&amp;gt;"]
-        A --&gt; C["Manual reaper thread&lt;br/&gt;/proc/{pid} polling"]
-        A --&gt; D["nix::signal::kill"]
-        A --&gt; E["which::which()"]
-        A --&gt; F["Manual Drop impl"]
-    end
-
-    subgraph New["After (shared)"]
-        G["Service"] --&gt; H["ProcessManager&lt;br/&gt;(shared crate)"]
-        H --&gt; I["DashMap (internal)"]
-        H --&gt; J["Reaper thread&lt;br/&gt;try_wait() polling"]
-        H --&gt; K["Signal handling&lt;br/&gt;(internal)"]
-        H --&gt; L["which (internal)"]
-        H --&gt; M["Drop (internal)"]
-    end
-
-    class A old
-    class B old
-    class C old
-    class D old
-    class E old
-    class F old
-    class G new
-    class H new
-    class I new
-    class J new
-    class K new
-    class L new
-    class M new
-</pre>
-
-<h3 id="key-differences-1"><a class="header" href="#key-differences-1">Key Differences</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Aspect</th><th>Old (<code>TrackedProcess</code>)</th><th>New (<code>ProcessManager</code>)</th></tr>
-</thead>
-<tbody>
-<tr><td>Tracking</td><td><code>DashMap</code> in each service</td><td><code>DashMap</code> in <code>ProcessManager</code> (shared)</td></tr>
-<tr><td>Exit detection</td><td><code>/proc/{pid}</code> polling</td><td><code>try_wait()</code> polling (portable)</td></tr>
-<tr><td>Signal handling</td><td><code>nix</code> in each service</td><td><code>nix</code> in <code>ProcessManager</code> only</td></tr>
-<tr><td>Executable resolution</td><td><code>which</code> in each service</td><td><code>which</code> in <code>ProcessManager</code> only</td></tr>
-<tr><td>Drop/cleanup</td><td>Manual <code>Drop</code> impl per service</td><td><code>ProcessManager::drop</code> handles all</td></tr>
-<tr><td>Dependencies per service</td><td><code>dashmap</code>, <code>nix</code>, <code>which</code></td><td><code>process-manager</code> only</td></tr>
-<tr><td>Code duplication</td><td>Duplicated across services</td><td>Single shared crate</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="gtk-integration-pattern"><a class="header" href="#gtk-integration-pattern">GTK Integration Pattern</a></h3>
-<p>The old pattern used blocking <code>recv()</code> in <code>MainContext::spawn_local</code>, which froze the GTK main loop. The new pattern uses a forwarding thread:</p>
-<pre class="mermaid">graph LR
-    classDef default fill: #1e1e1e, stroke: #333333, stroke-width: 1px, color: #ffffff
-    classDef reaper fill: #dc0073, stroke: #333333, stroke-width: 2px, color: #ffffff
-    classDef thread fill: #00a1e4, stroke: #ffffff, stroke-width: 2px, color: #ffffff
-    classDef gtk fill: #89fc00, stroke: #333333, stroke-width: 2px, color: #000
-
-    A["Reaper Thread"] --&gt;|ProcessExitEvent| B["std::sync::mpsc"]
-    B --&gt; C["Forwarding Thread&lt;br/&gt;std::thread::spawn"]
-    C --&gt;|unbounded_channel| D["tokio::sync::mpsc"]
-    D --&gt; E["MainContext::spawn_local&lt;br/&gt;(non-blocking)"]
-
-    class A reaper
-    class B thread
-    class C thread
-    class D gtk
-    class E gtk
-</pre>
-
-<p>This ensures the GTK main loop never blocks on <code>recv()</code>.</p>
 
                     </main>
 
