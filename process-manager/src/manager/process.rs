@@ -123,13 +123,6 @@ impl ProcessManager {
         if let Some(socket) = &config.socket {
             command.env("WAYLAND_DISPLAY", socket);
         }
-        // Inherit XDG_RUNTIME_DIR and DBUS_SESSION_BUS_ADDRESS from parent
-        if std::env::var("XDG_RUNTIME_DIR").is_ok() {
-            // Already inherited by default
-        }
-        if std::env::var("DBUS_SESSION_BUS_ADDRESS").is_ok() {
-            // Already inherited by default
-        }
 
         // 4. Set working directory
         if let Some(working_dir) = &config.working_dir {
