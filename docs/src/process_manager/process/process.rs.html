@@ -99,7 +99,7 @@
 <a href=#99 id=99 data-nosnippet>99</a>    /// This is the escalation step after `SIGTERM` + grace period.
 <a href=#100 id=100 data-nosnippet>100</a>    /// Uses `nix::sys::signal::kill(Pid::from_raw(pid), Signal::SIGKILL)`.
 <a href=#101 id=101 data-nosnippet>101</a>    </span><span class="kw">pub fn </span>force_kill(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; std::io::Result&lt;()&gt; {
-<a href=#102 id=102 data-nosnippet>102</a>        nix::sys::signal::kill(Pid::from_raw(<span class="self">self</span>.pid <span class="kw">as </span>i32), Signal::SIGKILL).map_err(|e| std::io::Error::other(e.to_string()))
+<a href=#102 id=102 data-nosnippet>102</a>        nix::sys::signal::kill(Pid::from_raw(<span class="self">self</span>.pid <span class="kw">as </span>i32), Signal::SIGKILL).map_err(|e| std::io::Error::from_raw_os_error(e <span class="kw">as </span>i32))
 <a href=#103 id=103 data-nosnippet>103</a>    }
 <a href=#104 id=104 data-nosnippet>104</a>
 <a href=#105 id=105 data-nosnippet>105</a>    <span class="doccomment">/// Join reader threads with a timeout.

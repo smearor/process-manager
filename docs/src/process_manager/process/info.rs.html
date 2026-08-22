@@ -8,7 +8,7 @@
 <a href=#8 id=8 data-nosnippet>8</a>/// Contains metadata only — no `Child` handle. Returned by inspection methods
 <a href=#9 id=9 data-nosnippet>9</a>/// like `get_by_label()`. Cannot be used for `is_running()`, `wait()`, or
 <a href=#10 id=10 data-nosnippet>10</a>/// signal operations; use `stop()` / `stop_label()` for process control.
-<a href=#11 id=11 data-nosnippet>11</a></span><span class="attr">#[derive(Debug, Clone)]
+<a href=#11 id=11 data-nosnippet>11</a></span><span class="attr">#[derive(Debug, Clone, PartialEq, Eq)]
 <a href=#12 id=12 data-nosnippet>12</a>#[must_use]
 <a href=#13 id=13 data-nosnippet>13</a></span><span class="kw">pub struct </span>ProcessInfo {
 <a href=#14 id=14 data-nosnippet>14</a>    <span class="doccomment">/// Unique identifier assigned by the `ProcessManager`.
