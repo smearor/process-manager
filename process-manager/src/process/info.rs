@@ -8,7 +8,7 @@ use std::sync::Arc;
 /// Contains metadata only — no `Child` handle. Returned by inspection methods
 /// like `get_by_label()`. Cannot be used for `is_running()`, `wait()`, or
 /// signal operations; use `stop()` / `stop_label()` for process control.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use]
 pub struct ProcessInfo {
     /// Unique identifier assigned by the `ProcessManager`.

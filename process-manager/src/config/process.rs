@@ -14,7 +14,7 @@ use typed_builder::TypedBuilder;
 /// `smearor-swipe-launcher/services/app_launcher`.
 ///
 /// Built using `TypedBuilder` for ergonomic construction with defaults.
-#[derive(Debug, Clone, Serialize, Deserialize, TypedBuilder)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TypedBuilder)]
 #[must_use]
 pub struct ProcessConfig {
     /// The program name or absolute path to execute.
