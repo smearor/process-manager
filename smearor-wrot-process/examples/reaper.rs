@@ -6,8 +6,7 @@ use std::time::Duration;
 
 fn main() {
     let (tx, rx) = mpsc::channel();
-    let manager = ProcessManager::with_reaper(Duration::from_millis(50), tx)
-        .expect("failed to create reaper manager");
+    let manager = ProcessManager::with_reaper(Duration::from_millis(50), tx).expect("failed to create reaper manager");
 
     let config = ProcessConfig::builder()
         .command("true".to_string())
