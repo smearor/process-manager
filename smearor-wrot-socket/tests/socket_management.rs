@@ -2,6 +2,9 @@ use smearor_wrot_socket::Socket;
 use smearor_wrot_socket::SocketBuilder;
 use smearor_wrot_socket::SocketManager;
 use std::path::PathBuf;
+use std::sync::Arc;
+use std::sync::Barrier;
+use std::thread;
 
 #[test]
 fn register_get_remove_socket() {
@@ -101,4 +104,53 @@ fn socket_builder_with_explicit_name() {
     let name = "integration-test-socket".to_string();
     let socket = SocketBuilder::build(&Some(name)).unwrap();
     assert!(socket.path().to_string_lossy().ends_with("integration-test-socket"));
+}
+
+#[test]
+fn register_concurrent_same_name_only_one_succeeds() {
+    let manager = Arc::new(SocketManager::new());
+    let barrier = Arc::new(Barrier::new(8));
+    let socket = Socket::from(PathBuf::from("/tmp/concurrent-test"));
+
+    let mut handles = Vec::new();
+    for _ in 0..8 {
+        let manager = Arc::clone(&manager);
+        let barrier = Arc::clone(&barrier);
+        let socket = socket.clone();
+        handles.push(thread::spawn(move || {
+            barrier.wait();
+            manager.register("contested", socket)
+        }));
+    }
+
+    let results: Vec<_> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+    let successes = results.iter().filter(|r| r.is_ok()).count();
+    let failures = results.iter().filter(|r| r.is_err()).count();
+
+    assert_eq!(successes, 1, "exactly one register should succeed");
+    assert_eq!(failures, 7, "exactly seven registers should fail");
+    assert_eq!(manager.len(), 1);
+}
+
+#[test]
+fn register_concurrent_different_names_all_succeed() {
+    let manager = Arc::new(SocketManager::new());
+    let barrier = Arc::new(Barrier::new(8));
+
+    let mut handles = Vec::new();
+    for i in 0..8 {
+        let manager = Arc::clone(&manager);
+        let barrier = Arc::clone(&barrier);
+        let socket = Socket::from(PathBuf::from(format!("/tmp/concurrent-{i}")));
+        handles.push(thread::spawn(move || {
+            barrier.wait();
+            manager.register(&format!("socket-{i}"), socket)
+        }));
+    }
+
+    let results: Vec<_> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+    let successes = results.iter().filter(|r| r.is_ok()).count();
+
+    assert_eq!(successes, 8, "all registers should succeed");
+    assert_eq!(manager.len(), 8);
 }
