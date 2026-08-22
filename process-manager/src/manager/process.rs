@@ -18,6 +18,7 @@ use std::sync::atomic::Ordering;
 use std::sync::mpsc::Sender;
 use std::thread;
 use std::time::Duration;
+use std::time::Instant;
 use tracing::debug;
 use tracing::error;
 use tracing::warn;
@@ -347,8 +348,8 @@ impl ProcessManager {
         }
 
         // 2. Grace period — poll is_running()
-        let deadline = std::time::Instant::now() + Duration::from_millis(timeout_ms);
-        while std::time::Instant::now() < deadline {
+        let deadline = Instant::now() + Duration::from_millis(timeout_ms);
+        while Instant::now() < deadline {
             if !process.is_running() {
                 debug!("Process {} (pid={}) exited after signal", id, pid);
                 process.join_readers(Duration::from_millis(500));
@@ -368,8 +369,17 @@ impl ProcessManager {
             return Err(ProcessManagerError::SignalFailed(pid, e.to_string()));
         }
 
-        // Wait for SIGKILL to take effect
-        let _ = process.child.as_mut().and_then(|child| child.wait().ok());
+        // Wait for SIGKILL to take effect (bounded — process may be in D state)
+        let kill_deadline = Instant::now() + Duration::from_millis(500);
+        while Instant::now() < kill_deadline {
+            if process.child.as_mut().is_some_and(|child| child.try_wait().ok().flatten().is_some()) {
+                break;
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
+        if process.child.as_mut().is_some_and(|child| child.try_wait().ok().flatten().is_none()) {
+            warn!("Process {} (pid={}) did not exit within 500ms after SIGKILL (may be in D state)", id, pid);
+        }
         debug!("Process {} (pid={}) killed with SIGKILL", id, pid);
         process.join_readers(Duration::from_millis(500));
 
@@ -384,11 +394,11 @@ impl ProcessManager {
     /// is a single max timeout, not N × timeout.
     fn stop_many(&self, ids: Vec<ProcessId>) -> Result<(), ProcessManagerError> {
         // 1. Remove all processes from the map and compute per-process deadlines
-        let mut entries: Vec<(Process, std::time::Instant)> = ids
+        let mut entries: Vec<(Process, Instant)> = ids
             .into_iter()
             .filter_map(|id| self.processes.remove(&id).map(|(_, process)| process))
             .map(|process| {
-                let deadline = std::time::Instant::now() + Duration::from_millis(process.config.terminate_timeout_ms);
+                let deadline = Instant::now() + Duration::from_millis(process.config.terminate_timeout_ms);
                 (process, deadline)
             })
             .collect();
@@ -412,7 +422,7 @@ impl ProcessManager {
         let mut to_escalate: Vec<Process> = Vec::new();
         let mut to_join: Vec<Process> = Vec::new();
         while !entries.is_empty() {
-            let now = std::time::Instant::now();
+            let now = Instant::now();
             let mut still_waiting = Vec::new();
             for (mut process, deadline) in entries.drain(..) {
                 if !process.is_running() {
@@ -460,9 +470,18 @@ impl ProcessManager {
             }
         }
 
-        // 5. Wait for SIGKILL to take effect
+        // 5. Wait for SIGKILL to take effect (bounded — process may be in D state)
         for process in &mut to_reap {
-            let _ = process.child.as_mut().and_then(|child| child.wait().ok());
+            let kill_deadline = Instant::now() + Duration::from_millis(500);
+            while Instant::now() < kill_deadline {
+                if process.child.as_mut().is_some_and(|child| child.try_wait().ok().flatten().is_some()) {
+                    break;
+                }
+                thread::sleep(Duration::from_millis(10));
+            }
+            if process.child.as_mut().is_some_and(|child| child.try_wait().ok().flatten().is_none()) {
+                warn!("Process {} (pid={}) did not exit within 500ms after SIGKILL (may be in D state)", process.id, process.pid);
+            }
             debug!("Process {} (pid={}) killed with SIGKILL", process.id, process.pid);
             process.join_readers(Duration::from_millis(500));
         }
@@ -990,7 +1009,7 @@ mod tests {
         // Give the trap time to be installed
         thread::sleep(Duration::from_millis(100));
         // stop should escalate to SIGKILL after 200ms
-        let start = std::time::Instant::now();
+        let start = Instant::now();
         manager.stop(id).unwrap();
         let elapsed = start.elapsed();
         assert!(
