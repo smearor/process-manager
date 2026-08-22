@@ -2,6 +2,7 @@ use crate::config::ProcessConfig;
 use crate::config::ProcessConfigError;
 use crate::config::StdioConfig;
 use crate::manager::ProcessManagerError;
+use crate::manager::StopManyError;
 use crate::process::Process;
 use crate::process::ProcessExitEvent;
 use crate::process::ProcessId;
@@ -284,6 +285,96 @@ impl ProcessManager {
         Ok(())
     }
 
+    /// Stop multiple processes concurrently.
+    ///
+    /// Sends kill signals to all processes first, then waits for all grace
+    /// periods in a single polling loop. Escalates to `SIGKILL` for any
+    /// process that doesn't exit within its individual timeout. Worst case
+    /// is a single max timeout, not N × timeout.
+    fn stop_many(&self, ids: Vec<ProcessId>) -> Result<(), ProcessManagerError> {
+        // 1. Remove all processes from the map and compute per-process deadlines
+        let mut entries: Vec<(Process, std::time::Instant)> = ids
+            .into_iter()
+            .filter_map(|id| self.processes.remove(&id).map(|(_, process)| process))
+            .map(|process| {
+                let deadline = std::time::Instant::now() + Duration::from_millis(process.config.terminate_timeout_ms);
+                (process, deadline)
+            })
+            .collect();
+
+        if entries.is_empty() {
+            return Ok(());
+        }
+
+        // 2. Send kill signal to all processes.
+        // Signal failures are logged — the process will escalate to SIGKILL
+        // if still alive, so we don't record an error here.
+        for (process, _) in &mut entries {
+            let kill_signal = process.config.kill_signal;
+            let pid = process.pid;
+            if let Err(e) = process.send_signal(kill_signal) {
+                warn!("Failed to send signal to process {} (pid={}): {}, will escalate", process.id, pid, e);
+            }
+        }
+
+        // 3. Poll: wait for each process until it exits or its deadline passes
+        let mut to_escalate: Vec<Process> = Vec::new();
+        while !entries.is_empty() {
+            let now = std::time::Instant::now();
+            let mut still_waiting = Vec::new();
+            for (mut process, deadline) in entries.drain(..) {
+                if !process.is_running() {
+                    debug!("Process {} (pid={}) exited after signal", process.id, process.pid);
+                } else if now >= deadline {
+                    to_escalate.push(process);
+                } else {
+                    still_waiting.push((process, deadline));
+                }
+            }
+            entries = still_waiting;
+            if !entries.is_empty() {
+                thread::sleep(Duration::from_millis(50));
+            }
+        }
+
+        // 4. Escalate to SIGKILL for processes that didn't exit in time.
+        // Processes whose force_kill fails are kept for re-insertion.
+        let mut errors: Vec<ProcessManagerError> = Vec::new();
+        let mut to_reap: Vec<Process> = Vec::new();
+        let mut to_reinsert: Vec<Process> = Vec::new();
+        for mut process in to_escalate {
+            warn!(
+                "Process {} (pid={}) did not exit after {}ms, escalating to SIGKILL",
+                process.id, process.pid, process.config.terminate_timeout_ms
+            );
+            match process.force_kill() {
+                Ok(()) => to_reap.push(process),
+                Err(e) => {
+                    error!("Failed to force-kill process {} (pid={}): {}", process.id, process.pid, e);
+                    errors.push(ProcessManagerError::SignalFailed(process.pid, e.to_string()));
+                    to_reinsert.push(process);
+                }
+            }
+        }
+
+        // 5. Wait for SIGKILL to take effect
+        for process in &mut to_reap {
+            let _ = process.child.as_mut().and_then(|child| child.wait().ok());
+            debug!("Process {} (pid={}) killed with SIGKILL", process.id, process.pid);
+        }
+
+        // 6. Re-insert processes that couldn't be killed so they remain tracked
+        for process in to_reinsert {
+            warn!("Re-inserting process {} (pid={}) into manager after failed kill", process.id, process.pid);
+            self.processes.insert(process.id, process);
+        }
+
+        if !errors.is_empty() {
+            return Err(StopManyError::new(errors).into());
+        }
+        Ok(())
+    }
+
     /// Stop all processes with a given label.
     pub fn stop_label(&self, label: &str) -> Result<(), ProcessManagerError> {
         let ids: Vec<ProcessId> = self
@@ -293,10 +384,7 @@ impl ProcessManager {
             .map(|entry| *entry.key())
             .collect();
 
-        for id in ids {
-            self.stop(id)?;
-        }
-        Ok(())
+        self.stop_many(ids)
     }
 
     /// Stop all managed processes with `terminate_on_exit = true`.
@@ -310,22 +398,16 @@ impl ProcessManager {
             .map(|entry| *entry.key())
             .collect();
 
-        for id in ids {
-            match self.stop(id) {
-                Ok(_) => {}
-                Err(e) => error!("Failed to stop process {} on terminate_on_exit: {}", id, e),
-            }
+        if let Err(e) = self.stop_many(ids) {
+            error!("Failed to stop processes on terminate_on_exit: {}", e);
         }
     }
 
     /// Stop all managed processes.
     pub fn stop_all(&self) {
         let ids: Vec<ProcessId> = self.processes.iter().map(|entry| *entry.key()).collect();
-        for id in ids {
-            match self.stop(id) {
-                Ok(_) => {}
-                Err(e) => error!("Failed to stop process {} during stop_all: {}", id, e),
-            }
+        if let Err(e) = self.stop_many(ids) {
+            error!("Failed to stop processes during stop_all: {}", e);
         }
     }
 

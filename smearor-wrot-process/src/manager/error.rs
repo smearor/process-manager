@@ -23,4 +23,30 @@ pub enum ProcessManagerError {
     /// Failed to spawn the reaper thread.
     #[error("Failed to spawn reaper thread: {0}")]
     ReaperThreadFailed(std::io::Error),
+    /// One or more processes failed to stop during a batch operation.
+    #[error("{0}")]
+    StopMany(#[from] StopManyError),
+}
+
+/// Aggregated errors from stopping multiple processes.
+///
+/// Returned by `stop_many` when one or more processes could not be stopped.
+/// Each individual error is preserved so the caller can inspect all failures.
+#[derive(Debug, Error)]
+#[error("{count} error(s) stopping processes: {errors}", count = self.errors.len(), errors = self.errors.iter().map(|e| e.to_string()).collect::<Vec<_>>().join(", "))]
+pub struct StopManyError {
+    /// All individual errors encountered during the batch stop.
+    pub errors: Vec<ProcessManagerError>,
+}
+
+impl StopManyError {
+    /// Create a `StopManyError` from a non-empty vector of errors.
+    pub fn new(errors: Vec<ProcessManagerError>) -> Self {
+        Self { errors }
+    }
+
+    /// Whether any errors were collected.
+    pub fn is_empty(&self) -> bool {
+        self.errors.is_empty()
+    }
 }

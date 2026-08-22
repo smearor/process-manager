@@ -10,6 +10,7 @@ pub use config::StdioConfig;
 pub use kill_signal::KillSignal;
 pub use manager::ProcessManager;
 pub use manager::ProcessManagerError;
+pub use manager::StopManyError;
 pub use process::Process;
 pub use process::ProcessExitEvent;
 pub use process::ProcessId;
