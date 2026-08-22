@@ -195,11 +195,7 @@ fn stop_label_escalates_sigkill_for_stubborn_group() {
     assert_eq!(manager.len(), 1);
     assert!(manager.pids_by_label("stubborn-a").is_empty());
     assert_eq!(manager.pids_by_label("stubborn-b").len(), 1);
-    assert!(
-        elapsed < Duration::from_secs(5),
-        "stop_label should escalate quickly, took {:?}",
-        elapsed
-    );
+    assert!(elapsed < Duration::from_secs(5), "stop_label should escalate quickly, took {:?}", elapsed);
 
     manager.stop_all();
     assert!(manager.is_empty());
@@ -229,11 +225,7 @@ fn stop_all_escalates_sigkill_for_mixed_group() {
     let elapsed = start.elapsed();
 
     assert!(manager.is_empty());
-    assert!(
-        elapsed < Duration::from_secs(10),
-        "stop_all should escalate quickly, took {:?}",
-        elapsed
-    );
+    assert!(elapsed < Duration::from_secs(10), "stop_all should escalate quickly, took {:?}", elapsed);
 }
 
 #[test]
