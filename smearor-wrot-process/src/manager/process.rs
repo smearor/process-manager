@@ -222,12 +222,49 @@ impl ProcessManager {
         Ok(id)
     }
 
-    /// Get a managed process by ID.
+    /// Get a lightweight snapshot of a managed process by ID.
     ///
-    /// Returns a `dashmap::mapref::one::Ref` guard. The process is accessible
-    /// within the guard's lifetime.
-    pub fn get(&self, id: ProcessId) -> Option<dashmap::mapref::one::Ref<'_, ProcessId, Process>> {
-        self.processes.get(&id)
+    /// Returns a `ProcessInfo` containing metadata only — no `Child` handle.
+    /// Safe to hold across mutating calls since it does not hold a DashMap lock.
+    pub fn get_info(&self, id: ProcessId) -> Option<ProcessInfo> {
+        self.processes.get(&id).map(|entry| ProcessInfo::from(entry.value()))
+    }
+
+    /// Whether the process with the given ID was started in forked mode.
+    pub fn is_forked(&self, id: ProcessId) -> Option<bool> {
+        self.processes.get(&id).map(|entry| entry.config.forked)
+    }
+
+    /// Whether the process with the given ID is still running.
+    ///
+    /// Uses non-blocking `try_wait()` on the `Child` handle.
+    pub fn is_running(&self, id: ProcessId) -> Option<bool> {
+        self.processes.get_mut(&id).map(|mut entry| entry.is_running())
+    }
+
+    /// The OS PID of the process with the given ID.
+    pub fn get_pid(&self, id: ProcessId) -> Option<u32> {
+        self.processes.get(&id).map(|entry| entry.pid)
+    }
+
+    /// The program name of the process with the given ID.
+    pub fn get_program_name(&self, id: ProcessId) -> Option<String> {
+        self.processes.get(&id).map(|entry| entry.program_name.clone())
+    }
+
+    /// The label of the process with the given ID.
+    pub fn get_label(&self, id: ProcessId) -> Option<String> {
+        self.processes.get(&id).map(|entry| entry.label.clone())
+    }
+
+    /// Whether the process with the given ID is terminated when the manager is dropped.
+    pub fn get_terminate_on_exit(&self, id: ProcessId) -> Option<bool> {
+        self.processes.get(&id).map(|entry| entry.terminate_on_exit)
+    }
+
+    /// The configuration the process with the given ID was started with.
+    pub fn get_config(&self, id: ProcessId) -> Option<Arc<ProcessConfig>> {
+        self.processes.get(&id).map(|entry| Arc::clone(&entry.config))
     }
 
     /// Get all processes with a given label.
@@ -576,7 +613,117 @@ mod tests {
     #[test]
     fn test_process_manager_get_nonexistent() {
         let manager = ProcessManager::new();
-        assert!(manager.get(ProcessId::new(999)).is_none());
+        assert!(manager.get_info(ProcessId::new(999)).is_none());
+    }
+
+    #[test]
+    fn test_is_forked() {
+        let manager = ProcessManager::new();
+        let config = ProcessConfig::builder()
+            .command("sleep".to_string())
+            .args(vec!["10".to_string()])
+            .forked(true)
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Null)
+            .build();
+        let id = manager.start("forked", &config).unwrap();
+        assert_eq!(manager.is_forked(id), Some(true));
+        assert_eq!(manager.is_forked(ProcessId::new(999)), None);
+        manager.stop(id).unwrap();
+    }
+
+    #[test]
+    fn test_get_label() {
+        let manager = ProcessManager::new();
+        let config = ProcessConfig::builder()
+            .command("sleep".to_string())
+            .args(vec!["10".to_string()])
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Null)
+            .build();
+        let id = manager.start("my-label", &config).unwrap();
+        assert_eq!(manager.get_label(id), Some("my-label".to_string()));
+        assert_eq!(manager.get_label(ProcessId::new(999)), None);
+        manager.stop(id).unwrap();
+    }
+
+    #[test]
+    fn test_get_terminate_on_exit() {
+        let manager = ProcessManager::new();
+        let config = ProcessConfig::builder()
+            .command("sleep".to_string())
+            .args(vec!["10".to_string()])
+            .terminate_on_exit(true)
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Null)
+            .build();
+        let id = manager.start("temp", &config).unwrap();
+        assert_eq!(manager.get_terminate_on_exit(id), Some(true));
+        assert_eq!(manager.get_terminate_on_exit(ProcessId::new(999)), None);
+        manager.stop(id).unwrap();
+    }
+
+    #[test]
+    fn test_is_running() {
+        let manager = ProcessManager::new();
+        let config = ProcessConfig::builder()
+            .command("sleep".to_string())
+            .args(vec!["10".to_string()])
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Null)
+            .build();
+        let id = manager.start("running", &config).unwrap();
+        assert_eq!(manager.is_running(id), Some(true));
+        assert_eq!(manager.is_running(ProcessId::new(999)), None);
+        manager.stop(id).unwrap();
+    }
+
+    #[test]
+    fn test_get_pid() {
+        let manager = ProcessManager::new();
+        let config = ProcessConfig::builder()
+            .command("sleep".to_string())
+            .args(vec!["10".to_string()])
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Null)
+            .build();
+        let id = manager.start("pid-test", &config).unwrap();
+        let pid = manager.get_pid(id).unwrap();
+        assert!(pid > 0);
+        assert_eq!(manager.get_pid(ProcessId::new(999)), None);
+        manager.stop(id).unwrap();
+    }
+
+    #[test]
+    fn test_get_program_name() {
+        let manager = ProcessManager::new();
+        let config = ProcessConfig::builder()
+            .command("sleep".to_string())
+            .args(vec!["10".to_string()])
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Null)
+            .build();
+        let id = manager.start("name-test", &config).unwrap();
+        assert_eq!(manager.get_program_name(id), Some("sleep".to_string()));
+        assert_eq!(manager.get_program_name(ProcessId::new(999)), None);
+        manager.stop(id).unwrap();
+    }
+
+    #[test]
+    fn test_get_config() {
+        let manager = ProcessManager::new();
+        let config = ProcessConfig::builder()
+            .command("sleep".to_string())
+            .args(vec!["10".to_string()])
+            .stdout(StdioConfig::Null)
+            .stderr(StdioConfig::Null)
+            .build();
+        let id = manager.start("config-test", &config).unwrap();
+        let retrieved = manager.get_config(id).unwrap();
+        assert_eq!(retrieved.command, "sleep");
+        assert_eq!(retrieved.args, vec!["10".to_string()]);
+        assert!(manager.get_config(ProcessId::new(999)).is_none());
+        manager.stop(id).unwrap();
     }
 
     #[test]
@@ -801,7 +948,7 @@ mod tests {
         let id = manager.start("test", &config).unwrap();
         assert_eq!(manager.len(), 1);
         // Verify it's tracked
-        assert!(manager.get(id).is_some());
+        assert!(manager.get_info(id).is_some());
         manager.stop(id).unwrap();
         assert!(manager.is_empty());
     }
@@ -903,7 +1050,7 @@ mod tests {
         let new_id = manager.restart(id).unwrap();
         assert_eq!(manager.len(), 1);
         assert_ne!(id, new_id);
-        assert!(manager.get(new_id).is_some());
+        assert!(manager.get_info(new_id).is_some());
         manager.stop(new_id).unwrap();
     }
 
