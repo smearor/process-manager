@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ProcessConfigError","StdioConfig"],"mod":["error","process","stdio"],"struct":["ProcessConfig"]};

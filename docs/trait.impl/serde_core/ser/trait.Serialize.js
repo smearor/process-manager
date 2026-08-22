@@ -1,9 +1,9 @@
 (function() {
-    const implementors = Object.fromEntries([["smearor_wrot_process",[["impl <a class=\"trait\" href=\"https://docs.rs/serde_core/1.0.229/serde_core/ser/trait.Serialize.html\" title=\"trait serde_core::ser::Serialize\">Serialize</a> for <a class=\"enum\" href=\"smearor_wrot_process/kill_signal/enum.KillSignal.html\" title=\"enum smearor_wrot_process::kill_signal::KillSignal\">KillSignal</a>",0]]]]);
+    const implementors = Object.fromEntries([["process_manager",[["impl <a class=\"trait\" href=\"https://docs.rs/serde_core/1.0.229/serde_core/ser/trait.Serialize.html\" title=\"trait serde_core::ser::Serialize\">Serialize</a> for <a class=\"enum\" href=\"process_manager/signal/enum.KillSignal.html\" title=\"enum process_manager::signal::KillSignal\">KillSignal</a>",0],["impl <a class=\"trait\" href=\"https://docs.rs/serde_core/1.0.229/serde_core/ser/trait.Serialize.html\" title=\"trait serde_core::ser::Serialize\">Serialize</a> for <a class=\"struct\" href=\"process_manager/config/struct.ProcessConfig.html\" title=\"struct process_manager::config::ProcessConfig\">ProcessConfig</a>",0],["impl <a class=\"trait\" href=\"https://docs.rs/serde_core/1.0.229/serde_core/ser/trait.Serialize.html\" title=\"trait serde_core::ser::Serialize\">Serialize</a> for <a class=\"enum\" href=\"process_manager/signal/enum.Signal.html\" title=\"enum process_manager::signal::Signal\">Signal</a>",0],["impl <a class=\"trait\" href=\"https://docs.rs/serde_core/1.0.229/serde_core/ser/trait.Serialize.html\" title=\"trait serde_core::ser::Serialize\">Serialize</a> for <a class=\"enum\" href=\"process_manager/config/enum.StdioConfig.html\" title=\"enum process_manager::config::StdioConfig\">StdioConfig</a>",0]]],["process_manager_socket",[["impl <a class=\"trait\" href=\"https://docs.rs/serde_core/1.0.229/serde_core/ser/trait.Serialize.html\" title=\"trait serde_core::ser::Serialize\">Serialize</a> for <a class=\"struct\" href=\"process_manager_socket/socket/struct.Socket.html\" title=\"struct process_manager_socket::socket::Socket\">Socket</a>",0]]]]);
     if (window.register_implementors) {
         window.register_implementors(implementors);
     } else {
         window.pending_implementors = implementors;
     }
 })()
-//{"start":59,"fragment_lengths":[354]}
+//{"start":59,"fragment_lengths":[1259,345]}

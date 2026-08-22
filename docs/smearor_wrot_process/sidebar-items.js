@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["config","error","kill_signal","manager","process","process_info","reaper","stdio_config"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["KillSignal","Signal"],"mod":["kill_signal","signal"]};

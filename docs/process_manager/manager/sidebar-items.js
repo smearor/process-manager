@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ProcessManagerError"],"mod":["error","process"],"struct":["ProcessManager","StopManyError"]};

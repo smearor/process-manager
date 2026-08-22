@@ -1,2 +1,2 @@
-window.ALL_CRATES = ["smearor_wrot_process","smearor_wrot_socket"];
-//{"start":21,"fragment_lengths":[22,22]}
+window.ALL_CRATES = ["process_manager","process_manager_socket"];
+//{"start":21,"fragment_lengths":[17,25]}

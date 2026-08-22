@@ -1,2 +1,2 @@
-createSrcSidebar('[["smearor_wrot_process",["",[],["config.rs","error.rs","kill_signal.rs","lib.rs","manager.rs","process.rs","process_info.rs","reaper.rs","stdio_config.rs"]]],["smearor_wrot_socket",["",[],["builder.rs","error.rs","lib.rs","manager.rs","socket.rs"]]]]');
-//{"start":19,"fragment_lengths":[157,92]}
+createSrcSidebar('[["process_manager",["",[["config",[],["error.rs","mod.rs","process.rs","stdio.rs"]],["manager",[],["error.rs","mod.rs","process.rs"]],["process",[],["exit_event.rs","id.rs","info.rs","mod.rs","process.rs"]],["reaper",[],["handle.rs","loop.rs","mod.rs"]],["signal",[],["kill_signal.rs","mod.rs","signal.rs"]]],["lib.rs"]]],["process_manager_socket",["",[],["builder.rs","error.rs","lib.rs","manager.rs","socket.rs"]]]]');
+//{"start":19,"fragment_lengths":[321,95]}
