@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b91aa8bd.js";
+            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2f05e57f.js"></script>
+        <script src="../toc-a77de263.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -193,6 +193,8 @@
 <tr><td><code>pid</code></td><td><code>u32</code></td><td>The OS process ID (for logging/debugging)</td></tr>
 <tr><td><code>label</code></td><td><code>String</code></td><td>The label under which the process was started</td></tr>
 <tr><td><code>restart_on_exit</code></td><td><code>bool</code></td><td>Whether the consumer should restart this process</td></tr>
+<tr><td><code>exit_status</code></td><td><code>Option&lt;ExitStatus&gt;</code></td><td>The exit status of the process (<code>None</code> if the child handle was missing or <code>try_wait()</code> returned an error)</td></tr>
+<tr><td><code>state</code></td><td><code>ProcessState</code></td><td>The lifecycle state at exit — <code>Stopped</code> if normal exit, <code>Crashed</code> if non-zero exit code or signal</td></tr>
 </tbody>
 </table>
 </div>
@@ -211,10 +213,11 @@
     D --&gt;|Sync| E["receiver.recv()&lt;br/&gt;or try_recv()"]
     D --&gt;|GTK/Async| F["Forwarding thread&lt;br/&gt;std → tokio::mpsc"]
     F --&gt; G["MainContext::spawn_local&lt;br/&gt;async event handling"]
-    E --&gt; H{"restart_on_exit?"}
+    E --&gt; H{"state?"}
     G --&gt; H
-    H --&gt;|true| I["manager.start(label, &amp;config)"]
-    H --&gt;|false| J["Log / update UI"]
+    H --&gt;|"Stopped"| J["Log / update UI"]
+    H --&gt;|"Crashed"| I["manager.start(label, &amp;config)"]
+    H --&gt;|"restart_on_exit"| I
 
     class A reaper
     class B event
@@ -239,9 +242,9 @@ manager.start("task", &amp;config)?;
 
 loop {
     let event = receiver.recv()?;
-    println!("Process {} (PID {}) exited", event.label, event.pid);
+    println!("Process {} (PID {}) exited: {}", event.label, event.pid, event.state);
     
-    if event.restart_on_exit {
+    if event.restart_on_exit || event.state == ProcessState::Crashed {
         manager.start(&amp;event.label, &amp;config)?;
     }
 }
@@ -274,8 +277,8 @@ manager.start("task", &amp;config)?;
 let main_context = MainContext::default();
 main_context.spawn_local(async move {
     while let Some(event) = async_receiver.recv().await {
-        println!("Process {} exited", event.label);
-        if event.restart_on_exit {
+        println!("Process {} exited: {}", event.label, event.state);
+        if event.restart_on_exit || event.state == ProcessState::Crashed {
             manager.start(&amp;event.label, &amp;config);
         }
     }
@@ -288,8 +291,8 @@ main_context.spawn_local(async move {
 </span>loop {
     // Process exit events
     while let Ok(event) = receiver.try_recv() {
-        println!("Process {} exited", event.label);
-        if event.restart_on_exit {
+        println!("Process {} exited: {}", event.label, event.state);
+        if event.restart_on_exit || event.state == ProcessState::Crashed {
             manager.start(&amp;event.label, &amp;config)?;
         }
     }

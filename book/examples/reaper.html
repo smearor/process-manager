@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b91aa8bd.js";
+            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2f05e57f.js"></script>
+        <script src="../toc-a77de263.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -204,7 +204,7 @@ manager.start("task", &amp;config)?;
 
 // Receive exit event (blocks until process exits or timeout)
 let event = receiver.recv_timeout(Duration::from_secs(10))?;
-println!("Process {} (PID {}) exited", event.label, event.pid);
+println!("Process {} (PID {}) exited: {}", event.label, event.pid, event.state);
 <span class="boring">}</span></code></pre>
 <h2 id="restart-on-exit"><a class="header" href="#restart-on-exit">Restart on Exit</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -219,7 +219,7 @@ manager.start("service", &amp;config)?;
 
 // In your event loop:
 if let Ok(event) = receiver.try_recv() {
-    if event.restart_on_exit {
+    if event.restart_on_exit || event.state == ProcessState::Crashed {
         // Restart the process with the same label and config
         manager.start(&amp;event.label, &amp;config)?;
     }
@@ -243,8 +243,8 @@ std::thread::spawn(move || {
 
 MainContext::default().spawn_local(async move {
     while let Some(event) = event_rx.recv().await {
-        println!("Process {} exited", event.label);
-        if event.restart_on_exit {
+        println!("Process {} exited: {}", event.label, event.state);
+        if event.restart_on_exit || event.state == ProcessState::Crashed {
             // Restart in main thread
         }
     }

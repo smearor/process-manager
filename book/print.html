@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b91aa8bd.js";
+            window.path_to_searchindex_js = "searchindex-65e3e949.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-2f05e57f.js"></script>
+        <script src="toc-a77de263.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -198,6 +198,7 @@
 <li><strong>Zombie prevention</strong> — The reaper thread calls <code>try_wait()</code> on all tracked processes, preventing zombies without per-process wait threads</li>
 <li><strong>Graceful shutdown</strong> — <code>terminate_on_exit</code> flag ensures processes are killed when the manager is dropped</li>
 <li><strong>Signal escalation</strong> — <code>SIGTERM</code> with configurable timeout, automatic <code>SIGKILL</code> escalation for stubborn processes</li>
+<li><strong>Explicit lifecycle states</strong> — <code>ProcessState</code> enum (<code>Starting</code>, <code>Running</code>, <code>Stopping</code>, <code>Stopped</code>, <code>Crashed</code>, <code>Restarting</code>, <code>Failed</code>) for precise decision-making</li>
 <li><strong>Label-based grouping</strong> — Start and stop multiple processes under a shared label (e.g. all workers in a pool)</li>
 <li><strong>Forked/detached support</strong> — <code>setsid()</code> via <code>pre_exec</code> for processes that should survive parent exit</li>
 <li><strong>Wayland socket binding</strong> — Automatically sets <code>WAYLAND_DISPLAY</code> in child environment</li>
@@ -374,7 +375,7 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <li><strong><code>ProcessConfig</code></strong> — Built via <code>TypedBuilder</code>. Contains all configuration for spawning a child: command, args, env, working_dir, shell mode, forked mode, terminate_on_exit, kill_signal, terminate_timeout, restart_on_exit, stdio config, and optional Wayland socket.</li>
 <li><strong><code>ProcessManager</code></strong> — Tracks child processes in a <code>DashMap</code> keyed by <code>ProcessId</code>. Supports label-based grouping, concurrent start/stop operations, and an optional reaper thread.</li>
 <li><strong><code>Process</code></strong> — A handle to a managed child process. Contains the <code>ProcessId</code>, PID, label, config, and the <code>std::process::Child</code> handle.</li>
-<li><strong><code>ProcessExitEvent</code></strong> — Emitted by the reaper thread when a process exits. Contains <code>id</code>, <code>pid</code>, <code>label</code>, and <code>restart_on_exit</code> flag.</li>
+<li><strong><code>ProcessExitEvent</code></strong> — Emitted by the reaper thread when a process exits. Contains <code>id</code>, <code>pid</code>, <code>label</code>, <code>restart_on_exit</code>, <code>exit_status</code>, and <code>state</code> (<code>Stopped</code> or <code>Crashed</code>).</li>
 </ul>
 <h2 id="process-lifecycle"><a class="header" href="#process-lifecycle">Process Lifecycle</a></h2>
 <pre class="mermaid">graph TD
@@ -387,8 +388,8 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     A["ProcessConfig::builder()"] --&gt; B["manager.start(label, &amp;config)"]
     B --&gt; C["Process spawned&lt;br/&gt;tracked in DashMap"]
     C --&gt; D{Process exits?}
-    D --&gt;|No| E["Running&lt;br/&gt;is_running() == true"]
-    D --&gt;|Yes, reaper active| F["ProcessExitEvent&lt;br/&gt;sent via mpsc channel"]
+    D --&gt;|No| E["Running&lt;br/&gt;state() == Running"]
+    D --&gt;|Yes, reaper active| F["ProcessExitEvent&lt;br/&gt;state: Stopped/Crashed&lt;br/&gt;sent via mpsc channel"]
     D --&gt;|Yes, no reaper| G["Zombie until&lt;br/&gt;stop() or drop()"]
     E --&gt; H["manager.stop(id)"]
     H --&gt; I["SIGTERM sent"]
@@ -861,7 +862,8 @@ match SocketBuilder::build(&amp;Some("wayland-0".to_string())) {
 <li><strong><code>ProcessConfig</code></strong> — Unified configuration via <code>TypedBuilder</code> (command, args, env, working_dir, shell, forked, terminate_on_exit, kill_signal, restart_on_exit, stdio, socket)</li>
 <li><strong><code>ProcessManager</code></strong> — Concurrent process tracking via <code>DashMap</code>, label-based grouping, optional reaper thread</li>
 <li><strong><code>Process</code></strong> / <strong><code>ProcessId</code></strong> / <strong><code>ProcessInfo</code></strong> — Process handle, unique identifier, and lightweight snapshot type</li>
-<li><strong><code>ProcessExitEvent</code></strong> — Reaper exit notification with <code>id</code>, <code>pid</code>, <code>label</code>, <code>restart_on_exit</code></li>
+<li><strong><code>ProcessState</code></strong> — Explicit lifecycle state enum (<code>Starting</code>, <code>Running</code>, <code>Stopping</code>, <code>Stopped</code>, <code>Crashed</code>, <code>Restarting</code>, <code>Failed</code>)</li>
+<li><strong><code>ProcessExitEvent</code></strong> — Reaper exit notification with <code>id</code>, <code>pid</code>, <code>label</code>, <code>restart_on_exit</code>, <code>exit_status</code>, <code>state</code></li>
 <li><strong><code>StdioConfig</code></strong> — Inherit/Null/Piped enum for standard streams</li>
 <li><strong><code>KillSignal</code></strong> — Sigterm/Sigkill enum for termination config</li>
 <li><strong><code>Signal</code></strong> — Broader signal enum (SIGHUP, SIGUSR1, SIGSTOP, etc.) for general process control</li>
@@ -938,6 +940,7 @@ match SocketBuilder::build(&amp;Some("wayland-0".to_string())) {
 <li><a href="#processconfig">ProcessConfig</a></li>
 <li><a href="#processmanager">ProcessManager</a></li>
 <li><a href="#process--processid">Process &amp; ProcessId</a></li>
+<li><a href="#processstate">ProcessState</a></li>
 <li><a href="#stdioconfig">StdioConfig</a></li>
 <li><a href="#signal">Signal</a></li>
 <li><a href="#reaper-thread">Reaper Thread</a></li>
@@ -1224,7 +1227,8 @@ let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender)?;
 <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>is_running(id)</code></td><td><code>Option&lt;bool&gt;</code></td><td>Check if a process is still running</td></tr>
+<tr><td><code>is_running(id)</code></td><td><code>Option&lt;bool&gt;</code></td><td>Check if a process is still running (delegates to <code>state().is_alive()</code>)</td></tr>
+<tr><td><code>state(id)</code></td><td><code>Option&lt;ProcessState&gt;</code></td><td>Get the explicit lifecycle state of a process</td></tr>
 <tr><td><code>is_forked(id)</code></td><td><code>Option&lt;bool&gt;</code></td><td>Check if a process was spawned with <code>setsid()</code></td></tr>
 <tr><td><code>get_pid(id)</code></td><td><code>Option&lt;u32&gt;</code></td><td>Get the OS PID for a process</td></tr>
 <tr><td><code>get_label(id)</code></td><td><code>Option&lt;String&gt;</code></td><td>Get the label for a process</td></tr>
@@ -1325,7 +1329,7 @@ manager.start("service", &amp;config)?;
 
 // In your event loop:
 if let Ok(event) = receiver.try_recv() {
-    if event.restart_on_exit {
+    if event.restart_on_exit || event.state == ProcessState::Crashed {
         manager.start(&amp;event.label, &amp;config)?;
     }
 }
@@ -1382,19 +1386,33 @@ let process = manager.get(id);
     classDef signal fill: #f5b700, stroke: #333333, stroke-width: 2px, color: #000000
     classDef stop fill: #dc0073, stroke: #333333, stroke-width: 2px, color: #ffffff
     classDef done fill: #04e762, stroke: #333333, stroke-width: 1px, color: #000
+    classDef failed fill: #dc0073, stroke: #333333, stroke-width: 1px, color: #ffffff
 
-    A["start()"] --&gt; B["Running&lt;br/&gt;in DashMap"]
-    B --&gt;|"send_signal()"| B
-    B --&gt;|"stop()"| C["SIGTERM&lt;br/&gt;→ wait → SIGKILL"]
-    B --&gt;|"process exits&lt;br/&gt;(reaper detects)"| D["ProcessExitEvent"]
-    C --&gt; E["Removed from&lt;br/&gt;DashMap"]
-    D --&gt; E
+    A["start()"] --&gt; B["Starting&lt;br/&gt;transient"]
+    B --&gt; C["Running&lt;br/&gt;in DashMap"]
+    B --&gt;|"spawn fails"| F["Failed"]
+    C --&gt;|"send_signal()"| C
+    C --&gt;|"stop()"| D["Stopping&lt;br/&gt;SIGTERM sent"]
+    C --&gt;|"restart()"| G["Restarting"]
+    C --&gt;|"process exits&lt;br/&gt;(reaper detects)"| E["ProcessExitEvent"]
+    D --&gt;|"exits normally"| H["Stopped"]
+    D --&gt;|"exits with error"| I["Crashed"]
+    G --&gt;|"stop old, start new"| B
+    E --&gt; E2["Removed from&lt;br/&gt;DashMap"]
+    H --&gt; E2
+    I --&gt; E2
+    F --&gt; E2
 
     class A start
     class B running
-    class C stop
-    class D signal
-    class E done
+    class C running
+    class D stop
+    class E signal
+    class E2 done
+    class F failed
+    class G signal
+    class H done
+    class I done
 </pre>
 
 <h3 id="fields-1"><a class="header" href="#fields-1">Fields</a></h3>
@@ -1411,6 +1429,7 @@ let process = manager.get(id);
 <tr><td><code>terminate_on_exit</code></td><td><code>bool</code></td><td>Whether to terminate on <code>ProcessManager</code> drop</td></tr>
 <tr><td><code>config</code></td><td><code>ProcessConfig</code></td><td>The configuration this process was started with</td></tr>
 <tr><td><code>child</code></td><td><code>Option&lt;Child&gt;</code></td><td>The <code>std::process::Child</code> handle (always <code>Some</code>)</td></tr>
+<tr><td><code>state</code></td><td><code>ProcessState</code></td><td>The current lifecycle state (updated lazily by <code>state()</code>, explicitly by <code>stop()</code> / <code>restart()</code>)</td></tr>
 </tbody>
 </table>
 </div>
@@ -1421,7 +1440,8 @@ let process = manager.get(id);
 <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>is_running()</code></td><td><code>bool</code></td><td>Non-blocking check via <code>try_wait()</code> — <code>true</code> if still running</td></tr>
+<tr><td><code>is_running()</code></td><td><code>bool</code></td><td>Non-blocking check via <code>try_wait()</code> — <code>true</code> if still running (delegates to <code>state().is_alive()</code>)</td></tr>
+<tr><td><code>state()</code></td><td><code>ProcessState</code></td><td>Non-blocking check via <code>try_wait()</code> — returns the current lifecycle state, updating it if the process has exited</td></tr>
 <tr><td><code>send_signal(signal)</code></td><td><code>Result&lt;(), nix::Error&gt;</code></td><td>Send a signal to the process via <code>nix::sys::signal::kill</code></td></tr>
 <tr><td><code>force_kill()</code></td><td><code>Result&lt;(), nix::Error&gt;</code></td><td>Send <code>SIGKILL</code> immediately</td></tr>
 </tbody>
@@ -1438,15 +1458,119 @@ let process = manager.get(id);
 let process = manager.get(id).unwrap();
 println!("PID: {}, Label: {}", process.pid, process.label);
 println!("Running: {}", process.is_running());
+println!("State: {}", process.state);
 drop(process); // Release DashMap guard
 
 // Stop the process
 manager.stop(id)?;
 <span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="processstate"><a class="header" href="#processstate">ProcessState</a></h1>
+<p><code>ProcessState</code> is an explicit lifecycle state enum that replaces the binary <code>is_running() -&gt; bool</code> check with a granular state machine.</p>
+<h2 id="overview-6"><a class="header" href="#overview-6">Overview</a></h2>
+<p>Each managed process has a <code>ProcessState</code> that reflects its current lifecycle phase. The state is updated lazily by <code>state()</code> / <code>is_running()</code> via non-blocking <code>try_wait()</code>, and explicitly by <code>stop()</code>, <code>restart()</code>, and the reaper thread.</p>
+<h2 id="variants"><a class="header" href="#variants">Variants</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Variant</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Starting</code></td><td>The process is being spawned and has not yet been confirmed running. Transient state between <code>spawn()</code> and insertion into the manager.</td></tr>
+<tr><td><code>Running</code></td><td>The process is alive and running. Confirmed via <code>try_wait()</code> returning <code>Ok(None)</code>.</td></tr>
+<tr><td><code>Stopping</code></td><td>A stop signal has been sent and the manager is waiting for exit. Set by <code>stop()</code> / <code>stop_many()</code>.</td></tr>
+<tr><td><code>Stopped</code></td><td>The process has exited normally (exit code 0 or stopped by the manager within the grace period).</td></tr>
+<tr><td><code>Crashed</code></td><td>The process exited unexpectedly with a non-zero exit code or signal.</td></tr>
+<tr><td><code>Restarting</code></td><td>A restart is in progress. The old process is being stopped and a new one will be started.</td></tr>
+<tr><td><code>Failed</code></td><td>The process failed to start or could not be killed. Set when <code>spawn()</code> fails or <code>force_kill()</code> fails and the process is re-inserted for tracking.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="state-transitions"><a class="header" href="#state-transitions">State Transitions</a></h2>
+<pre class="mermaid">graph TD
+    classDef default fill: #1e1e1e, stroke: #333333, stroke-width: 1px, color: #ffffff
+    classDef active fill: #89fc00, stroke: #333333, stroke-width: 2px, color: #000
+    classDef transient fill: #f5b700, stroke: #333333, stroke-width: 2px, color: #000000
+    classDef terminal fill: #dc0073, stroke: #333333, stroke-width: 2px, color: #ffffff
+
+    Starting --&gt; Running
+    Running --&gt; Stopping
+    Stopping --&gt; Stopped
+    Stopping --&gt; Crashed
+    Running --&gt; Crashed
+    Running --&gt; Restarting
+    Restarting --&gt; Starting
+    Starting --&gt; Failed
+
+    class Starting,Running,Stopping,Restarting active
+    class Restarting transient
+    class Stopped,Crashed,Failed terminal
+</pre>
+
+<h2 id="helper-methods"><a class="header" href="#helper-methods">Helper Methods</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>is_alive()</code></td><td><code>bool</code></td><td><code>true</code> for <code>Starting</code>, <code>Running</code>, <code>Stopping</code>, <code>Restarting</code> — equivalent to the old <code>is_running()</code> semantics</td></tr>
+<tr><td><code>is_terminated()</code></td><td><code>bool</code></td><td><code>true</code> for <code>Stopped</code>, <code>Crashed</code>, <code>Failed</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="trait-implementations-1"><a class="header" href="#trait-implementations-1">Trait Implementations</a></h2>
+<ul>
+<li><code>Debug</code>, <code>Clone</code>, <code>Copy</code>, <code>PartialEq</code>, <code>Eq</code>, <code>Hash</code></li>
+<li><code>Default</code> — defaults to <code>Starting</code></li>
+<li><code>Display</code> — lowercase string (<code>"starting"</code>, <code>"running"</code>, etc.)</li>
+</ul>
+<h2 id="usage-8"><a class="header" href="#usage-8">Usage</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use process_manager::{ProcessConfig, ProcessManager, ProcessState, StdioConfig};
+
+let manager = ProcessManager::new();
+let config = ProcessConfig::builder()
+    .command("sleep".to_string())
+    .args(vec!["10".to_string()])
+    .stdout(StdioConfig::Null)
+    .stderr(StdioConfig::Null)
+    .build();
+
+let id = manager.start("task", &amp;config)?;
+
+// Check the explicit state
+match manager.state(id) {
+    Some(ProcessState::Running) =&gt; println!("Process is running"),
+    Some(ProcessState::Stopped) =&gt; println!("Process stopped normally"),
+    Some(ProcessState::Crashed) =&gt; println!("Process crashed!"),
+    Some(state) =&gt; println!("Process state: {}", state),
+    None =&gt; println!("Process not found"),
+}
+
+// is_running() still works (delegates to state().is_alive())
+assert_eq!(manager.is_running(id), Some(true));
+
+// ProcessInfo also includes the state
+let info = manager.get_info(id).unwrap();
+println!("State: {}", info.state);
+<span class="boring">}</span></code></pre>
+<h2 id="in-processexitevent"><a class="header" href="#in-processexitevent">In ProcessExitEvent</a></h2>
+<p>When the reaper thread detects an exit, it sets the <code>state</code> field on <code>ProcessExitEvent</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let event = receiver.recv_timeout(Duration::from_secs(5))?;
+match event.state {
+    ProcessState::Stopped =&gt; println!("Process {} exited normally", event.label),
+    ProcessState::Crashed =&gt; println!("Process {} crashed", event.label),
+    _ =&gt; unreachable!(),
+}
+<span class="boring">}</span></code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="stdioconfig"><a class="header" href="#stdioconfig">StdioConfig</a></h1>
 <p><code>StdioConfig</code> controls how standard streams (stdin, stdout, stderr) are configured for child processes.</p>
-<h2 id="overview-6"><a class="header" href="#overview-6">Overview</a></h2>
+<h2 id="overview-7"><a class="header" href="#overview-7">Overview</a></h2>
 <p>When spawning a child process, each standard stream can be configured independently:</p>
 <ul>
 <li><strong><code>Inherit</code></strong> — The child inherits the parent’s stream. Output appears in the parent’s terminal. Useful for debugging.</li>
@@ -1479,7 +1603,7 @@ manager.stop(id)?;
 <p><code>StdioConfig</code> implements <code>Serialize</code> and <code>Deserialize</code> with <code>#[serde(rename_all = "lowercase")]</code>, so it serializes as <code>"inherit"</code>, <code>"null"</code>, and <code>"piped"</code>.</p>
 <h2 id="why-reader-threads-for-piped"><a class="header" href="#why-reader-threads-for-piped">Why Reader Threads for Piped?</a></h2>
 <p>When <code>StdioConfig::Piped</code> is used, the OS creates a pipe with a fixed buffer size (typically 64KB). If the child writes more than the buffer can hold and nobody reads the pipe, the child blocks — causing a deadlock. <code>ProcessManager::start()</code> spawns dedicated reader threads that continuously read from the pipe and forward lines to <code>tracing::debug!</code> / <code>tracing::error!</code>, preventing this deadlock.</p>
-<h2 id="usage-8"><a class="header" href="#usage-8">Usage</a></h2>
+<h2 id="usage-9"><a class="header" href="#usage-9">Usage</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use process_manager::{ProcessConfig, StdioConfig};
@@ -1518,7 +1642,7 @@ let config = ProcessConfig::builder()
 </ul>
 <h2 id="killsignal"><a class="header" href="#killsignal">KillSignal</a></h2>
 <p><code>KillSignal</code> specifies which signal to send when terminating a process. It is intentionally limited to the two signals that make sense for the <code>stop()</code> path.</p>
-<h3 id="variants"><a class="header" href="#variants">Variants</a></h3>
+<h3 id="variants-1"><a class="header" href="#variants-1">Variants</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1585,7 +1709,7 @@ let config = ProcessConfig::builder()
 </ul>
 <h2 id="signal-1"><a class="header" href="#signal-1">Signal</a></h2>
 <p><code>Signal</code> is a broader enum covering common Unix signals for general process control. It is used with <code>ProcessManager::send_signal()</code> and <code>send_signal_label()</code>, which send a signal without removing the process from the manager.</p>
-<h3 id="variants-1"><a class="header" href="#variants-1">Variants</a></h3>
+<h3 id="variants-1-1"><a class="header" href="#variants-1-1">Variants</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1674,12 +1798,12 @@ manager.stop(id)?;
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="reaper-thread"><a class="header" href="#reaper-thread">Reaper Thread</a></h1>
 <p>The reaper thread is an optional background thread that polls <code>try_wait()</code> on all tracked processes at a configurable interval, preventing zombies and emitting <code>ProcessExitEvent</code>s.</p>
-<h2 id="overview-7"><a class="header" href="#overview-7">Overview</a></h2>
+<h2 id="overview-8"><a class="header" href="#overview-8">Overview</a></h2>
 <p>When a child process exits, it becomes a zombie until someone calls <code>wait()</code> or <code>try_wait()</code> on it. Without the reaper, the consumer must manually call <code>is_running()</code> or <code>stop()</code> to reap exited processes. The reaper thread automates this:</p>
 <ol>
 <li>Spawns a <code>std::thread</code> named <code>"process-reaper"</code></li>
 <li>Every <code>poll_interval</code>, iterates all tracked processes in the <code>DashMap</code></li>
-<li>Calls <code>try_wait()</code> on each — if the process has exited, removes it from the <code>DashMap</code> and sends a <code>ProcessExitEvent</code></li>
+<li>Calls <code>try_wait()</code> on each — if the process has exited, removes it from the <code>DashMap</code> and sends a <code>ProcessExitEvent</code> with the derived <code>ProcessState</code> (<code>Stopped</code> for normal exit, <code>Crashed</code> for non-zero)</li>
 <li>Runs until <code>ProcessManager</code> is dropped (via a <code>stop_flag</code> <code>AtomicBool</code>)</li>
 </ol>
 <h2 id="polling-cycle"><a class="header" href="#polling-cycle">Polling Cycle</a></h2>
@@ -1696,6 +1820,7 @@ manager.stop(id)?;
             alt Still running
                 Reaper-&gt;&gt;Reaper: Skip
             else Exited
+                Reaper-&gt;&gt;Reaper: Determine state (Stopped/Crashed)
                 Reaper-&gt;&gt;DashMap: Remove process
                 Reaper-&gt;&gt;Channel: Send ProcessExitEvent
                 Channel--&gt;&gt;Consumer: receiver.recv()
@@ -1727,7 +1852,7 @@ manager.stop(id)?;
 <li><code>stop()</code> removes from a shard — may briefly block the reaper on that shard</li>
 </ul>
 <p>This is acceptable for the use case (low-frequency operations, small number of processes).</p>
-<h2 id="usage-9"><a class="header" href="#usage-9">Usage</a></h2>
+<h2 id="usage-10"><a class="header" href="#usage-10">Usage</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use process_manager::{ProcessConfig, ProcessManager, StdioConfig};
@@ -1745,12 +1870,12 @@ manager.start("task", &amp;config)?;
 
 // Receive exit event
 let event = receiver.recv_timeout(Duration::from_secs(10))?;
-println!("Process {} (PID {}) exited", event.label, event.pid);
+println!("Process {} (PID {}) exited: {}", event.label, event.pid, event.state);
 <span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="processexitevent"><a class="header" href="#processexitevent">ProcessExitEvent</a></h1>
 <p><code>ProcessExitEvent</code> is emitted by the reaper thread when a tracked process exits.</p>
-<h2 id="overview-8"><a class="header" href="#overview-8">Overview</a></h2>
+<h2 id="overview-9"><a class="header" href="#overview-9">Overview</a></h2>
 <p>When the reaper thread detects that a process has exited (via <code>try_wait()</code>), it constructs a <code>ProcessExitEvent</code> and sends it through the <code>std::sync::mpsc::Sender</code> provided to <code>ProcessManager::with_reaper()</code>.</p>
 <p>The consumer receives this event and can decide what to do — log the exit, restart the process, update UI state, etc.</p>
 <h2 id="fields-2"><a class="header" href="#fields-2">Fields</a></h2>
@@ -1764,6 +1889,8 @@ println!("Process {} (PID {}) exited", event.label, event.pid);
 <tr><td><code>pid</code></td><td><code>u32</code></td><td>The OS process ID (for logging/debugging)</td></tr>
 <tr><td><code>label</code></td><td><code>String</code></td><td>The label under which the process was started</td></tr>
 <tr><td><code>restart_on_exit</code></td><td><code>bool</code></td><td>Whether the consumer should restart this process</td></tr>
+<tr><td><code>exit_status</code></td><td><code>Option&lt;ExitStatus&gt;</code></td><td>The exit status of the process (<code>None</code> if the child handle was missing or <code>try_wait()</code> returned an error)</td></tr>
+<tr><td><code>state</code></td><td><code>ProcessState</code></td><td>The lifecycle state at exit — <code>Stopped</code> if normal exit, <code>Crashed</code> if non-zero exit code or signal</td></tr>
 </tbody>
 </table>
 </div>
@@ -1782,10 +1909,11 @@ println!("Process {} (PID {}) exited", event.label, event.pid);
     D --&gt;|Sync| E["receiver.recv()&lt;br/&gt;or try_recv()"]
     D --&gt;|GTK/Async| F["Forwarding thread&lt;br/&gt;std → tokio::mpsc"]
     F --&gt; G["MainContext::spawn_local&lt;br/&gt;async event handling"]
-    E --&gt; H{"restart_on_exit?"}
+    E --&gt; H{"state?"}
     G --&gt; H
-    H --&gt;|true| I["manager.start(label, &amp;config)"]
-    H --&gt;|false| J["Log / update UI"]
+    H --&gt;|"Stopped"| J["Log / update UI"]
+    H --&gt;|"Crashed"| I["manager.start(label, &amp;config)"]
+    H --&gt;|"restart_on_exit"| I
 
     class A reaper
     class B event
@@ -1810,9 +1938,9 @@ manager.start("task", &amp;config)?;
 
 loop {
     let event = receiver.recv()?;
-    println!("Process {} (PID {}) exited", event.label, event.pid);
+    println!("Process {} (PID {}) exited: {}", event.label, event.pid, event.state);
     
-    if event.restart_on_exit {
+    if event.restart_on_exit || event.state == ProcessState::Crashed {
         manager.start(&amp;event.label, &amp;config)?;
     }
 }
@@ -1845,8 +1973,8 @@ manager.start("task", &amp;config)?;
 let main_context = MainContext::default();
 main_context.spawn_local(async move {
     while let Some(event) = async_receiver.recv().await {
-        println!("Process {} exited", event.label);
-        if event.restart_on_exit {
+        println!("Process {} exited: {}", event.label, event.state);
+        if event.restart_on_exit || event.state == ProcessState::Crashed {
             manager.start(&amp;event.label, &amp;config);
         }
     }
@@ -1859,8 +1987,8 @@ main_context.spawn_local(async move {
 </span>loop {
     // Process exit events
     while let Ok(event) = receiver.try_recv() {
-        println!("Process {} exited", event.label);
-        if event.restart_on_exit {
+        println!("Process {} exited: {}", event.label, event.state);
+        if event.restart_on_exit || event.state == ProcessState::Crashed {
             manager.start(&amp;event.label, &amp;config)?;
         }
     }
@@ -1896,7 +2024,7 @@ main_context.spawn_local(async move {
 </div>
 <h2 id="processconfigerror"><a class="header" href="#processconfigerror">ProcessConfigError</a></h2>
 <p>Errors returned during <code>ProcessConfig</code> construction. Currently minimal since <code>TypedBuilder</code> enforces required fields at compile time.</p>
-<h2 id="usage-10"><a class="header" href="#usage-10">Usage</a></h2>
+<h2 id="usage-11"><a class="header" href="#usage-11">Usage</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use process_manager::{ProcessConfig, ProcessManager, ProcessManagerError};
@@ -1943,7 +2071,7 @@ match manager.start("test", &amp;config) {
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="simple-child-process"><a class="header" href="#simple-child-process">Simple Child Process</a></h1>
 <p>Spawn a child process with piped stdout/stderr for output capture.</p>
-<h2 id="overview-9"><a class="header" href="#overview-9">Overview</a></h2>
+<h2 id="overview-10"><a class="header" href="#overview-10">Overview</a></h2>
 <p>This is the most basic usage of <code>ProcessManager</code>: spawn a process, let it run, and stop it when done. The <code>Piped</code> stdio configuration causes <code>ProcessManager</code> to spawn reader threads that forward stdout to <code>tracing::debug!</code> and stderr to <code>tracing::error!</code>, preventing pipe buffer deadlocks.</p>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1963,6 +2091,7 @@ let id = manager.start("echo-app", &amp;config)?;
 
 // Check if the process is still running
 println!("Running: {}", manager.is_running(id).unwrap_or(false));
+println!("State: {}", manager.state(id).unwrap_or(process_manager::ProcessState::Failed));
 
 // Stop when done
 manager.stop(id)?;
@@ -1978,7 +2107,7 @@ manager.stop(id)?;
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="forked--detached-process"><a class="header" href="#forked--detached-process">Forked / Detached Process</a></h1>
 <p>Spawn a process that is detached from the parent’s controlling terminal via <code>setsid()</code>.</p>
-<h2 id="overview-10"><a class="header" href="#overview-10">Overview</a></h2>
+<h2 id="overview-11"><a class="header" href="#overview-11">Overview</a></h2>
 <p>When <code>forked = true</code> is set in <code>ProcessConfig</code>, <code>ProcessManager::start()</code> adds a <code>pre_exec</code> hook that calls <code>setsid()</code>. This detaches the child process from the parent’s controlling terminal, making it suitable for daemons and background services that should survive terminal close.</p>
 <p>Unlike a double-fork (which would create a grandchild and lose the <code>Child</code> handle), <code>setsid()</code> keeps the process as a direct child. This means:</p>
 <ul>
@@ -2041,7 +2170,7 @@ let id = manager.start("daemon", &amp;config)?;
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="reaper-monitoring"><a class="header" href="#reaper-monitoring">Reaper Monitoring</a></h1>
 <p>Use the reaper thread to detect process exits and implement restart logic.</p>
-<h2 id="overview-11"><a class="header" href="#overview-11">Overview</a></h2>
+<h2 id="overview-12"><a class="header" href="#overview-12">Overview</a></h2>
 <p>The reaper thread polls <code>try_wait()</code> on all tracked processes at a configurable interval. When a process exits, it emits a <code>ProcessExitEvent</code> through an <code>mpsc</code> channel. This enables:</p>
 <ul>
 <li><strong>Zombie prevention</strong> — Exited processes are reaped automatically</li>
@@ -2066,7 +2195,7 @@ manager.start("task", &amp;config)?;
 
 // Receive exit event (blocks until process exits or timeout)
 let event = receiver.recv_timeout(Duration::from_secs(10))?;
-println!("Process {} (PID {}) exited", event.label, event.pid);
+println!("Process {} (PID {}) exited: {}", event.label, event.pid, event.state);
 <span class="boring">}</span></code></pre>
 <h2 id="restart-on-exit"><a class="header" href="#restart-on-exit">Restart on Exit</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -2081,7 +2210,7 @@ manager.start("service", &amp;config)?;
 
 // In your event loop:
 if let Ok(event) = receiver.try_recv() {
-    if event.restart_on_exit {
+    if event.restart_on_exit || event.state == ProcessState::Crashed {
         // Restart the process with the same label and config
         manager.start(&amp;event.label, &amp;config)?;
     }
@@ -2105,8 +2234,8 @@ std::thread::spawn(move || {
 
 MainContext::default().spawn_local(async move {
     while let Some(event) = event_rx.recv().await {
-        println!("Process {} exited", event.label);
-        if event.restart_on_exit {
+        println!("Process {} exited: {}", event.label, event.state);
+        if event.restart_on_exit || event.state == ProcessState::Crashed {
             // Restart in main thread
         }
     }
@@ -2141,7 +2270,7 @@ MainContext::default().spawn_local(async move {
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="label-based-grouping"><a class="header" href="#label-based-grouping">Label-based Grouping</a></h1>
 <p>Start and stop multiple processes under a shared label.</p>
-<h2 id="overview-12"><a class="header" href="#overview-12">Overview</a></h2>
+<h2 id="overview-13"><a class="header" href="#overview-13">Overview</a></h2>
 <p>Labels provide a way to group related processes. Multiple processes can share the same label, and operations like <code>stop_label()</code> and <code>pids_by_label()</code> act on all processes with that label. This is useful for:</p>
 <ul>
 <li><strong>Worker pools</strong> — Start N workers under a shared label, stop them all at once</li>
@@ -2235,7 +2364,7 @@ assert!(manager.pids_by_label("backend").is_empty());
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="stop-escalation"><a class="header" href="#stop-escalation">Stop Escalation</a></h1>
 <p>Observe the SIGTERM → SIGKILL escalation path with a short timeout.</p>
-<h2 id="overview-13"><a class="header" href="#overview-13">Overview</a></h2>
+<h2 id="overview-14"><a class="header" href="#overview-14">Overview</a></h2>
 <p>When <code>stop()</code> is called, the manager sends the configured <code>kill_signal</code> (default <code>SIGTERM</code>), waits up to <code>terminate_timeout_ms</code>, and escalates to <code>SIGKILL</code> if the process is still running. This example uses a very short timeout (100ms) and a process that ignores <code>SIGTERM</code> to demonstrate the escalation.</p>
 <pre class="mermaid">sequenceDiagram
     participant Consumer
@@ -2287,7 +2416,7 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="restart"><a class="header" href="#restart">Restart</a></h1>
 <p>Restart a process while preserving its config and label.</p>
-<h2 id="overview-14"><a class="header" href="#overview-14">Overview</a></h2>
+<h2 id="overview-15"><a class="header" href="#overview-15">Overview</a></h2>
 <p><code>ProcessManager::restart(id)</code> stops the process (with escalation) and starts a new one with the same config and label. It returns the new <code>ProcessId</code>. <code>restart_label(label)</code> does the same for all processes under a label.</p>
 <pre class="mermaid">graph TD
     classDef default fill: #1e1e1e, stroke: #333333, stroke-width: 1px, color: #ffffff
@@ -2364,7 +2493,7 @@ manager.restart_label("worker-pool")?;
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="wayland-socket-binding"><a class="header" href="#wayland-socket-binding">Wayland Socket Binding</a></h1>
 <p>Bind a child process to a Wayland socket by setting <code>WAYLAND_DISPLAY</code> in its environment.</p>
-<h2 id="overview-15"><a class="header" href="#overview-15">Overview</a></h2>
+<h2 id="overview-16"><a class="header" href="#overview-16">Overview</a></h2>
 <p>When spawning a Wayland client (e.g. a GTK4 app, a panel, a wallpaper daemon), the client needs to know which Wayland display to connect to. This is done via the <code>WAYLAND_DISPLAY</code> environment variable.</p>
 <p><code>ProcessConfig::socket(Some(socket))</code> tells <code>ProcessManager</code> to extract the socket name (the last path component, e.g. <code>wayland-0</code>) from the <code>Socket</code> and set it as <code>WAYLAND_DISPLAY</code> in the child’s environment.</p>
 <h2 id="example-5"><a class="header" href="#example-5">Example</a></h2>
@@ -2437,7 +2566,7 @@ manager.start("wallpaper-HDMI-1", &amp;wallpaper_config)?;
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="send-signal"><a class="header" href="#send-signal">Send Signal</a></h1>
 <p>Send arbitrary Unix signals to running processes without stopping them.</p>
-<h2 id="overview-16"><a class="header" href="#overview-16">Overview</a></h2>
+<h2 id="overview-17"><a class="header" href="#overview-17">Overview</a></h2>
 <p>The <code>send_signal()</code> and <code>send_signal_label()</code> methods allow sending any <a href="#signal"><code>Signal</code></a> to a managed process. Unlike <code>stop()</code>, the process remains in the manager — this is useful for:</p>
 <ul>
 <li><strong>Config reloads</strong> — Send <code>SIGHUP</code> to trigger a reload</li>
@@ -2460,7 +2589,7 @@ manager.start("wallpaper-HDMI-1", &amp;wallpaper_config)?;
 </pre>
 
 <h2 id="example-6"><a class="header" href="#example-6">Example</a></h2>
-<pre class="playground"><code class="language-rust">use process_manager::{ProcessConfig, ProcessManager, Signal, StdioConfig};
+<pre class="playground"><code class="language-rust">use process_manager::{ProcessConfig, ProcessManager, ProcessState, Signal, StdioConfig};
 
 fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     let manager = ProcessManager::new();
@@ -2475,17 +2604,20 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     let id = manager.start("target", &amp;config)?;
     println!("Started process with ID {} (PID {})", id, manager.get_pid(id).unwrap());
     assert_eq!(manager.is_running(id), Some(true));
+    assert_eq!(manager.state(id), Some(ProcessState::Running));
 
     // Send SIGWINCH — sleep ignores it, process keeps running
     manager.send_signal(id, Signal::Sigwinch)?;
     std::thread::sleep(std::time::Duration::from_millis(100));
     assert_eq!(manager.is_running(id), Some(true));
+    assert_eq!(manager.state(id), Some(ProcessState::Running));
     println!("After SIGWINCH: still running");
 
     // Send SIGTERM — sleep terminates
     manager.send_signal(id, Signal::Sigterm)?;
     std::thread::sleep(std::time::Duration::from_millis(200));
     assert_eq!(manager.is_running(id), Some(false));
+    assert_eq!(manager.state(id), Some(ProcessState::Crashed));
     println!("After SIGTERM: process exited");
 
     manager.stop(id)?;

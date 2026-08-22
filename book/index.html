@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b91aa8bd.js";
+            window.path_to_searchindex_js = "searchindex-65e3e949.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-2f05e57f.js"></script>
+        <script src="toc-a77de263.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -197,6 +197,7 @@
 <li><strong>Zombie prevention</strong> — The reaper thread calls <code>try_wait()</code> on all tracked processes, preventing zombies without per-process wait threads</li>
 <li><strong>Graceful shutdown</strong> — <code>terminate_on_exit</code> flag ensures processes are killed when the manager is dropped</li>
 <li><strong>Signal escalation</strong> — <code>SIGTERM</code> with configurable timeout, automatic <code>SIGKILL</code> escalation for stubborn processes</li>
+<li><strong>Explicit lifecycle states</strong> — <code>ProcessState</code> enum (<code>Starting</code>, <code>Running</code>, <code>Stopping</code>, <code>Stopped</code>, <code>Crashed</code>, <code>Restarting</code>, <code>Failed</code>) for precise decision-making</li>
 <li><strong>Label-based grouping</strong> — Start and stop multiple processes under a shared label (e.g. all workers in a pool)</li>
 <li><strong>Forked/detached support</strong> — <code>setsid()</code> via <code>pre_exec</code> for processes that should survive parent exit</li>
 <li><strong>Wayland socket binding</strong> — Automatically sets <code>WAYLAND_DISPLAY</code> in child environment</li>

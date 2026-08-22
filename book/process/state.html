@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Architecture - smearor-wrot-process-manager Documentation</title>
+        <title>ProcessState - smearor-wrot-process-manager Documentation</title>
 
 
         <!-- Custom HTML head -->
@@ -12,33 +12,33 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="favicon-8114d1fc.png">
-        <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-e96d0476.css">
-        <link rel="stylesheet" href="css/chrome-d279d366.css">
-        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
-        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
-        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
 
 
         <!-- Provide site root and default themes to javascript -->
         <script>
-            const path_to_root = "";
+            const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a77de263.js"></script>
+        <script src="../toc-a77de263.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -105,7 +105,7 @@
             <!-- populated by js -->
             <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
             <noscript>
-                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
             </noscript>
             <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -140,7 +140,7 @@
                     <h1 class="menu-title">smearor-wrot-process-manager Documentation</h1>
 
                     <div class="right-buttons">
-                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
                             <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
                         </a>
                         <a href="https://github.com/smearor/process-manager" title="Git repository" aria-label="Git repository">
@@ -177,200 +177,118 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="architecture"><a class="header" href="#architecture">Architecture</a></h1>
-<p><code>smearor-wrot-process-manager</code> achieves its socket and process management through two crates working together with <code>DashMap</code>-based concurrent tracking and an optional reaper thread.</p>
+                        <h1 id="processstate"><a class="header" href="#processstate">ProcessState</a></h1>
+<p><code>ProcessState</code> is an explicit lifecycle state enum that replaces the binary <code>is_running() -&gt; bool</code> check with a granular state machine.</p>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
-<p>The workspace is composed of two crates:</p>
+<p>Each managed process has a <code>ProcessState</code> that reflects its current lifecycle phase. The state is updated lazily by <code>state()</code> / <code>is_running()</code> via non-blocking <code>try_wait()</code>, and explicitly by <code>stop()</code>, <code>restart()</code>, and the reaper thread.</p>
+<h2 id="variants"><a class="header" href="#variants">Variants</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Variant</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Starting</code></td><td>The process is being spawned and has not yet been confirmed running. Transient state between <code>spawn()</code> and insertion into the manager.</td></tr>
+<tr><td><code>Running</code></td><td>The process is alive and running. Confirmed via <code>try_wait()</code> returning <code>Ok(None)</code>.</td></tr>
+<tr><td><code>Stopping</code></td><td>A stop signal has been sent and the manager is waiting for exit. Set by <code>stop()</code> / <code>stop_many()</code>.</td></tr>
+<tr><td><code>Stopped</code></td><td>The process has exited normally (exit code 0 or stopped by the manager within the grace period).</td></tr>
+<tr><td><code>Crashed</code></td><td>The process exited unexpectedly with a non-zero exit code or signal.</td></tr>
+<tr><td><code>Restarting</code></td><td>A restart is in progress. The old process is being stopped and a new one will be started.</td></tr>
+<tr><td><code>Failed</code></td><td>The process failed to start or could not be killed. Set when <code>spawn()</code> fails or <code>force_kill()</code> fails and the process is re-inserted for tracking.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="state-transitions"><a class="header" href="#state-transitions">State Transitions</a></h2>
+<pre class="mermaid">graph TD
+    classDef default fill: #1e1e1e, stroke: #333333, stroke-width: 1px, color: #ffffff
+    classDef active fill: #89fc00, stroke: #333333, stroke-width: 2px, color: #000
+    classDef transient fill: #f5b700, stroke: #333333, stroke-width: 2px, color: #000000
+    classDef terminal fill: #dc0073, stroke: #333333, stroke-width: 2px, color: #ffffff
+
+    Starting --&gt; Running
+    Running --&gt; Stopping
+    Stopping --&gt; Stopped
+    Stopping --&gt; Crashed
+    Running --&gt; Crashed
+    Running --&gt; Restarting
+    Restarting --&gt; Starting
+    Starting --&gt; Failed
+
+    class Starting,Running,Stopping,Restarting active
+    class Restarting transient
+    class Stopped,Crashed,Failed terminal
+</pre>
+
+<h2 id="helper-methods"><a class="header" href="#helper-methods">Helper Methods</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>is_alive()</code></td><td><code>bool</code></td><td><code>true</code> for <code>Starting</code>, <code>Running</code>, <code>Stopping</code>, <code>Restarting</code> — equivalent to the old <code>is_running()</code> semantics</td></tr>
+<tr><td><code>is_terminated()</code></td><td><code>bool</code></td><td><code>true</code> for <code>Stopped</code>, <code>Crashed</code>, <code>Failed</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="trait-implementations"><a class="header" href="#trait-implementations">Trait Implementations</a></h2>
 <ul>
-<li><strong><code>process-manager-socket</code></strong> — Wayland socket path management with <code>Socket</code>, <code>SocketBuilder</code>, and <code>SocketManager</code></li>
-<li><strong><code>process-manager</code></strong> — Child process lifecycle management with <code>ProcessConfig</code>, <code>ProcessManager</code>, and reaper thread</li>
+<li><code>Debug</code>, <code>Clone</code>, <code>Copy</code>, <code>PartialEq</code>, <code>Eq</code>, <code>Hash</code></li>
+<li><code>Default</code> — defaults to <code>Starting</code></li>
+<li><code>Display</code> — lowercase string (<code>"starting"</code>, <code>"running"</code>, etc.)</li>
 </ul>
-<h2 id="crate-relationships"><a class="header" href="#crate-relationships">Crate Relationships</a></h2>
-<pre class="mermaid">graph TD
-    classDef default fill: #1e1e1e, stroke: #333333, stroke-width: 1px, color: #ffffff
-    classDef socket fill: #00a1e4, stroke: #ffffff, stroke-width: 2px, color: #ffffff
-    classDef process fill: #f5b700, stroke: #333333, stroke-width: 2px, color: #000000
-    classDef consumer fill: #89fc00, stroke: #333333, stroke-width: 2px, color: #000000
+<h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use process_manager::{ProcessConfig, ProcessManager, ProcessState, StdioConfig};
 
-    Socket["process-manager-socket&lt;br/&gt;&lt;small&gt;Socket, SocketBuilder, SocketManager&lt;/small&gt;"]
-    Process["process-manager&lt;br/&gt;&lt;small&gt;ProcessConfig, ProcessManager, Reaper&lt;/small&gt;"]
-    Wrot["smearor-wrot&lt;br/&gt;&lt;small&gt;Compositor + clients&lt;/small&gt;"]
-    Launcher["smearor-swipe-launcher&lt;br/&gt;&lt;small&gt;terminal_command + app-launcher&lt;/small&gt;"]
+let manager = ProcessManager::new();
+let config = ProcessConfig::builder()
+    .command("sleep".to_string())
+    .args(vec!["10".to_string()])
+    .stdout(StdioConfig::Null)
+    .stderr(StdioConfig::Null)
+    .build();
 
-    Process --&gt;|depends on| Socket
-    Wrot --&gt;|uses| Socket
-    Wrot --&gt;|uses| Process
-    Launcher --&gt;|uses| Process
+let id = manager.start("task", &amp;config)?;
 
-    class Socket socket
-    class Process process
-    class Wrot consumer
-    class Launcher consumer
-</pre>
+// Check the explicit state
+match manager.state(id) {
+    Some(ProcessState::Running) =&gt; println!("Process is running"),
+    Some(ProcessState::Stopped) =&gt; println!("Process stopped normally"),
+    Some(ProcessState::Crashed) =&gt; println!("Process crashed!"),
+    Some(state) =&gt; println!("Process state: {}", state),
+    None =&gt; println!("Process not found"),
+}
 
-<h2 id="core-components"><a class="header" href="#core-components">Core Components</a></h2>
-<h3 id="1-socket-management-process-manager-socket"><a class="header" href="#1-socket-management-process-manager-socket">1. Socket Management (<code>process-manager-socket</code>)</a></h3>
-<p>The socket crate provides three main types:</p>
-<ul>
-<li><strong><code>Socket</code></strong> — A <code>PathBuf</code> newtype representing a Wayland socket path. Implements <code>Deref&lt;Target = Path&gt;</code>, <code>Display</code>, <code>AsRef&lt;OsStr&gt;</code>, and <code>AsRef&lt;str&gt;</code>.</li>
-<li><strong><code>SocketBuilder</code></strong> — Constructs socket paths in <code>XDG_RUNTIME_DIR</code>. If a name is provided, it validates uniqueness. If no name is provided, it auto-generates a unique name like <code>wayland-{N}</code>.</li>
-<li><strong><code>SocketManager</code></strong> — A concurrent multi-socket manager using <code>DashMap</code>. Sockets are registered by name and can be retrieved, removed, or listed. Shareable via <code>Arc</code> across threads.</li>
-</ul>
-<h3 id="2-process-management-process-manager"><a class="header" href="#2-process-management-process-manager">2. Process Management (<code>process-manager</code>)</a></h3>
-<p>The process crate provides the <code>ProcessManager</code> as its central component:</p>
-<ul>
-<li><strong><code>ProcessConfig</code></strong> — Built via <code>TypedBuilder</code>. Contains all configuration for spawning a child: command, args, env, working_dir, shell mode, forked mode, terminate_on_exit, kill_signal, terminate_timeout, restart_on_exit, stdio config, and optional Wayland socket.</li>
-<li><strong><code>ProcessManager</code></strong> — Tracks child processes in a <code>DashMap</code> keyed by <code>ProcessId</code>. Supports label-based grouping, concurrent start/stop operations, and an optional reaper thread.</li>
-<li><strong><code>Process</code></strong> — A handle to a managed child process. Contains the <code>ProcessId</code>, PID, label, config, and the <code>std::process::Child</code> handle.</li>
-<li><strong><code>ProcessExitEvent</code></strong> — Emitted by the reaper thread when a process exits. Contains <code>id</code>, <code>pid</code>, <code>label</code>, <code>restart_on_exit</code>, <code>exit_status</code>, and <code>state</code> (<code>Stopped</code> or <code>Crashed</code>).</li>
-</ul>
-<h2 id="process-lifecycle"><a class="header" href="#process-lifecycle">Process Lifecycle</a></h2>
-<pre class="mermaid">graph TD
-    classDef default fill: #1e1e1e, stroke: #333333, stroke-width: 1px, color: #ffffff
-    classDef config fill: #00a1e4, stroke: #ffffff, stroke-width: 2px, color: #ffffff
-    classDef manager fill: #f5b700, stroke: #333333, stroke-width: 2px, color: #000000
-    classDef state fill: #89fc00, stroke: #333333, stroke-width: 1px, color: #000
-    classDef terminal fill: #dc0073, stroke: #333333, stroke-width: 1px, color: #ffffff
+// is_running() still works (delegates to state().is_alive())
+assert_eq!(manager.is_running(id), Some(true));
 
-    A["ProcessConfig::builder()"] --&gt; B["manager.start(label, &amp;config)"]
-    B --&gt; C["Process spawned&lt;br/&gt;tracked in DashMap"]
-    C --&gt; D{Process exits?}
-    D --&gt;|No| E["Running&lt;br/&gt;state() == Running"]
-    D --&gt;|Yes, reaper active| F["ProcessExitEvent&lt;br/&gt;state: Stopped/Crashed&lt;br/&gt;sent via mpsc channel"]
-    D --&gt;|Yes, no reaper| G["Zombie until&lt;br/&gt;stop() or drop()"]
-    E --&gt; H["manager.stop(id)"]
-    H --&gt; I["SIGTERM sent"]
-    I --&gt; J{Process exited&lt;br/&gt;within timeout?}
-    J --&gt;|Yes| K["Removed from DashMap"]
-    J --&gt;|No| L["SIGKILL escalation"]
-    L --&gt; K
-    F --&gt; K
-    G --&gt; K
-
-    class A config
-    class B manager
-    class C state
-    class E state
-    class F state
-    class G state
-    class H manager
-    class I terminal
-    class L terminal
-    class K state
-</pre>
-
-<h2 id="reaper-thread-architecture"><a class="header" href="#reaper-thread-architecture">Reaper Thread Architecture</a></h2>
-<pre class="mermaid">graph TD
-    classDef default fill: #1e1e1e, stroke: #333333, stroke-width: 1px, color: #ffffff
-    classDef thread fill: #00a1e4, stroke: #ffffff, stroke-width: 2px, color: #ffffff
-    classDef map fill: #f5b700, stroke: #333333, stroke-width: 2px, color: #000000
-    classDef event fill: #89fc00, stroke: #333333, stroke-width: 1px, color: #000
-    classDef consumer fill: #04e762, stroke: #333333, stroke-width: 1px, color: #000
-
-    A["Reaper Thread&lt;br/&gt;&lt;small&gt;process-reaper&lt;/small&gt;"] --&gt;|poll every N ms| B["Iterate DashMap"]
-    B --&gt; C{"try_wait() on&lt;br/&gt;each process"}
-    C --&gt;|Still running| D["Skip"]
-    C --&gt;|Exited| E["Remove from DashMap"]
-    E --&gt; F["Send ProcessExitEvent&lt;br/&gt;via mpsc::Sender"]
-    F --&gt; G["Consumer receives&lt;br/&gt;via mpsc::Receiver"]
-    G --&gt; H{"Consumer type"}
-    H --&gt;|Sync| I["receiver.recv()&lt;br/&gt;or try_recv()"]
-    H --&gt;|GTK/Async| J["Forwarding thread&lt;br/&gt;std → tokio::mpsc"]
-    J --&gt; K["MainContext::spawn_local&lt;br/&gt;async event handling"]
-
-    class A thread
-    class B map
-    class C map
-    class D map
-    class E map
-    class F event
-    class G consumer
-    class H consumer
-    class I consumer
-    class J consumer
-    class K consumer
-</pre>
-
-<h2 id="termination-flow"><a class="header" href="#termination-flow">Termination Flow</a></h2>
-<pre class="mermaid">sequenceDiagram
-    participant Consumer
-    participant Manager as ProcessManager
-    participant Process as Child Process
-    participant Reaper as Reaper Thread
-
-    Consumer-&gt;&gt;Manager: stop(id)
-    Manager-&gt;&gt;Process: send SIGTERM (or SIGKILL)
-    
-    alt KillSignal::Sigterm
-        Manager-&gt;&gt;Manager: wait terminate_timeout_ms
-        alt Process exits within timeout
-            Process--&gt;&gt;Manager: try_wait() returns exit status
-            Manager-&gt;&gt;Manager: remove from DashMap
-        else Process still running
-            Manager-&gt;&gt;Process: send SIGKILL
-            Process--&gt;&gt;Manager: process killed
-            Manager-&gt;&gt;Manager: remove from DashMap
-        end
-    else KillSignal::Sigkill
-        Process--&gt;&gt;Manager: process killed immediately
-        Manager-&gt;&gt;Manager: remove from DashMap
-    end
-
-    opt Reaper thread active
-        Reaper-&gt;&gt;Reaper: try_wait() detects exit
-        Reaper--&gt;&gt;Consumer: ProcessExitEvent
-    end
-</pre>
-
-<h2 id="drop-behavior"><a class="header" href="#drop-behavior">Drop Behavior</a></h2>
-<p>When <code>ProcessManager</code> is dropped, the following sequence occurs:</p>
-<pre class="mermaid">graph TD
-    classDef default fill: #1e1e1e, stroke: #333333, stroke-width: 1px, color: #ffffff
-    classDef action fill: #00a1e4, stroke: #ffffff, stroke-width: 2px, color: #ffffff
-    classDef terminal fill: #dc0073, stroke: #333333, stroke-width: 1px, color: #ffffff
-    classDef done fill: #89fc00, stroke: #333333, stroke-width: 1px, color: #000
-
-    A["ProcessManager::drop()"] --&gt; B{"Reaper thread&lt;br/&gt;active?"}
-    B --&gt;|Yes| C["Set stop_flag&lt;br/&gt;join thread"]
-    B --&gt;|No| D["Skip"]
-    C --&gt; E["Iterate all processes"]
-    D --&gt; E
-    E --&gt; F{"terminate_on_exit&lt;br/&gt;== true?"}
-    F --&gt;|Yes| G["Send SIGTERM&lt;br/&gt;wait timeout&lt;br/&gt;escalate to SIGKILL"]
-    F --&gt;|No| H["Leave running&lt;br/&gt;(detach)"]
-    G --&gt; I["Drop complete"]
-    H --&gt; I
-
-    class A action
-    class C action
-    class E action
-    class G terminal
-    class I done
-</pre>
-
-<h2 id="design-decisions"><a class="header" href="#design-decisions">Design Decisions</a></h2>
-<h3 id="why-split-socket-and-process-into-separate-crates"><a class="header" href="#why-split-socket-and-process-into-separate-crates">Why split socket and process into separate crates?</a></h3>
-<p>Socket management is a lightweight concern (path manipulation, <code>DashMap</code> for multi-socket support). Process management is heavier (child spawning, signal handling, reaper threads). Separating them allows consumers to depend on only what they need — <code>smearor-swipe-launcher</code> uses only <code>process-manager</code> without needing the socket crate directly.</p>
-<h3 id="why-dashmap-instead-of-mutexhashmap"><a class="header" href="#why-dashmap-instead-of-mutexhashmap">Why <code>DashMap</code> instead of <code>Mutex&lt;HashMap&gt;</code>?</a></h3>
-<p>Both <code>SocketManager</code> and <code>ProcessManager</code> are accessed concurrently from multiple threads. <code>DashMap</code> provides shard-level locking, avoiding the contention of a single <code>Mutex</code>. The reaper thread iterates processes while the main thread may start/stop others — <code>DashMap</code> handles this without blocking.</p>
-<h3 id="why-stdsyncmpsc-for-reaper-events"><a class="header" href="#why-stdsyncmpsc-for-reaper-events">Why <code>std::sync::mpsc</code> for reaper events?</a></h3>
-<p>The reaper thread is a plain <code>std::thread</code>, not async. <code>std::sync::mpsc::Sender</code> is <code>Send + Sync</code> and integrates cleanly with both sync and async consumers. In GTK applications, a forwarding thread bridges the blocking <code>recv()</code> to a non-blocking <code>tokio::sync::mpsc</code> channel for use in <code>MainContext::spawn_local</code>. This avoids blocking the GTK main loop while keeping the reaper thread simple.</p>
-<h3 id="why-typed-builder-for-processconfig"><a class="header" href="#why-typed-builder-for-processconfig">Why <code>typed-builder</code> for <code>ProcessConfig</code>?</a></h3>
-<p><code>ProcessConfig</code> has many fields with sensible defaults. <code>typed-builder</code> enforces required fields (only <code>command</code>) at compile time while keeping optional fields ergonomic with <code>.field_name(value)</code> syntax. This prevents missing-field bugs without runtime validation.</p>
-<h3 id="why-not-tokioprocesschild"><a class="header" href="#why-not-tokioprocesschild">Why not <code>tokio::process::Child</code>?</a></h3>
-<p>The <code>ProcessManager</code> is deliberately synchronous. It works with GTK’s <code>MainContext</code> and Smithay’s event loop without requiring an async runtime. The reaper thread uses non-blocking <code>try_wait()</code> polling instead — simpler, no runtime dependency, and sufficient for the use case (exit detection with configurable latency).</p>
-<h3 id="why-setsid-instead-of-double-fork"><a class="header" href="#why-setsid-instead-of-double-fork">Why <code>setsid()</code> instead of double-fork?</a></h3>
-<p><code>setsid()</code> detaches the process from the controlling terminal. A double-fork (grandchild) would lose the <code>Child</code> handle, preventing tracking and <code>try_wait()</code> reaping. With <code>setsid()</code>, the process is still a direct child — the <code>Child</code> handle is stored, <code>try_wait()</code> works, and <code>stop()</code> can send signals. This is the correct trade-off for a process manager that needs to track and terminate its children.</p>
+// ProcessInfo also includes the state
+let info = manager.get_info(id).unwrap();
+println!("State: {}", info.state);
+<span class="boring">}</span></code></pre>
+<h2 id="in-processexitevent"><a class="header" href="#in-processexitevent">In ProcessExitEvent</a></h2>
+<p>When the reaper thread detects an exit, it sets the <code>state</code> field on <code>ProcessExitEvent</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let event = receiver.recv_timeout(Duration::from_secs(5))?;
+match event.state {
+    ProcessState::Stopped =&gt; println!("Process {} exited normally", event.label),
+    ProcessState::Crashed =&gt; println!("Process {} crashed", event.label),
+    _ =&gt; unreachable!(),
+}
+<span class="boring">}</span></code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="quickstart.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../process/process.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="socket/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../process/stdio_config.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -380,11 +298,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="quickstart.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../process/process.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="socket/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../process/stdio_config.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
@@ -404,17 +322,17 @@
         </script>
 
 
-        <script src="elasticlunr-ef4e11c1.min.js"></script>
-        <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-09f2665d.js"></script>
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
-        <script src="clipboard-1626706a.min.js"></script>
-        <script src="highlight-abc7f01d.js"></script>
-        <script src="book-609e4cb8.js"></script>
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="mermaid-eefea253.min.js"></script>
-        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
 
 
 

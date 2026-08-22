@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b91aa8bd.js";
+            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2f05e57f.js"></script>
+        <script src="../toc-a77de263.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,7 +184,7 @@
 <ol>
 <li>Spawns a <code>std::thread</code> named <code>"process-reaper"</code></li>
 <li>Every <code>poll_interval</code>, iterates all tracked processes in the <code>DashMap</code></li>
-<li>Calls <code>try_wait()</code> on each — if the process has exited, removes it from the <code>DashMap</code> and sends a <code>ProcessExitEvent</code></li>
+<li>Calls <code>try_wait()</code> on each — if the process has exited, removes it from the <code>DashMap</code> and sends a <code>ProcessExitEvent</code> with the derived <code>ProcessState</code> (<code>Stopped</code> for normal exit, <code>Crashed</code> for non-zero)</li>
 <li>Runs until <code>ProcessManager</code> is dropped (via a <code>stop_flag</code> <code>AtomicBool</code>)</li>
 </ol>
 <h2 id="polling-cycle"><a class="header" href="#polling-cycle">Polling Cycle</a></h2>
@@ -201,6 +201,7 @@
             alt Still running
                 Reaper-&gt;&gt;Reaper: Skip
             else Exited
+                Reaper-&gt;&gt;Reaper: Determine state (Stopped/Crashed)
                 Reaper-&gt;&gt;DashMap: Remove process
                 Reaper-&gt;&gt;Channel: Send ProcessExitEvent
                 Channel--&gt;&gt;Consumer: receiver.recv()
@@ -250,7 +251,7 @@ manager.start("task", &amp;config)?;
 
 // Receive exit event
 let event = receiver.recv_timeout(Duration::from_secs(10))?;
-println!("Process {} (PID {}) exited", event.label, event.pid);
+println!("Process {} (PID {}) exited: {}", event.label, event.pid, event.state);
 <span class="boring">}</span></code></pre>
 
                     </main>

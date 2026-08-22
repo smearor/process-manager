@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b91aa8bd.js";
+            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2f05e57f.js"></script>
+        <script src="../toc-a77de263.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -343,7 +343,8 @@ let manager = ProcessManager::with_reaper(Duration::from_secs(2), sender)?;
 <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>is_running(id)</code></td><td><code>Option&lt;bool&gt;</code></td><td>Check if a process is still running</td></tr>
+<tr><td><code>is_running(id)</code></td><td><code>Option&lt;bool&gt;</code></td><td>Check if a process is still running (delegates to <code>state().is_alive()</code>)</td></tr>
+<tr><td><code>state(id)</code></td><td><code>Option&lt;ProcessState&gt;</code></td><td>Get the explicit lifecycle state of a process</td></tr>
 <tr><td><code>is_forked(id)</code></td><td><code>Option&lt;bool&gt;</code></td><td>Check if a process was spawned with <code>setsid()</code></td></tr>
 <tr><td><code>get_pid(id)</code></td><td><code>Option&lt;u32&gt;</code></td><td>Get the OS PID for a process</td></tr>
 <tr><td><code>get_label(id)</code></td><td><code>Option&lt;String&gt;</code></td><td>Get the label for a process</td></tr>
@@ -444,7 +445,7 @@ manager.start("service", &amp;config)?;
 
 // In your event loop:
 if let Ok(event) = receiver.try_recv() {
-    if event.restart_on_exit {
+    if event.restart_on_exit || event.state == ProcessState::Crashed {
         manager.start(&amp;event.label, &amp;config)?;
     }
 }

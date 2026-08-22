@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b91aa8bd.js";
+            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2f05e57f.js"></script>
+        <script src="../toc-a77de263.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -202,7 +202,7 @@
 </pre>
 
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
-<pre class="playground"><code class="language-rust">use process_manager::{ProcessConfig, ProcessManager, Signal, StdioConfig};
+<pre class="playground"><code class="language-rust">use process_manager::{ProcessConfig, ProcessManager, ProcessState, Signal, StdioConfig};
 
 fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     let manager = ProcessManager::new();
@@ -217,17 +217,20 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     let id = manager.start("target", &amp;config)?;
     println!("Started process with ID {} (PID {})", id, manager.get_pid(id).unwrap());
     assert_eq!(manager.is_running(id), Some(true));
+    assert_eq!(manager.state(id), Some(ProcessState::Running));
 
     // Send SIGWINCH — sleep ignores it, process keeps running
     manager.send_signal(id, Signal::Sigwinch)?;
     std::thread::sleep(std::time::Duration::from_millis(100));
     assert_eq!(manager.is_running(id), Some(true));
+    assert_eq!(manager.state(id), Some(ProcessState::Running));
     println!("After SIGWINCH: still running");
 
     // Send SIGTERM — sleep terminates
     manager.send_signal(id, Signal::Sigterm)?;
     std::thread::sleep(std::time::Duration::from_millis(200));
     assert_eq!(manager.is_running(id), Some(false));
+    assert_eq!(manager.state(id), Some(ProcessState::Crashed));
     println!("After SIGTERM: process exited");
 
     manager.stop(id)?;

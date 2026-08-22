@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b91aa8bd.js";
+            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2f05e57f.js"></script>
+        <script src="../toc-a77de263.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -199,6 +199,7 @@ let id = manager.start("echo-app", &amp;config)?;
 
 // Check if the process is still running
 println!("Running: {}", manager.is_running(id).unwrap_or(false));
+println!("State: {}", manager.state(id).unwrap_or(process_manager::ProcessState::Failed));
 
 // Stop when done
 manager.stop(id)?;
