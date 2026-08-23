@@ -373,7 +373,7 @@ impl ProcessManager {
         let label = label.into();
         self.processes
             .iter()
-            .filter(|entry| &entry.value().label == &label)
+            .filter(|entry| entry.value().label == label)
             .map(|entry| (*entry.key(), ProcessInfo::from(entry.value())))
             .collect::<Vec<_>>()
     }
@@ -383,7 +383,7 @@ impl ProcessManager {
         let label = label.into();
         self.processes
             .iter()
-            .filter(|entry| &entry.value().label == &label)
+            .filter(|entry| entry.value().label == label)
             .map(|entry| entry.value().pid)
             .collect()
     }
@@ -413,7 +413,7 @@ impl ProcessManager {
         let ids: Vec<ProcessId> = self
             .processes
             .iter()
-            .filter(|entry| &entry.value().label == &label)
+            .filter(|entry| entry.value().label == label)
             .map(|entry| *entry.key())
             .collect();
 
@@ -695,7 +695,7 @@ impl ProcessManager {
         let ids: Vec<ProcessId> = self
             .processes
             .iter()
-            .filter(|entry| &entry.value().label == &label)
+            .filter(|entry| entry.value().label == label)
             .map(|entry| *entry.key())
             .collect();
 
@@ -820,7 +820,7 @@ impl ProcessManager {
         let ids: Vec<ProcessId> = self
             .processes
             .iter()
-            .filter(|entry| &entry.value().label == &label)
+            .filter(|entry| entry.value().label == label)
             .map(|entry| *entry.key())
             .collect();
 
@@ -909,7 +909,7 @@ impl ProcessManager {
         let label = label.into();
         self.processes
             .iter()
-            .filter(|entry| &entry.value().label == &label)
+            .filter(|entry| entry.value().label == label)
             .map(|entry| *entry.key())
             .collect()
     }
