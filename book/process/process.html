@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "../searchindex-188565ed.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a77de263.js"></script>
+        <script src="../toc-346eb062.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -180,12 +180,12 @@
                         <h1 id="process--processid"><a class="header" href="#process--processid">Process &amp; ProcessId</a></h1>
 <h2 id="processid"><a class="header" href="#processid">ProcessId</a></h2>
 <p>A unique identifier assigned by <code>ProcessManager</code> to each spawned process. Implemented as a <code>u64</code> newtype.</p>
-<p><code>ProcessId</code> is generated atomically from an internal counter in <code>ProcessManager</code>. It is unique within a single <code>ProcessManager</code> instance — no two processes will share the same <code>ProcessId</code>.</p>
+<p><code>ProcessId</code> is generated atomically from an internal counter in <code>ProcessManager</code>. It is unique within a single <code>ProcessManager</code> instance - no two processes will share the same <code>ProcessId</code>.</p>
 <h3 id="trait-implementations"><a class="header" href="#trait-implementations">Trait Implementations</a></h3>
 <ul>
-<li><code>Display</code> — formats as a number</li>
-<li><code>PartialEq</code>, <code>Eq</code>, <code>Hash</code> — comparison and hashing</li>
-<li><code>Clone</code>, <code>Copy</code> — lightweight value type</li>
+<li><code>Display</code> - formats as a number</li>
+<li><code>PartialEq</code>, <code>Eq</code>, <code>Hash</code> - comparison and hashing</li>
+<li><code>Clone</code>, <code>Copy</code> - lightweight value type</li>
 </ul>
 <h3 id="usage"><a class="header" href="#usage">Usage</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -246,7 +246,7 @@ let process = manager.get(id);
 <tr><td><code>id</code></td><td><code>ProcessId</code></td><td>Unique identifier assigned by <code>ProcessManager</code></td></tr>
 <tr><td><code>pid</code></td><td><code>u32</code></td><td>OS process ID</td></tr>
 <tr><td><code>program_name</code></td><td><code>String</code></td><td>Program name (for error reporting)</td></tr>
-<tr><td><code>label</code></td><td><code>String</code></td><td>Label under which the process was started</td></tr>
+<tr><td><code>label</code></td><td><code>Label</code></td><td>Label under which the process was started</td></tr>
 <tr><td><code>terminate_on_exit</code></td><td><code>bool</code></td><td>Whether to terminate on <code>ProcessManager</code> drop</td></tr>
 <tr><td><code>config</code></td><td><code>ProcessConfig</code></td><td>The configuration this process was started with</td></tr>
 <tr><td><code>child</code></td><td><code>Option&lt;Child&gt;</code></td><td>The <code>std::process::Child</code> handle (always <code>Some</code>)</td></tr>
@@ -261,15 +261,15 @@ let process = manager.get(id);
 <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>is_running()</code></td><td><code>bool</code></td><td>Non-blocking check via <code>try_wait()</code> — <code>true</code> if still running (delegates to <code>state().is_alive()</code>)</td></tr>
-<tr><td><code>state()</code></td><td><code>ProcessState</code></td><td>Non-blocking check via <code>try_wait()</code> — returns the current lifecycle state, updating it if the process has exited</td></tr>
+<tr><td><code>is_running()</code></td><td><code>bool</code></td><td>Non-blocking check via <code>try_wait()</code> - <code>true</code> if still running (delegates to <code>state().is_alive()</code>)</td></tr>
+<tr><td><code>state()</code></td><td><code>ProcessState</code></td><td>Non-blocking check via <code>try_wait()</code> - returns the current lifecycle state, updating it if the process has exited</td></tr>
 <tr><td><code>send_signal(signal)</code></td><td><code>Result&lt;(), nix::Error&gt;</code></td><td>Send a signal to the process via <code>nix::sys::signal::kill</code></td></tr>
 <tr><td><code>force_kill()</code></td><td><code>Result&lt;(), nix::Error&gt;</code></td><td>Send <code>SIGKILL</code> immediately</td></tr>
 </tbody>
 </table>
 </div>
 <h3 id="clone-behavior"><a class="header" href="#clone-behavior">Clone Behavior</a></h3>
-<p><code>Process</code> implements <code>Clone</code> manually because <code>std::process::Child</code> does not implement <code>Clone</code>. The clone shares the PID and config but does not duplicate the <code>Child</code> handle — the clone’s <code>child</code> field is <code>None</code>. This is sufficient for read-only access patterns (checking <code>is_running()</code>, reading PID/label).</p>
+<p><code>Process</code> implements <code>Clone</code> manually because <code>std::process::Child</code> does not implement <code>Clone</code>. The clone shares the PID and config but does not duplicate the <code>Child</code> handle - the clone’s <code>child</code> field is <code>None</code>. This is sufficient for read-only access patterns (checking <code>is_running()</code>, reading PID/label).</p>
 <h3 id="usage-1"><a class="header" href="#usage-1">Usage</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -294,7 +294,7 @@ manager.stop(id)?;
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../process/state.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../process/label.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -308,7 +308,7 @@ manager.stop(id)?;
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../process/state.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../process/label.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

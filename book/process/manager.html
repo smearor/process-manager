@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "../searchindex-188565ed.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a77de263.js"></script>
+        <script src="../toc-346eb062.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -182,14 +182,14 @@
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
 <p><code>ProcessManager</code> is the central component of the <code>process-manager</code> crate. It provides:</p>
 <ul>
-<li><strong>Concurrent tracking</strong> — All processes are stored in a <code>DashMap</code> keyed by <code>ProcessId</code>, allowing concurrent access from multiple threads</li>
-<li><strong>Label-based grouping</strong> — Multiple processes can share a label for grouped start/stop operations</li>
-<li><strong>Optional reaper thread</strong> — A background thread that polls <code>try_wait()</code> to detect exits and emit <code>ProcessExitEvent</code>s</li>
-<li><strong>Signal-based termination</strong> — <code>SIGTERM</code> with configurable timeout, automatic <code>SIGKILL</code> escalation</li>
-<li><strong>Graceful shutdown</strong> — Processes with <code>terminate_on_exit = true</code> are killed when the manager is dropped</li>
+<li><strong>Concurrent tracking</strong> - All processes are stored in a <code>DashMap</code> keyed by <code>ProcessId</code>, allowing concurrent access from multiple threads</li>
+<li><strong>Label-based grouping</strong> - Multiple processes can share a label for grouped start/stop operations</li>
+<li><strong>Optional reaper thread</strong> - A background thread that polls <code>try_wait()</code> to detect exits and emit <code>ProcessExitEvent</code>s</li>
+<li><strong>Signal-based termination</strong> - <code>SIGTERM</code> with configurable timeout, automatic <code>SIGKILL</code> escalation</li>
+<li><strong>Graceful shutdown</strong> - Processes with <code>terminate_on_exit = true</code> are killed when the manager is dropped</li>
 </ul>
 <h2 id="construction"><a class="header" href="#construction">Construction</a></h2>
-<h3 id="new--without-reaper"><a class="header" href="#new--without-reaper"><code>new()</code> — Without reaper</a></h3>
+<h3 id="new---without-reaper"><a class="header" href="#new---without-reaper"><code>new()</code> - Without reaper</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use process_manager::ProcessManager;
@@ -197,7 +197,7 @@
 let manager = ProcessManager::new();
 <span class="boring">}</span></code></pre>
 <p>Use this when you don’t need exit notifications. Processes are still tracked and can be stopped manually. Without the reaper, exited processes remain as zombies until <code>stop()</code> or <code>drop()</code> is called.</p>
-<h3 id="with_reaperpoll_interval-sender--with-reaper"><a class="header" href="#with_reaperpoll_interval-sender--with-reaper"><code>with_reaper(poll_interval, sender)</code> — With reaper</a></h3>
+<h3 id="with_reaperpoll_interval-sender---with-reaper"><a class="header" href="#with_reaperpoll_interval-sender---with-reaper"><code>with_reaper(poll_interval, sender)</code> - With reaper</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use process_manager::ProcessManager;

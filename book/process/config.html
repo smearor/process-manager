@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "../searchindex-188565ed.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a77de263.js"></script>
+        <script src="../toc-346eb062.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -189,7 +189,7 @@
 <li>Standard I/O configuration (stdin, stdout, stderr)</li>
 <li>Optional Wayland socket binding</li>
 </ul>
-<p>The <code>TypedBuilder</code> pattern enforces required fields at compile time — only <code>command</code> is required. All other fields have sensible defaults.</p>
+<p>The <code>TypedBuilder</code> pattern enforces required fields at compile time - only <code>command</code> is required. All other fields have sensible defaults.</p>
 <h2 id="fields"><a class="header" href="#fields">Fields</a></h2>
 <div class="table-wrapper">
 <table>
@@ -202,15 +202,21 @@
 <tr><td><code>env</code></td><td><code>HashMap&lt;String, String&gt;</code></td><td><code>HashMap::new()</code></td><td>Additional environment variables merged into the child’s environment</td></tr>
 <tr><td><code>working_dir</code></td><td><code>Option&lt;PathBuf&gt;</code></td><td><code>None</code></td><td>Working directory for the child process</td></tr>
 <tr><td><code>shell</code></td><td><code>bool</code></td><td><code>false</code></td><td>Run command via <code>sh -c</code> instead of direct execution</td></tr>
-<tr><td><code>forked</code></td><td><code>bool</code></td><td><code>false</code></td><td>Detach via <code>setsid()</code> in <code>pre_exec</code> — process gets its own session</td></tr>
+<tr><td><code>forked</code></td><td><code>bool</code></td><td><code>false</code></td><td>Detach via <code>setsid()</code> in <code>pre_exec</code> - process gets its own session</td></tr>
 <tr><td><code>terminate_on_exit</code></td><td><code>bool</code></td><td><code>false</code></td><td>Kill this process when <code>ProcessManager</code> is dropped</td></tr>
 <tr><td><code>kill_signal</code></td><td><code>KillSignal</code></td><td><code>Sigterm</code></td><td>Signal to send on termination (<code>Sigterm</code> or <code>Sigkill</code>)</td></tr>
 <tr><td><code>terminate_timeout_ms</code></td><td><code>u64</code></td><td><code>5000</code></td><td>Grace period (ms) before escalating from <code>SIGTERM</code> to <code>SIGKILL</code></td></tr>
-<tr><td><code>restart_on_exit</code></td><td><code>bool</code></td><td><code>false</code></td><td>Flag in <code>ProcessExitEvent</code> — consumer decides whether to restart</td></tr>
+<tr><td><code>restart_on_exit</code></td><td><code>bool</code></td><td><code>false</code></td><td>Enable automatic restart on exit (requires reaper thread)</td></tr>
+<tr><td><code>restart_trigger</code></td><td><code>RestartTrigger</code></td><td><code>CrashOnly</code></td><td>When to restart: <code>CrashOnly</code> (non-zero exit) or <code>Always</code> (any exit)</td></tr>
+<tr><td><code>restart_policy</code></td><td><code>RestartPolicy</code></td><td><code>Immediate</code></td><td>Restart strategy: <code>Immediate</code> or <code>Backoff(BackoffConfig)</code></td></tr>
+<tr><td><code>supervisor_strategy</code></td><td><code>SupervisorStrategy</code></td><td><code>OneForOne</code></td><td>Controls which processes are restarted on crash: <code>OneForOne</code>, <code>OneForAll</code>, or <code>RestForOne</code></td></tr>
+<tr><td><code>depends_on</code></td><td><code>Vec&lt;DependencyRef&gt;</code></td><td><code>vec![]</code></td><td>Dependencies to wait for before starting. <code>DependencyRef::Label</code> or <code>DependencyRef::Id</code></td></tr>
+<tr><td><code>dependency_timeout_ms</code></td><td><code>u64</code></td><td><code>30000</code></td><td>Timeout (ms) for dependencies to become <code>Running</code> before failing</td></tr>
+<tr><td><code>cascade_stop</code></td><td><code>bool</code></td><td><code>true</code></td><td>When <code>true</code>, stopping a process also stops its dependents</td></tr>
 <tr><td><code>stdin</code></td><td><code>StdioConfig</code></td><td><code>Null</code></td><td>Standard input configuration</td></tr>
 <tr><td><code>stdout</code></td><td><code>StdioConfig</code></td><td><code>Null</code></td><td>Standard output configuration</td></tr>
 <tr><td><code>stderr</code></td><td><code>StdioConfig</code></td><td><code>Null</code></td><td>Standard error configuration</td></tr>
-<tr><td><code>socket</code></td><td><code>Option&lt;Socket&gt;</code></td><td><code>None</code></td><td>Wayland socket — sets <code>WAYLAND_DISPLAY</code> in child environment</td></tr>
+<tr><td><code>socket</code></td><td><code>Option&lt;Socket&gt;</code></td><td><code>None</code></td><td>Wayland socket - sets <code>WAYLAND_DISPLAY</code> in child environment</td></tr>
 </tbody>
 </table>
 </div>
@@ -252,7 +258,7 @@ let config = ProcessConfig::builder()
 <h3 id="full"><a class="header" href="#full">Full</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use process_manager::{ProcessConfig, StdioConfig, KillSignal};
+</span>use process_manager::{ProcessConfig, StdioConfig, KillSignal, RestartPolicy, RestartTrigger, BackoffConfig};
 use process_manager_socket::Socket;
 use std::path::PathBuf;
 use std::collections::HashMap;
@@ -271,6 +277,8 @@ let config = ProcessConfig::builder()
     .kill_signal(KillSignal::Sigterm)
     .terminate_timeout_ms(3000)
     .restart_on_exit(true)
+    .restart_trigger(RestartTrigger::CrashOnly)
+    .restart_policy(RestartPolicy::Backoff(BackoffConfig::default()))
     .stdin(StdioConfig::Null)
     .stdout(StdioConfig::Piped)
     .stderr(StdioConfig::Piped)
@@ -284,6 +292,9 @@ let config = ProcessConfig::builder()
 <li><strong><code>terminate_on_exit = false</code></strong>: By default, processes are left running when the manager is dropped. Use <code>true</code> for processes that should be cleaned up with the manager.</li>
 <li><strong><code>kill_signal = Sigterm</code></strong>: Graceful termination by default. The process can catch <code>SIGTERM</code> and clean up.</li>
 <li><strong><code>terminate_timeout_ms = 5000</code></strong>: 5 seconds grace period before <code>SIGKILL</code>. Adjust for processes that need more cleanup time.</li>
+<li><strong><code>restart_on_exit = false</code></strong>: By default, processes are not automatically restarted. Enable with <code>restart_on_exit(true)</code> and use the reaper thread for automatic restart with backoff.</li>
+<li><strong><code>restart_trigger = CrashOnly</code></strong>: By default, only crashed processes (non-zero exit) are restarted. Use <code>Always</code> to also restart on clean exits.</li>
+<li><strong><code>restart_policy = Immediate</code></strong>: By default, restarts happen immediately. Use <code>Backoff(BackoffConfig)</code> for exponential backoff with rate limiting.</li>
 <li><strong><code>stdio = Null</code></strong>: All streams are null by default, suitable for background processes. Use <code>Piped</code> for output capture or <code>Inherit</code> for debugging.</li>
 <li><strong><code>socket = None</code></strong>: No Wayland binding by default. Set when spawning Wayland clients.</li>
 </ul>

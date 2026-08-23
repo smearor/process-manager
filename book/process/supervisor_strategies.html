@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Error Types - smearor-wrot-process-manager Documentation</title>
+        <title>Supervisor Strategies - smearor-wrot-process-manager Documentation</title>
 
 
         <!-- Custom HTML head -->
@@ -177,56 +177,59 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="error-types"><a class="header" href="#error-types">Error Types</a></h1>
-<h2 id="processmanagererror"><a class="header" href="#processmanagererror">ProcessManagerError</a></h2>
-<p>Errors returned by <code>ProcessManager</code> operations.</p>
+                        <h1 id="supervisor-strategies"><a class="header" href="#supervisor-strategies">Supervisor Strategies</a></h1>
+<p>The <code>ProcessManager</code> supports supervisor strategies that control which processes are restarted when one process in a group crashes. This follows the Erlang OTP supervisor model.</p>
+<h2 id="strategies"><a class="header" href="#strategies">Strategies</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Variant</th><th>When</th><th>Description</th></tr>
+<tr><th>Strategy</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>ExecutableNotFound(String)</code></td><td><code>start()</code></td><td>The command could not be resolved via <code>which</code> and is not an absolute path</td></tr>
-<tr><td><code>SpawnFailed(String)</code></td><td><code>start()</code></td><td><code>std::process::Command::spawn()</code> returned an error</td></tr>
-<tr><td><code>NotFound(ProcessId)</code></td><td><code>stop()</code>, <code>get()</code></td><td>No process with the given <code>ProcessId</code> exists in the <code>DashMap</code></td></tr>
-<tr><td><code>NixError(nix::Error)</code></td><td><code>stop()</code></td><td>A <code>nix</code> signal operation failed - the process may have already exited</td></tr>
+<tr><td><code>OneForOne</code> (default)</td><td>Restart only the crashed process</td></tr>
+<tr><td><code>OneForAll</code></td><td>Restart all processes in the same label group</td></tr>
+<tr><td><code>RestForOne</code></td><td>Restart the crashed process and all processes started after it</td></tr>
 </tbody>
 </table>
 </div>
-<h2 id="processconfigerror"><a class="header" href="#processconfigerror">ProcessConfigError</a></h2>
-<p>Errors returned during <code>ProcessConfig</code> construction. Currently minimal since <code>TypedBuilder</code> enforces required fields at compile time.</p>
-<h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<p>When the reaper detects a crash and determines that a restart should occur (based on <code>restart_on_exit</code>, <code>restart_trigger</code>, and rate limiting), it reads the <code>supervisor_strategy</code> from the crashed process’s config.</p>
+<ul>
+<li><strong>OneForOne</strong> - Only the crashed process is restarted. Other processes in the group are unaffected.</li>
+<li><strong>OneForAll</strong> - All processes in the same label group are stopped and restarted. Each process gets its own backoff timer.</li>
+<li><strong>RestForOne</strong> - The crashed process and all processes with a higher <code>spawn_sequence</code> in the same group are stopped and restarted.</li>
+</ul>
+<h2 id="interaction-with-dependencies"><a class="header" href="#interaction-with-dependencies">Interaction with dependencies</a></h2>
+<p>When using <code>OneForAll</code> or <code>RestForOne</code> with dependencies, restart order follows the dependency chain. The compositor restarts first, then dependent processes start once the compositor is <code>Running</code>.</p>
+<h2 id="cascade-flag"><a class="header" href="#cascade-flag">Cascade flag</a></h2>
+<p>When a process is cascade-killed (stopped because another process in its group crashed), it is marked with <code>cascade_flag = true</code>. The reaper skips supervisor strategy logic for cascade-killed processes and emits a <code>Stopped</code> event instead of triggering another restart cycle. This prevents recursive cascades.</p>
+<h2 id="example"><a class="header" href="#example">Example</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use process_manager::{ProcessConfig, ProcessManager, ProcessManagerError};
+</span>use process_manager::{ProcessConfig, ProcessManager, SupervisorStrategy, StdioConfig};
 
 let manager = ProcessManager::new();
 
 let config = ProcessConfig::builder()
-    .command("nonexistent-program".to_string())
+    .command("my-service".to_string())
+    .restart_on_exit(true)
+    .supervisor_strategy(SupervisorStrategy::OneForAll)
+    .stdout(StdioConfig::Null)
+    .stderr(StdioConfig::Null)
     .build();
 
-match manager.start("test", &amp;config) {
-    Ok(id) =&gt; println!("Started with ID {}", id),
-    Err(ProcessManagerError::ExecutableNotFound(cmd)) =&gt; {
-        eprintln!("Program '{}' not found in PATH", cmd);
-    }
-    Err(ProcessManagerError::SpawnFailed(msg)) =&gt; {
-        eprintln!("Failed to spawn: {}", msg);
-    }
-    Err(e) =&gt; eprintln!("Error: {}", e),
-}
+let id = manager.start("group-a", &amp;config)?;
 <span class="boring">}</span></code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../process/exit_event.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../process/restart_policy.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../examples.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../process/dependencies.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -236,11 +239,11 @@ match manager.start("test", &amp;config) {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../process/exit_event.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../process/restart_policy.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../examples.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../process/dependencies.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

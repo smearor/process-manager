@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "searchindex-188565ed.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a77de263.js"></script>
+        <script src="toc-346eb062.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,22 +181,22 @@
 <p>This section provides practical examples for common use cases of <code>smearor-wrot-process-manager</code>.</p>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
 <ul>
-<li><a href="simple.html">Simple Child Process</a> — Spawn a process with piped output capture via tracing</li>
-<li><a href="forked.html">Forked / Detached Process</a> — Spawn a daemon that detaches from the controlling terminal via <code>setsid()</code></li>
-<li><a href="reaper.html">Reaper Monitoring</a> — Detect process exits with <code>ProcessExitEvent</code>, implement restart logic, and integrate with GTK</li>
-<li><a href="labels.html">Label-based Grouping</a> — Manage multiple processes under a shared label for grouped start/stop</li>
-<li><a href="stop_escalation.html">Stop Escalation</a> — Observe SIGTERM to SIGKILL escalation with a short timeout</li>
-<li><a href="restart.html">Restart</a> — Restart a process preserving its config and label</li>
-<li><a href="wayland.html">Wayland Socket Binding</a> — Bind a child process to a Wayland socket by setting <code>WAYLAND_DISPLAY</code></li>
-<li><a href="send_signal.html">Send Signal</a> — Send arbitrary signals (SIGHUP, SIGUSR1, etc.) to running processes</li>
+<li><a href="simple.html">Simple Child Process</a> - Spawn a process with piped output capture via tracing</li>
+<li><a href="forked.html">Forked / Detached Process</a> - Spawn a daemon that detaches from the controlling terminal via <code>setsid()</code></li>
+<li><a href="reaper.html">Reaper Monitoring</a> - Detect process exits with <code>ProcessExitEvent</code>, implement restart logic, and integrate with GTK</li>
+<li><a href="labels.html">Label-based Grouping</a> - Manage multiple processes under a shared label for grouped start/stop</li>
+<li><a href="stop_escalation.html">Stop Escalation</a> - Observe SIGTERM to SIGKILL escalation with a short timeout</li>
+<li><a href="restart.html">Restart</a> - Restart a process preserving its config and label</li>
+<li><a href="wayland.html">Wayland Socket Binding</a> - Bind a child process to a Wayland socket by setting <code>WAYLAND_DISPLAY</code></li>
+<li><a href="send_signal.html">Send Signal</a> - Send arbitrary signals (SIGHUP, SIGUSR1, etc.) to running processes</li>
 </ul>
 <h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
 <p>All examples share these common patterns:</p>
 <ol>
-<li><strong>Create a <code>ProcessManager</code></strong> — Either <code>new()</code> (no reaper) or <code>with_reaper()</code> (with exit notifications)</li>
-<li><strong>Build a <code>ProcessConfig</code></strong> — Using the <code>TypedBuilder</code> pattern with <code>.command()</code> as the only required field</li>
-<li><strong>Start the process</strong> — <code>manager.start(label, &amp;config)</code> returns a <code>ProcessId</code></li>
-<li><strong>Stop or monitor</strong> — Call <code>manager.stop(id)</code> for explicit termination, or use the reaper for exit detection</li>
+<li><strong>Create a <code>ProcessManager</code></strong> - Either <code>new()</code> (no reaper) or <code>with_reaper()</code> (with exit notifications)</li>
+<li><strong>Build a <code>ProcessConfig</code></strong> - Using the <code>TypedBuilder</code> pattern with <code>.command()</code> as the only required field</li>
+<li><strong>Start the process</strong> - <code>manager.start(label, &amp;config)</code> returns a <code>ProcessId</code></li>
+<li><strong>Stop or monitor</strong> - Call <code>manager.stop(id)</code> for explicit termination, or use the reaper for exit detection</li>
 </ol>
 
                     </main>

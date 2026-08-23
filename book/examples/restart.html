@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "../searchindex-188565ed.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a77de263.js"></script>
+        <script src="../toc-346eb062.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -180,7 +180,7 @@
                         <h1 id="restart"><a class="header" href="#restart">Restart</a></h1>
 <p>Restart a process while preserving its config and label.</p>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
-<p><code>ProcessManager::restart(id)</code> stops the process (with escalation) and starts a new one with the same config and label. It returns the new <code>ProcessId</code>. <code>restart_label(label)</code> does the same for all processes under a label.</p>
+<p><code>ProcessManager::restart(id)</code> stops the process (with escalation) and starts a new one with the same config and label. It returns the same <code>ProcessId</code> - the process is updated in-place. <code>restart_label(label)</code> does the same for all processes under a label.</p>
 <pre class="mermaid">graph TD
     classDef default fill: #1e1e1e, stroke: #333333, stroke-width: 1px, color: #ffffff
     classDef input fill: #00a1e4, stroke: #ffffff, stroke-width: 2px, color: #ffffff
@@ -188,18 +188,23 @@
     classDef start fill: #89fc00, stroke: #333333, stroke-width: 2px, color: #000
     classDef done fill: #04e762, stroke: #333333, stroke-width: 1px, color: #000
 
-    A["restart(id)"] --&gt; B["stop(id)"]
-    B --&gt; C["Old process&lt;br/&gt;removed"]
-    C --&gt; D["start(label, &amp;config)&lt;br/&gt;&lt;small&gt;same config + label&lt;/small&gt;"]
-    D --&gt; E["New ProcessId"]
-    E --&gt; F["Manager still&lt;br/&gt;has process"]
+    A["restart(id)"] --&gt; B{"Process in\nRestarting state?"}
+    B -- Yes --&gt; C["Cancel backoff\nSpawn immediately"]
+    B -- No --&gt; D["stop(id)"]
+    D --&gt; E["Old process\nremoved"]
+    C --&gt; F["Spawn in-place\n&lt;small&gt;same config + label&lt;/small&gt;"]
+    E --&gt; F
+    F --&gt; G["Same ProcessId\npreserved"]
+    G --&gt; H["Manager still\nhas process"]
 
     class A input
     class B stop
-    class C stop
-    class D start
-    class E start
-    class F done
+    class C start
+    class D stop
+    class E stop
+    class F start
+    class G start
+    class H done
 </pre>
 
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
@@ -218,10 +223,11 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     let id = manager.start("worker", &amp;config)?;
     println!("Started worker (PID {})", manager.get_pid(id).unwrap());
 
-    // Restart — stops the old process, starts a new one with same config+label
+    // Restart - stops the old process, starts a new one with same config+label
+    // ProcessId is preserved (updated in-place)
     let new_id = manager.restart(id)?;
     println!("Restarted worker (new PID {})", manager.get_pid(new_id).unwrap());
-    assert_ne!(id, new_id);
+    assert_eq!(id, new_id);
 
     // Clean up
     manager.stop(new_id)?;

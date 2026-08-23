@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "searchindex-188565ed.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a77de263.js"></script>
+        <script src="toc-346eb062.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -182,8 +182,8 @@
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
 <p>The workspace is composed of two crates:</p>
 <ul>
-<li><strong><code>process-manager-socket</code></strong> — Wayland socket path management with <code>Socket</code>, <code>SocketBuilder</code>, and <code>SocketManager</code></li>
-<li><strong><code>process-manager</code></strong> — Child process lifecycle management with <code>ProcessConfig</code>, <code>ProcessManager</code>, and reaper thread</li>
+<li><strong><code>process-manager-socket</code></strong> - Wayland socket path management with <code>Socket</code>, <code>SocketBuilder</code>, and <code>SocketManager</code></li>
+<li><strong><code>process-manager</code></strong> - Child process lifecycle management with <code>ProcessConfig</code>, <code>ProcessManager</code>, and reaper thread</li>
 </ul>
 <h2 id="crate-relationships"><a class="header" href="#crate-relationships">Crate Relationships</a></h2>
 <pre class="mermaid">graph TD
@@ -212,17 +212,17 @@
 <h3 id="1-socket-management-process-manager-socket"><a class="header" href="#1-socket-management-process-manager-socket">1. Socket Management (<code>process-manager-socket</code>)</a></h3>
 <p>The socket crate provides three main types:</p>
 <ul>
-<li><strong><code>Socket</code></strong> — A <code>PathBuf</code> newtype representing a Wayland socket path. Implements <code>Deref&lt;Target = Path&gt;</code>, <code>Display</code>, <code>AsRef&lt;OsStr&gt;</code>, and <code>AsRef&lt;str&gt;</code>.</li>
-<li><strong><code>SocketBuilder</code></strong> — Constructs socket paths in <code>XDG_RUNTIME_DIR</code>. If a name is provided, it validates uniqueness. If no name is provided, it auto-generates a unique name like <code>wayland-{N}</code>.</li>
-<li><strong><code>SocketManager</code></strong> — A concurrent multi-socket manager using <code>DashMap</code>. Sockets are registered by name and can be retrieved, removed, or listed. Shareable via <code>Arc</code> across threads.</li>
+<li><strong><code>Socket</code></strong> - A <code>PathBuf</code> newtype representing a Wayland socket path. Implements <code>Deref&lt;Target = Path&gt;</code>, <code>Display</code>, <code>AsRef&lt;OsStr&gt;</code>, and <code>AsRef&lt;str&gt;</code>.</li>
+<li><strong><code>SocketBuilder</code></strong> - Constructs socket paths in <code>XDG_RUNTIME_DIR</code>. If a name is provided, it validates uniqueness. If no name is provided, it auto-generates a unique name like <code>wayland-{N}</code>.</li>
+<li><strong><code>SocketManager</code></strong> - A concurrent multi-socket manager using <code>DashMap</code>. Sockets are registered by name and can be retrieved, removed, or listed. Shareable via <code>Arc</code> across threads.</li>
 </ul>
 <h3 id="2-process-management-process-manager"><a class="header" href="#2-process-management-process-manager">2. Process Management (<code>process-manager</code>)</a></h3>
 <p>The process crate provides the <code>ProcessManager</code> as its central component:</p>
 <ul>
-<li><strong><code>ProcessConfig</code></strong> — Built via <code>TypedBuilder</code>. Contains all configuration for spawning a child: command, args, env, working_dir, shell mode, forked mode, terminate_on_exit, kill_signal, terminate_timeout, restart_on_exit, stdio config, and optional Wayland socket.</li>
-<li><strong><code>ProcessManager</code></strong> — Tracks child processes in a <code>DashMap</code> keyed by <code>ProcessId</code>. Supports label-based grouping, concurrent start/stop operations, and an optional reaper thread.</li>
-<li><strong><code>Process</code></strong> — A handle to a managed child process. Contains the <code>ProcessId</code>, PID, label, config, and the <code>std::process::Child</code> handle.</li>
-<li><strong><code>ProcessExitEvent</code></strong> — Emitted by the reaper thread when a process exits. Contains <code>id</code>, <code>pid</code>, <code>label</code>, <code>restart_on_exit</code>, <code>exit_status</code>, and <code>state</code> (<code>Stopped</code> or <code>Crashed</code>).</li>
+<li><strong><code>ProcessConfig</code></strong> - Built via <code>TypedBuilder</code>. Contains all configuration for spawning a child: command, args, env, working_dir, shell mode, forked mode, terminate_on_exit, kill_signal, terminate_timeout, restart_on_exit, stdio config, and optional Wayland socket.</li>
+<li><strong><code>ProcessManager</code></strong> - Tracks child processes in a <code>DashMap</code> keyed by <code>ProcessId</code>. Supports label-based grouping, concurrent start/stop operations, and an optional reaper thread.</li>
+<li><strong><code>Process</code></strong> - A handle to a managed child process. Contains the <code>ProcessId</code>, PID, label, config, and the <code>std::process::Child</code> handle.</li>
+<li><strong><code>ProcessExitEvent</code></strong> - Emitted by the reaper thread when a process exits. Contains <code>id</code>, <code>pid</code>, <code>label</code>, <code>restart_on_exit</code>, <code>exit_status</code>, and <code>state</code> (<code>Stopped</code> or <code>Crashed</code>).</li>
 </ul>
 <h2 id="process-lifecycle"><a class="header" href="#process-lifecycle">Process Lifecycle</a></h2>
 <pre class="mermaid">graph TD
@@ -350,17 +350,17 @@
 
 <h2 id="design-decisions"><a class="header" href="#design-decisions">Design Decisions</a></h2>
 <h3 id="why-split-socket-and-process-into-separate-crates"><a class="header" href="#why-split-socket-and-process-into-separate-crates">Why split socket and process into separate crates?</a></h3>
-<p>Socket management is a lightweight concern (path manipulation, <code>DashMap</code> for multi-socket support). Process management is heavier (child spawning, signal handling, reaper threads). Separating them allows consumers to depend on only what they need — <code>smearor-swipe-launcher</code> uses only <code>process-manager</code> without needing the socket crate directly.</p>
+<p>Socket management is a lightweight concern (path manipulation, <code>DashMap</code> for multi-socket support). Process management is heavier (child spawning, signal handling, reaper threads). Separating them allows consumers to depend on only what they need - <code>smearor-swipe-launcher</code> uses only <code>process-manager</code> without needing the socket crate directly.</p>
 <h3 id="why-dashmap-instead-of-mutexhashmap"><a class="header" href="#why-dashmap-instead-of-mutexhashmap">Why <code>DashMap</code> instead of <code>Mutex&lt;HashMap&gt;</code>?</a></h3>
-<p>Both <code>SocketManager</code> and <code>ProcessManager</code> are accessed concurrently from multiple threads. <code>DashMap</code> provides shard-level locking, avoiding the contention of a single <code>Mutex</code>. The reaper thread iterates processes while the main thread may start/stop others — <code>DashMap</code> handles this without blocking.</p>
+<p>Both <code>SocketManager</code> and <code>ProcessManager</code> are accessed concurrently from multiple threads. <code>DashMap</code> provides shard-level locking, avoiding the contention of a single <code>Mutex</code>. The reaper thread iterates processes while the main thread may start/stop others - <code>DashMap</code> handles this without blocking.</p>
 <h3 id="why-stdsyncmpsc-for-reaper-events"><a class="header" href="#why-stdsyncmpsc-for-reaper-events">Why <code>std::sync::mpsc</code> for reaper events?</a></h3>
 <p>The reaper thread is a plain <code>std::thread</code>, not async. <code>std::sync::mpsc::Sender</code> is <code>Send + Sync</code> and integrates cleanly with both sync and async consumers. In GTK applications, a forwarding thread bridges the blocking <code>recv()</code> to a non-blocking <code>tokio::sync::mpsc</code> channel for use in <code>MainContext::spawn_local</code>. This avoids blocking the GTK main loop while keeping the reaper thread simple.</p>
 <h3 id="why-typed-builder-for-processconfig"><a class="header" href="#why-typed-builder-for-processconfig">Why <code>typed-builder</code> for <code>ProcessConfig</code>?</a></h3>
 <p><code>ProcessConfig</code> has many fields with sensible defaults. <code>typed-builder</code> enforces required fields (only <code>command</code>) at compile time while keeping optional fields ergonomic with <code>.field_name(value)</code> syntax. This prevents missing-field bugs without runtime validation.</p>
 <h3 id="why-not-tokioprocesschild"><a class="header" href="#why-not-tokioprocesschild">Why not <code>tokio::process::Child</code>?</a></h3>
-<p>The <code>ProcessManager</code> is deliberately synchronous. It works with GTK’s <code>MainContext</code> and Smithay’s event loop without requiring an async runtime. The reaper thread uses non-blocking <code>try_wait()</code> polling instead — simpler, no runtime dependency, and sufficient for the use case (exit detection with configurable latency).</p>
+<p>The <code>ProcessManager</code> is deliberately synchronous. It works with GTK’s <code>MainContext</code> and Smithay’s event loop without requiring an async runtime. The reaper thread uses non-blocking <code>try_wait()</code> polling instead - simpler, no runtime dependency, and sufficient for the use case (exit detection with configurable latency).</p>
 <h3 id="why-setsid-instead-of-double-fork"><a class="header" href="#why-setsid-instead-of-double-fork">Why <code>setsid()</code> instead of double-fork?</a></h3>
-<p><code>setsid()</code> detaches the process from the controlling terminal. A double-fork (grandchild) would lose the <code>Child</code> handle, preventing tracking and <code>try_wait()</code> reaping. With <code>setsid()</code>, the process is still a direct child — the <code>Child</code> handle is stored, <code>try_wait()</code> works, and <code>stop()</code> can send signals. This is the correct trade-off for a process manager that needs to track and terminate its children.</p>
+<p><code>setsid()</code> detaches the process from the controlling terminal. A double-fork (grandchild) would lose the <code>Child</code> handle, preventing tracking and <code>try_wait()</code> reaping. With <code>setsid()</code>, the process is still a direct child - the <code>Child</code> handle is stored, <code>try_wait()</code> works, and <code>stop()</code> can send signals. This is the correct trade-off for a process manager that needs to track and terminate its children.</p>
 
                     </main>
 

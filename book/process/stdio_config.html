@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "../searchindex-188565ed.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a77de263.js"></script>
+        <script src="../toc-346eb062.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -182,9 +182,9 @@
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
 <p>When spawning a child process, each standard stream can be configured independently:</p>
 <ul>
-<li><strong><code>Inherit</code></strong> — The child inherits the parent’s stream. Output appears in the parent’s terminal. Useful for debugging.</li>
-<li><strong><code>Null</code></strong> — The child’s stream is connected to <code>/dev/null</code>. All output is discarded. Suitable for background processes.</li>
-<li><strong><code>Piped</code></strong> — The child’s stream is piped. <code>ProcessManager::start()</code> spawns reader threads that forward output to <code>tracing</code>. This prevents pipe buffer deadlocks when a child produces significant output.</li>
+<li><strong><code>Inherit</code></strong> - The child inherits the parent’s stream. Output appears in the parent’s terminal. Useful for debugging.</li>
+<li><strong><code>Null</code></strong> - The child’s stream is connected to <code>/dev/null</code>. All output is discarded. Suitable for background processes.</li>
+<li><strong><code>Piped</code></strong> - The child’s stream is piped. <code>ProcessManager::start()</code> spawns reader threads that forward output to <code>tracing</code>. This prevents pipe buffer deadlocks when a child produces significant output.</li>
 </ul>
 <pre class="mermaid">graph TD
     classDef default fill: #1e1e1e, stroke: #333333, stroke-width: 1px, color: #ffffff
@@ -207,17 +207,17 @@
 </pre>
 
 <h2 id="default"><a class="header" href="#default">Default</a></h2>
-<p><code>StdioConfig::Null</code> — all streams are null by default. This is the safest default for background processes and services that should not pollute the parent’s output.</p>
+<p><code>StdioConfig::Null</code> - all streams are null by default. This is the safest default for background processes and services that should not pollute the parent’s output.</p>
 <h2 id="serde"><a class="header" href="#serde">Serde</a></h2>
 <p><code>StdioConfig</code> implements <code>Serialize</code> and <code>Deserialize</code> with <code>#[serde(rename_all = "lowercase")]</code>, so it serializes as <code>"inherit"</code>, <code>"null"</code>, and <code>"piped"</code>.</p>
 <h2 id="why-reader-threads-for-piped"><a class="header" href="#why-reader-threads-for-piped">Why Reader Threads for Piped?</a></h2>
-<p>When <code>StdioConfig::Piped</code> is used, the OS creates a pipe with a fixed buffer size (typically 64KB). If the child writes more than the buffer can hold and nobody reads the pipe, the child blocks — causing a deadlock. <code>ProcessManager::start()</code> spawns dedicated reader threads that continuously read from the pipe and forward lines to <code>tracing::debug!</code> / <code>tracing::error!</code>, preventing this deadlock.</p>
+<p>When <code>StdioConfig::Piped</code> is used, the OS creates a pipe with a fixed buffer size (typically 64KB). If the child writes more than the buffer can hold and nobody reads the pipe, the child blocks - causing a deadlock. <code>ProcessManager::start()</code> spawns dedicated reader threads that continuously read from the pipe and forward lines to <code>tracing::debug!</code> / <code>tracing::error!</code>, preventing this deadlock.</p>
 <h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use process_manager::{ProcessConfig, StdioConfig};
 
-// Background process — discard all output
+// Background process - discard all output
 let config = ProcessConfig::builder()
     .command("daemon".to_string())
     .stdin(StdioConfig::Null)
@@ -225,7 +225,7 @@ let config = ProcessConfig::builder()
     .stderr(StdioConfig::Null)
     .build();
 
-// Debug mode — inherit parent's streams
+// Debug mode - inherit parent's streams
 let config = ProcessConfig::builder()
     .command("my-app".to_string())
     .stdin(StdioConfig::Inherit)
@@ -247,7 +247,7 @@ let config = ProcessConfig::builder()
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../process/state.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../process/dependencies.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -261,7 +261,7 @@ let config = ProcessConfig::builder()
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../process/state.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../process/dependencies.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 

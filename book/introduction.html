@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "searchindex-188565ed.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a77de263.js"></script>
+        <script src="toc-346eb062.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,27 +181,27 @@
 <p>Welcome to the documentation for <code>smearor-wrot-process-manager</code>.</p>
 <p>This workspace provides shared socket and process management crates for the <code>smearor-wrot</code> Wayland compositor and the <code>smearor-swipe-launcher</code> desktop launcher.</p>
 <h2 id="why-smearor-wrot-process-manager"><a class="header" href="#why-smearor-wrot-process-manager">Why smearor-wrot-process-manager?</a></h2>
-<p>Both <code>smearor-wrot</code> and <code>smearor-swipe-launcher</code> need to spawn and manage child processes — compositor clients, terminal commands, desktop applications. Previously, each project had its own ad-hoc process tracking:</p>
+<p>Both <code>smearor-wrot</code> and <code>smearor-swipe-launcher</code> need to spawn and manage child processes - compositor clients, terminal commands, desktop applications. Previously, each project had its own ad-hoc process tracking:</p>
 <ul>
-<li><strong><code>smearor-wrot</code></strong> used a <code>launch_application()</code> function that spawned a child, set <code>WAYLAND_DISPLAY</code>, and returned a <code>Child</code> handle — but had no tracking, no reaper, and no graceful shutdown.</li>
-<li><strong><code>smearor-swipe-launcher</code></strong> used a <code>TrackedProcess</code> struct with <code>DashMap</code>-based tracking, manual <code>/proc/{pid}</code> polling for exit detection, and <code>nix::sys::signal::kill</code> for termination — duplicated across both <code>terminal_command</code> and <code>app-launcher</code> services.</li>
+<li><strong><code>smearor-wrot</code></strong> used a <code>launch_application()</code> function that spawned a child, set <code>WAYLAND_DISPLAY</code>, and returned a <code>Child</code> handle - but had no tracking, no reaper, and no graceful shutdown.</li>
+<li><strong><code>smearor-swipe-launcher</code></strong> used a <code>TrackedProcess</code> struct with <code>DashMap</code>-based tracking, manual <code>/proc/{pid}</code> polling for exit detection, and <code>nix::sys::signal::kill</code> for termination - duplicated across both <code>terminal_command</code> and <code>app-launcher</code> services.</li>
 </ul>
 <p>This workspace consolidates that logic into two reusable, framework-agnostic crates:</p>
 <ol>
-<li><strong><code>process-manager-socket</code></strong> — Wayland socket path management with <code>Socket</code>, <code>SocketBuilder</code>, and <code>SocketManager</code></li>
-<li><strong><code>process-manager</code></strong> — Child process lifecycle management with <code>ProcessConfig</code>, <code>ProcessManager</code>, and an optional reaper thread</li>
+<li><strong><code>process-manager-socket</code></strong> - Wayland socket path management with <code>Socket</code>, <code>SocketBuilder</code>, and <code>SocketManager</code></li>
+<li><strong><code>process-manager</code></strong> - Child process lifecycle management with <code>ProcessConfig</code>, <code>ProcessManager</code>, and an optional reaper thread</li>
 </ol>
 <h2 id="key-benefits"><a class="header" href="#key-benefits">Key Benefits</a></h2>
 <ul>
-<li><strong>No duplicate code</strong> — Both projects share the same <code>ProcessManager</code> instead of maintaining separate tracking logic</li>
-<li><strong>Zombie prevention</strong> — The reaper thread calls <code>try_wait()</code> on all tracked processes, preventing zombies without per-process wait threads</li>
-<li><strong>Graceful shutdown</strong> — <code>terminate_on_exit</code> flag ensures processes are killed when the manager is dropped</li>
-<li><strong>Signal escalation</strong> — <code>SIGTERM</code> with configurable timeout, automatic <code>SIGKILL</code> escalation for stubborn processes</li>
-<li><strong>Explicit lifecycle states</strong> — <code>ProcessState</code> enum (<code>Starting</code>, <code>Running</code>, <code>Stopping</code>, <code>Stopped</code>, <code>Crashed</code>, <code>Restarting</code>, <code>Failed</code>) for precise decision-making</li>
-<li><strong>Label-based grouping</strong> — Start and stop multiple processes under a shared label (e.g. all workers in a pool)</li>
-<li><strong>Forked/detached support</strong> — <code>setsid()</code> via <code>pre_exec</code> for processes that should survive parent exit</li>
-<li><strong>Wayland socket binding</strong> — Automatically sets <code>WAYLAND_DISPLAY</code> in child environment</li>
-<li><strong>Framework-agnostic</strong> — No dependency on GTK, Smithay, or any plugin API</li>
+<li><strong>No duplicate code</strong> - Both projects share the same <code>ProcessManager</code> instead of maintaining separate tracking logic</li>
+<li><strong>Zombie prevention</strong> - The reaper thread calls <code>try_wait()</code> on all tracked processes, preventing zombies without per-process wait threads</li>
+<li><strong>Graceful shutdown</strong> - <code>terminate_on_exit</code> flag ensures processes are killed when the manager is dropped</li>
+<li><strong>Signal escalation</strong> - <code>SIGTERM</code> with configurable timeout, automatic <code>SIGKILL</code> escalation for stubborn processes</li>
+<li><strong>Explicit lifecycle states</strong> - <code>ProcessState</code> enum (<code>Starting</code>, <code>Running</code>, <code>Stopping</code>, <code>Stopped</code>, <code>Crashed</code>, <code>Restarting</code>, <code>Failed</code>) for precise decision-making</li>
+<li><strong>Label-based grouping</strong> - Start and stop multiple processes under a shared label (e.g. all workers in a pool)</li>
+<li><strong>Forked/detached support</strong> - <code>setsid()</code> via <code>pre_exec</code> for processes that should survive parent exit</li>
+<li><strong>Wayland socket binding</strong> - Automatically sets <code>WAYLAND_DISPLAY</code> in child environment</li>
+<li><strong>Framework-agnostic</strong> - No dependency on GTK, Smithay, or any plugin API</li>
 </ul>
 <h2 id="crate-relationship"><a class="header" href="#crate-relationship">Crate Relationship</a></h2>
 <pre class="mermaid">graph TD
@@ -227,8 +227,8 @@
 
 <h2 id="consumers"><a class="header" href="#consumers">Consumers</a></h2>
 <ul>
-<li><strong><code>smearor-wrot</code></strong> — Uses <code>SocketManager</code> for multi-output Wayland sockets and <code>ProcessManager</code> for spawning compositor clients.</li>
-<li><strong><code>smearor-swipe-launcher</code></strong> — Uses <code>ProcessManager</code> in its <code>terminal_command</code> and <code>app-launcher</code> services for launching and tracking commands and applications.</li>
+<li><strong><code>smearor-wrot</code></strong> - Uses <code>SocketManager</code> for multi-output Wayland sockets and <code>ProcessManager</code> for spawning compositor clients.</li>
+<li><strong><code>smearor-swipe-launcher</code></strong> - Uses <code>ProcessManager</code> in its <code>terminal_command</code> and <code>app-launcher</code> services for launching and tracking commands and applications.</li>
 </ul>
 <h2 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h2>
 <p>Head over to the <a href="architecture.html">Architecture</a> page for a visual overview of how the crates work internally. For code examples, see <a href="examples.html">Usage Examples</a>. To migrate from the old approach, see the <a href="migration.html">Migration Guide</a>.</p>

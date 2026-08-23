@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "../searchindex-188565ed.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a77de263.js"></script>
+        <script src="../toc-346eb062.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -182,9 +182,9 @@
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
 <p>The reaper thread polls <code>try_wait()</code> on all tracked processes at a configurable interval. When a process exits, it emits a <code>ProcessExitEvent</code> through an <code>mpsc</code> channel. This enables:</p>
 <ul>
-<li><strong>Zombie prevention</strong> — Exited processes are reaped automatically</li>
-<li><strong>Exit notifications</strong> — The consumer is informed when processes exit</li>
-<li><strong>Restart logic</strong> — The consumer can restart crashed processes</li>
+<li><strong>Zombie prevention</strong> - Exited processes are reaped automatically</li>
+<li><strong>Exit notifications</strong> - The consumer is informed when processes exit</li>
+<li><strong>Restart logic</strong> - The consumer can restart crashed processes</li>
 </ul>
 <h2 id="basic-exit-detection"><a class="header" href="#basic-exit-detection">Basic Exit Detection</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -226,7 +226,7 @@ if let Ok(event) = receiver.try_recv() {
 }
 <span class="boring">}</span></code></pre>
 <h2 id="gtk-integration"><a class="header" href="#gtk-integration">GTK Integration</a></h2>
-<p>In GTK applications, <strong>do not</strong> call <code>receiver.recv()</code> directly in <code>MainContext::spawn_local</code> — it is a blocking call that will freeze the GTK main loop. Instead, use a forwarding thread to bridge the blocking <code>std::sync::mpsc</code> to a non-blocking <code>tokio::sync::mpsc</code> channel:</p>
+<p>In GTK applications, <strong>do not</strong> call <code>receiver.recv()</code> directly in <code>MainContext::spawn_local</code> - it is a blocking call that will freeze the GTK main loop. Instead, use a forwarding thread to bridge the blocking <code>std::sync::mpsc</code> to a non-blocking <code>tokio::sync::mpsc</code> channel:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use tokio::sync::mpsc::unbounded_channel;
@@ -236,7 +236,7 @@ let (event_tx, mut event_rx) = unbounded_channel();
 std::thread::spawn(move || {
     while let Ok(event) = receiver.recv() {
         if event_tx.send(event).is_err() {
-            break; // Async receiver dropped — exit thread
+            break; // Async receiver dropped - exit thread
         }
     }
 });
@@ -275,7 +275,7 @@ MainContext::default().spawn_local(async move {
 <li><code>ProcessManager</code> is dropped → reaper stops → <code>mpsc::Sender</code> dropped → <code>recv()</code> returns <code>Err</code></li>
 <li><code>MainContext</code> task completes → <code>event_rx</code> dropped → <code>event_tx.send()</code> returns <code>Err</code></li>
 </ol>
-<p>No explicit join is needed — the forwarding thread exits cleanly in both cases.</p>
+<p>No explicit join is needed - the forwarding thread exits cleanly in both cases.</p>
 
                     </main>
 

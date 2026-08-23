@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "../searchindex-188565ed.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a77de263.js"></script>
+        <script src="../toc-346eb062.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,7 +184,12 @@
 <ol>
 <li>Spawns a <code>std::thread</code> named <code>"process-reaper"</code></li>
 <li>Every <code>poll_interval</code>, iterates all tracked processes in the <code>DashMap</code></li>
-<li>Calls <code>try_wait()</code> on each — if the process has exited, removes it from the <code>DashMap</code> and sends a <code>ProcessExitEvent</code> with the derived <code>ProcessState</code> (<code>Stopped</code> for normal exit, <code>Crashed</code> for non-zero)</li>
+<li><strong>Phase 1</strong>: Detect exits - for each process (skip <code>Restarting</code>), check stable uptime reset, then call <code>try_wait()</code> to detect exits. If exited, determine state, check restart policy, emit event, and either remove or transition to <code>Restarting</code>. If restart is triggered and <code>supervisor_strategy</code> is <code>OneForAll</code> or <code>RestForOne</code>, collect cascade targets in the same label group.</li>
+<li><strong>Phase 2</strong>: Cascade kill - send kill signals to cascade-flagged processes. Processes with <code>cascade_flag = true</code> skip supervisor strategy logic on their own exit.</li>
+<li><strong>Phase 3</strong>: Set <code>Restarting</code> state for processes scheduled for restart.</li>
+<li><strong>Phase 4</strong>: Check eligible restarts - for <code>Restarting</code> processes whose backoff has elapsed, spawn a new process in-place. If the process has unsatisfied dependencies, transition to <code>Waiting</code> instead of spawning.</li>
+<li><strong>Phase 5</strong>: Check <code>Waiting</code> processes - resolve label dependencies, spawn when all deps are <code>Running</code>, fail-fast when a dependency is terminal, timeout if deps not ready within <code>dependency_timeout_ms</code>.</li>
+<li><strong>Phase 6</strong>: Check <code>Running</code> processes for terminal dependencies - if a resolved dependency is removed or enters a terminal state, fail-fast the dependent process.</li>
 <li>Runs until <code>ProcessManager</code> is dropped (via a <code>stop_flag</code> <code>AtomicBool</code>)</li>
 </ol>
 <h2 id="polling-cycle"><a class="header" href="#polling-cycle">Polling Cycle</a></h2>
@@ -195,16 +200,59 @@
     participant Consumer as Consumer
 
     loop Every poll_interval
-        Reaper-&gt;&gt;DashMap: Iterate all processes
-        loop Each process
+        Reaper-&gt;&gt;DashMap: Phase 1: Detect exits
+        loop Each process (skip Restarting)
+            Reaper-&gt;&gt;Reaper: Check stable uptime reset
             Reaper-&gt;&gt;Reaper: try_wait()
             alt Still running
                 Reaper-&gt;&gt;Reaper: Skip
             else Exited
-                Reaper-&gt;&gt;Reaper: Determine state (Stopped/Crashed)
-                Reaper-&gt;&gt;DashMap: Remove process
-                Reaper-&gt;&gt;Channel: Send ProcessExitEvent
-                Channel--&gt;&gt;Consumer: receiver.recv()
+                Reaper-&gt;&gt;Reaper: Determine state + restart policy
+                alt No restart or rate-limited
+                    Reaper-&gt;&gt;DashMap: Remove process
+                    Reaper-&gt;&gt;Channel: Send ProcessExitEvent
+                else Restart triggered
+                    Reaper-&gt;&gt;Reaper: Release OS resources
+                    Reaper-&gt;&gt;Reaper: Record restart + schedule backoff
+                    Reaper-&gt;&gt;Reaper: Set state = Restarting
+                    Reaper-&gt;&gt;Channel: Send ProcessExitEvent
+                end
+            end
+        end
+        Reaper-&gt;&gt;Reaper: Phase 2: Cascade kill (OneForAll/RestForOne)
+        Reaper-&gt;&gt;Reaper: Phase 3: Set Restarting state
+        Reaper-&gt;&gt;DashMap: Phase 4: Check eligible restarts
+        loop Each Restarting process
+            alt Backoff elapsed
+                Reaper-&gt;&gt;Reaper: Check dependencies
+                alt Deps ready
+                    Reaper-&gt;&gt;Reaper: Spawn new process in-place
+                    alt Spawn success
+                        Reaper-&gt;&gt;Reaper: Update entry, state = Starting
+                    else Spawn failure
+                        Reaper-&gt;&gt;Reaper: state = Failed
+                        Reaper-&gt;&gt;DashMap: Remove process
+                        Reaper-&gt;&gt;Channel: Send ProcessExitEvent (Failed)
+                    end
+                else Deps not ready
+                    Reaper-&gt;&gt;Reaper: state = Waiting
+                end
+            end
+        end
+        Reaper-&gt;&gt;DashMap: Phase 5: Check Waiting processes
+        loop Each Waiting process
+            alt Deps all Running
+                Reaper-&gt;&gt;Reaper: Spawn process
+            else Dependency terminal
+                Reaper-&gt;&gt;Reaper: state = Failed, emit event
+            else Timeout exceeded
+                Reaper-&gt;&gt;Reaper: state = Failed, emit event
+            end
+        end
+        Reaper-&gt;&gt;DashMap: Phase 6: Check Running deps
+        loop Each Running process with deps
+            alt Dependency terminal/removed
+                Reaper-&gt;&gt;Reaper: Kill + state = Failed, emit event
             end
         end
     end
@@ -217,20 +265,20 @@
 <h2 id="polling-vs-pidfd"><a class="header" href="#polling-vs-pidfd">Polling vs. <code>pidfd</code></a></h2>
 <p>The reaper uses polling (<code>try_wait()</code>) rather than <code>pidfd_open</code> (Linux ≥ 5.3). This means:</p>
 <ul>
-<li><strong>Exit detection latency</strong> — Up to <code>poll_interval</code> delay between process exit and event emission. With the default 2-second interval, a process exit is detected within 2 seconds.</li>
-<li><strong>CPU usage</strong> — The thread wakes up every <code>poll_interval</code> and iterates all processes. For a small number of processes (&lt; 100), this is negligible.</li>
-<li><strong>Portability</strong> — <code>try_wait()</code> works on all Unix systems. <code>pidfd_open</code> is Linux-only.</li>
+<li><strong>Exit detection latency</strong> - Up to <code>poll_interval</code> delay between process exit and event emission. With the default 2-second interval, a process exit is detected within 2 seconds.</li>
+<li><strong>CPU usage</strong> - The thread wakes up every <code>poll_interval</code> and iterates all processes. For a small number of processes (&lt; 100), this is negligible.</li>
+<li><strong>Portability</strong> - <code>try_wait()</code> works on all Unix systems. <code>pidfd_open</code> is Linux-only.</li>
 </ul>
 <p>A future improvement could use <code>pidfd_open</code> for instant notification, but the current approach is sufficient for the use case (compositor clients and launcher apps).</p>
 <h2 id="zombie-prevention"><a class="header" href="#zombie-prevention">Zombie Prevention</a></h2>
 <p>Without the reaper, exited child processes remain as zombies until someone calls <code>wait()</code>. Zombies consume a PID and a small amount of kernel memory. In long-running applications (like a Wayland compositor or desktop launcher), zombies accumulate over time.</p>
-<p>The reaper calls <code>try_wait()</code> which reaps the zombie immediately upon detection. Even without the reaper, <code>ProcessManager::drop</code> will clean up remaining processes — but the reaper is recommended for long-lived managers.</p>
+<p>The reaper calls <code>try_wait()</code> which reaps the zombie immediately upon detection. Even without the reaper, <code>ProcessManager::drop</code> will clean up remaining processes - but the reaper is recommended for long-lived managers.</p>
 <h2 id="thread-safety"><a class="header" href="#thread-safety">Thread Safety</a></h2>
 <p>The reaper thread accesses the <code>DashMap</code> via an <code>Arc</code>, so it works concurrently with <code>start()</code>, <code>stop()</code>, and other operations from the main thread. <code>DashMap</code>’s shard-level locking ensures no contention:</p>
 <ul>
 <li>The reaper iterates with <code>DashMap::iter()</code> which takes a snapshot of shard read locks</li>
-<li><code>start()</code> inserts into a shard — may briefly block the reaper on that shard</li>
-<li><code>stop()</code> removes from a shard — may briefly block the reaper on that shard</li>
+<li><code>start()</code> inserts into a shard - may briefly block the reaper on that shard</li>
+<li><code>stop()</code> removes from a shard - may briefly block the reaper on that shard</li>
 </ul>
 <p>This is acceptable for the use case (low-frequency operations, small number of processes).</p>
 <h2 id="usage"><a class="header" href="#usage">Usage</a></h2>

@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "../searchindex-188565ed.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a77de263.js"></script>
+        <script src="../toc-346eb062.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,8 +181,8 @@
 <p><code>Socket</code> is a <code>PathBuf</code> newtype representing a Wayland socket path.</p>
 <p>It exists as a distinct type rather than using <code>PathBuf</code> directly for two reasons:</p>
 <ol>
-<li><strong>Type safety</strong> — Functions that expect a Wayland socket can take <code>&amp;Socket</code> instead of <code>&amp;Path</code>, preventing accidental misuse with arbitrary paths.</li>
-<li><strong>Ergonomic trait implementations</strong> — <code>AsRef&lt;str&gt;</code> and <code>Display</code> make it easy to extract the socket name (e.g. <code>wayland-0</code>) for setting <code>WAYLAND_DISPLAY</code> in child environments.</li>
+<li><strong>Type safety</strong> - Functions that expect a Wayland socket can take <code>&amp;Socket</code> instead of <code>&amp;Path</code>, preventing accidental misuse with arbitrary paths.</li>
+<li><strong>Ergonomic trait implementations</strong> - <code>AsRef&lt;str&gt;</code> and <code>Display</code> make it easy to extract the socket name (e.g. <code>wayland-0</code>) for setting <code>WAYLAND_DISPLAY</code> in child environments.</li>
 </ol>
 <h2 id="accessing-the-path"><a class="header" href="#accessing-the-path">Accessing the Path</a></h2>
 <p>The inner <code>PathBuf</code> is private. Use one of these methods to access it:</p>

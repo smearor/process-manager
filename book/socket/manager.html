@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "../searchindex-188565ed.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a77de263.js"></script>
+        <script src="../toc-346eb062.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,7 +186,7 @@
 <li>Retrieve sockets when spawning compositor clients</li>
 <li>Share socket references across threads via <code>Arc</code></li>
 </ul>
-<p>The <code>DashMap</code> backend allows concurrent reads and writes without a single <code>Mutex</code> lock — multiple threads can register and retrieve sockets simultaneously.</p>
+<p>The <code>DashMap</code> backend allows concurrent reads and writes without a single <code>Mutex</code> lock - multiple threads can register and retrieve sockets simultaneously.</p>
 <p><code>register()</code> uses the <code>DashMap</code> entry API for atomic check-and-insert, preventing TOCTOU race conditions when multiple threads register sockets concurrently.</p>
 <h2 id="api"><a class="header" href="#api">API</a></h2>
 <div class="table-wrapper">

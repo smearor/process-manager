@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "../searchindex-188565ed.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a77de263.js"></script>
+        <script src="../toc-346eb062.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -229,15 +229,15 @@ let id = manager.start("daemon", &amp;config)?;
 <span class="boring">}</span></code></pre>
 <h2 id="when-to-use-forked"><a class="header" href="#when-to-use-forked">When to Use <code>forked</code></a></h2>
 <ul>
-<li><strong>Daemons</strong> — Processes that should run independently of the parent’s terminal session</li>
-<li><strong>Terminal applications</strong> — Processes that should not receive <code>SIGHUP</code> when the parent terminal closes</li>
-<li><strong>Long-running services</strong> — Processes that outlive the parent and should not be tied to the parent’s session</li>
+<li><strong>Daemons</strong> - Processes that should run independently of the parent’s terminal session</li>
+<li><strong>Terminal applications</strong> - Processes that should not receive <code>SIGHUP</code> when the parent terminal closes</li>
+<li><strong>Long-running services</strong> - Processes that outlive the parent and should not be tied to the parent’s session</li>
 </ul>
 <h2 id="when-not-to-use-forked"><a class="header" href="#when-not-to-use-forked">When NOT to Use <code>forked</code></a></h2>
 <ul>
-<li><strong>Compositor clients</strong> — Wayland clients should share the compositor’s session</li>
-<li><strong>Short-lived commands</strong> — No need to detach processes that finish quickly</li>
-<li><strong>Processes you want to receive terminal signals</strong> — <code>setsid()</code> detaches from the terminal, so terminal-generated signals (Ctrl+C, SIGHUP) won’t reach the child</li>
+<li><strong>Compositor clients</strong> - Wayland clients should share the compositor’s session</li>
+<li><strong>Short-lived commands</strong> - No need to detach processes that finish quickly</li>
+<li><strong>Processes you want to receive terminal signals</strong> - <code>setsid()</code> detaches from the terminal, so terminal-generated signals (Ctrl+C, SIGHUP) won’t reach the child</li>
 </ul>
 
                     </main>

@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "../searchindex-188565ed.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a77de263.js"></script>
+        <script src="../toc-346eb062.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -223,7 +223,7 @@ let manager = ProcessManager::new();
 // Spawn a panel on eDP-1
 let edp_socket = socket_manager.get("eDP-1").unwrap().clone();
 let panel_config = ProcessConfig::builder()
-    .command("waybar".to_string())
+    .command("smearor-swipe-launcher".to_string())
     .socket(Some(edp_socket))
     .stdout(StdioConfig::Null)
     .stderr(StdioConfig::Null)
@@ -248,7 +248,7 @@ manager.start("wallpaper-HDMI-1", &amp;wallpaper_config)?;
 <li>The socket name is inserted into the child’s environment as <code>WAYLAND_DISPLAY=wayland-0</code></li>
 <li>The child process connects to the Wayland display using this environment variable</li>
 </ol>
-<p>If <code>config.socket</code> is <code>None</code>, <code>WAYLAND_DISPLAY</code> is not set — the child inherits the parent’s <code>WAYLAND_DISPLAY</code> if present.</p>
+<p>If <code>config.socket</code> is <code>None</code>, <code>WAYLAND_DISPLAY</code> is not set - the child inherits the parent’s <code>WAYLAND_DISPLAY</code> if present.</p>
 
                     </main>
 

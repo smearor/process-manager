@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Error Types - smearor-wrot-process-manager Documentation</title>
+        <title>Restart Policy - smearor-wrot-process-manager Documentation</title>
 
 
         <!-- Custom HTML head -->
@@ -177,56 +177,169 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="error-types"><a class="header" href="#error-types">Error Types</a></h1>
-<h2 id="processmanagererror"><a class="header" href="#processmanagererror">ProcessManagerError</a></h2>
-<p>Errors returned by <code>ProcessManager</code> operations.</p>
+                        <h1 id="restart-policy"><a class="header" href="#restart-policy">Restart Policy</a></h1>
+<p><code>RestartTrigger</code> and <code>RestartPolicy</code> control automatic restart behavior when <code>restart_on_exit</code> is enabled.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>When <code>restart_on_exit(true)</code> is set on a <code>ProcessConfig</code> and the <code>ProcessManager</code> is constructed with <code>with_reaper()</code>, the reaper thread automatically restarts processes that exit. The restart behavior is controlled by two config fields:</p>
+<ul>
+<li><code>restart_trigger</code> - Determines <strong>when</strong> to restart</li>
+<li><code>restart_policy</code> - Determines <strong>how</strong> to restart (immediate or with backoff)</li>
+</ul>
+<h2 id="restarttrigger"><a class="header" href="#restarttrigger">RestartTrigger</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Variant</th><th>When</th><th>Description</th></tr>
+<tr><th>Variant</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>ExecutableNotFound(String)</code></td><td><code>start()</code></td><td>The command could not be resolved via <code>which</code> and is not an absolute path</td></tr>
-<tr><td><code>SpawnFailed(String)</code></td><td><code>start()</code></td><td><code>std::process::Command::spawn()</code> returned an error</td></tr>
-<tr><td><code>NotFound(ProcessId)</code></td><td><code>stop()</code>, <code>get()</code></td><td>No process with the given <code>ProcessId</code> exists in the <code>DashMap</code></td></tr>
-<tr><td><code>NixError(nix::Error)</code></td><td><code>stop()</code></td><td>A <code>nix</code> signal operation failed - the process may have already exited</td></tr>
+<tr><td><code>CrashOnly</code></td><td>Restart only on crashes (non-zero exit code or signal). Clean exits (<code>exit(0)</code>) are not restarted. Default.</td></tr>
+<tr><td><code>Always</code></td><td>Restart on any exit, including clean exits. Useful for processes that should always be running.</td></tr>
 </tbody>
 </table>
 </div>
-<h2 id="processconfigerror"><a class="header" href="#processconfigerror">ProcessConfigError</a></h2>
-<p>Errors returned during <code>ProcessConfig</code> construction. Currently minimal since <code>TypedBuilder</code> enforces required fields at compile time.</p>
+<h2 id="restartpolicy"><a class="header" href="#restartpolicy">RestartPolicy</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Variant</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Immediate</code></td><td>Restart immediately on exit. No delay, no rate limiting. Default.</td></tr>
+<tr><td><code>Backoff(BackoffConfig)</code></td><td>Restart with exponential backoff and rate limiting.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="backoffconfig"><a class="header" href="#backoffconfig">BackoffConfig</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>initial_delay</code></td><td><code>Duration</code></td><td><code>1s</code></td><td>Initial delay before first restart</td></tr>
+<tr><td><code>multiplier</code></td><td><code>u32</code></td><td><code>20</code></td><td>Multiplier applied to delay after each restart, in tenths (20 = 2.0x, 15 = 1.5x, 10 = 1.0x)</td></tr>
+<tr><td><code>max_delay</code></td><td><code>Duration</code></td><td><code>60s</code></td><td>Maximum delay cap (prevents unbounded growth)</td></tr>
+<tr><td><code>max_restarts</code></td><td><code>u32</code></td><td><code>5</code></td><td>Maximum consecutive restarts before giving up</td></tr>
+<tr><td><code>min_uptime</code></td><td><code>Duration</code></td><td><code>10s</code></td><td>Uptime required to reset the restart counter</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="backoff-delay-calculation"><a class="header" href="#backoff-delay-calculation">Backoff Delay Calculation</a></h3>
+<p>The delay for restart N (1-indexed) is:</p>
+<pre><code class="language-text">delay = min(initial_delay * (multiplier / 10)^(N-1), max_delay)
+</code></pre>
+<p>Example with <code>initial_delay=1s</code>, <code>multiplier=20</code> (2.0x), <code>max_delay=60s</code>:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Restart #</th><th>Delay</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>1s</td></tr>
+<tr><td>2</td><td>2s</td></tr>
+<tr><td>3</td><td>4s</td></tr>
+<tr><td>4</td><td>8s</td></tr>
+<tr><td>5</td><td>16s</td></tr>
+<tr><td>6</td><td>32s</td></tr>
+<tr><td>7+</td><td>60s (capped)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="rate-limiting"><a class="header" href="#rate-limiting">Rate Limiting</a></h3>
+<p>After <code>max_restarts</code> consecutive restarts, the process transitions to <code>Failed</code> state and is removed from the manager. A <code>ProcessExitEvent</code> with <code>state=Failed</code> is emitted.</p>
+<h3 id="stable-uptime-reset"><a class="header" href="#stable-uptime-reset">Stable Uptime Reset</a></h3>
+<p>If a process runs for &gt;= <code>min_uptime</code> without crashing, the restart counter resets to 0. This prevents a process that crashes once and then runs stably from being rate-limited.</p>
+<h2 id="restartstate-internal"><a class="header" href="#restartstate-internal">RestartState (Internal)</a></h2>
+<p>Each process with <code>restart_on_exit=true</code> has an internal <code>RestartState</code> that tracks:</p>
+<ul>
+<li><code>restart_count</code> - Consecutive restarts since last stable uptime</li>
+<li><code>last_started_at</code> - When the process was last spawned</li>
+<li><code>next_eligible_restart</code> - Earliest time the process can be restarted (backoff timer)</li>
+</ul>
+<p>This state is managed by the reaper thread and is not directly accessible by consumers.</p>
+<h2 id="interaction-with-manual-operations"><a class="header" href="#interaction-with-manual-operations">Interaction with Manual Operations</a></h2>
+<p>During the <code>Restarting</code> state (backoff wait), manual operations behave as follows:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Operation</th><th>Behavior</th></tr>
+</thead>
+<tbody>
+<tr><td><code>stop(id)</code></td><td>Cancels backoff, removes process silently (no event, no signal)</td></tr>
+<tr><td><code>restart(id)</code></td><td>Cancels backoff, spawns immediately (preserves <code>ProcessId</code>)</td></tr>
+<tr><td><code>send_signal(id, ...)</code></td><td>Returns <code>ProcessInRestartingState</code> error</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
+<h3 id="immediate-restart-on-crash"><a class="header" href="#immediate-restart-on-crash">Immediate restart on crash</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use process_manager::{ProcessConfig, ProcessManager, ProcessManagerError};
+</span>use process_manager::{ProcessConfig, ProcessManager, RestartPolicy, RestartTrigger, StdioConfig};
+use std::time::Duration;
 
-let manager = ProcessManager::new();
+let (sender, receiver) = std::sync::mpsc::channel();
+let manager = ProcessManager::with_reaper(Duration::from_millis(100), sender)?;
 
 let config = ProcessConfig::builder()
-    .command("nonexistent-program".to_string())
+    .command("my-service".to_string())
+    .restart_on_exit(true)
+    .restart_trigger(RestartTrigger::CrashOnly)
+    .restart_policy(RestartPolicy::Immediate)
+    .stdout(StdioConfig::Null)
+    .stderr(StdioConfig::Null)
     .build();
 
-match manager.start("test", &amp;config) {
-    Ok(id) =&gt; println!("Started with ID {}", id),
-    Err(ProcessManagerError::ExecutableNotFound(cmd)) =&gt; {
-        eprintln!("Program '{}' not found in PATH", cmd);
-    }
-    Err(ProcessManagerError::SpawnFailed(msg)) =&gt; {
-        eprintln!("Failed to spawn: {}", msg);
-    }
-    Err(e) =&gt; eprintln!("Error: {}", e),
-}
+let id = manager.start("service", &amp;config)?;
+<span class="boring">}</span></code></pre>
+<h3 id="backoff-with-rate-limiting"><a class="header" href="#backoff-with-rate-limiting">Backoff with rate limiting</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use process_manager::{BackoffConfig, ProcessConfig, ProcessManager, RestartPolicy, RestartTrigger, StdioConfig};
+use std::time::Duration;
+
+let (sender, receiver) = std::sync::mpsc::channel();
+let manager = ProcessManager::with_reaper(Duration::from_millis(100), sender)?;
+
+let config = ProcessConfig::builder()
+    .command("my-service".to_string())
+    .restart_on_exit(true)
+    .restart_trigger(RestartTrigger::CrashOnly)
+    .restart_policy(RestartPolicy::Backoff(BackoffConfig {
+        initial_delay: Duration::from_secs(2),
+        multiplier: 20,
+        max_delay: Duration::from_secs(120),
+        max_restarts: 10,
+        min_uptime: Duration::from_secs(30),
+    }))
+    .stdout(StdioConfig::Null)
+    .stderr(StdioConfig::Null)
+    .build();
+
+let id = manager.start("service", &amp;config)?;
+<span class="boring">}</span></code></pre>
+<h3 id="always-restart-even-on-clean-exit"><a class="header" href="#always-restart-even-on-clean-exit">Always restart (even on clean exit)</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let config = ProcessConfig::builder()
+    .command("watcher".to_string())
+    .restart_on_exit(true)
+    .restart_trigger(RestartTrigger::Always)
+    .restart_policy(RestartPolicy::Immediate)
+    .stdout(StdioConfig::Null)
+    .stderr(StdioConfig::Null)
+    .build();
 <span class="boring">}</span></code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../process/exit_event.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../process/state.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../examples.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../process/supervisor_strategies.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -236,11 +349,11 @@ match manager.start("test", &amp;config) {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../process/exit_event.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../process/state.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../examples.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../process/supervisor_strategies.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

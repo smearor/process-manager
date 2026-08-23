@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "../searchindex-188565ed.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a77de263.js"></script>
+        <script src="../toc-346eb062.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -180,12 +180,12 @@
                         <h1 id="send-signal"><a class="header" href="#send-signal">Send Signal</a></h1>
 <p>Send arbitrary Unix signals to running processes without stopping them.</p>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
-<p>The <code>send_signal()</code> and <code>send_signal_label()</code> methods allow sending any <a href="../process/signal.html"><code>Signal</code></a> to a managed process. Unlike <code>stop()</code>, the process remains in the manager — this is useful for:</p>
+<p>The <code>send_signal()</code> and <code>send_signal_label()</code> methods allow sending any <a href="../process/signal.html"><code>Signal</code></a> to a managed process. Unlike <code>stop()</code>, the process remains in the manager - this is useful for:</p>
 <ul>
-<li><strong>Config reloads</strong> — Send <code>SIGHUP</code> to trigger a reload</li>
-<li><strong>Pause/resume</strong> — Send <code>SIGSTOP</code> / <code>SIGCONT</code></li>
-<li><strong>Custom protocols</strong> — Send <code>SIGUSR1</code> / <code>SIGUSR2</code> for application-specific events</li>
-<li><strong>Window resize</strong> — Send <code>SIGWINCH</code> to notify terminal applications</li>
+<li><strong>Config reloads</strong> - Send <code>SIGHUP</code> to trigger a reload</li>
+<li><strong>Pause/resume</strong> - Send <code>SIGSTOP</code> / <code>SIGCONT</code></li>
+<li><strong>Custom protocols</strong> - Send <code>SIGUSR1</code> / <code>SIGUSR2</code> for application-specific events</li>
+<li><strong>Window resize</strong> - Send <code>SIGWINCH</code> to notify terminal applications</li>
 </ul>
 <pre class="mermaid">sequenceDiagram
     participant Consumer
@@ -219,14 +219,14 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     assert_eq!(manager.is_running(id), Some(true));
     assert_eq!(manager.state(id), Some(ProcessState::Running));
 
-    // Send SIGWINCH — sleep ignores it, process keeps running
+    // Send SIGWINCH - sleep ignores it, process keeps running
     manager.send_signal(id, Signal::Sigwinch)?;
     std::thread::sleep(std::time::Duration::from_millis(100));
     assert_eq!(manager.is_running(id), Some(true));
     assert_eq!(manager.state(id), Some(ProcessState::Running));
     println!("After SIGWINCH: still running");
 
-    // Send SIGTERM — sleep terminates
+    // Send SIGTERM - sleep terminates
     manager.send_signal(id, Signal::Sigterm)?;
     std::thread::sleep(std::time::Duration::from_millis(200));
     assert_eq!(manager.is_running(id), Some(false));
@@ -270,6 +270,9 @@ manager.send_signal_label("worker-pool", Signal::Sighup)?;
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
+                            <a rel="next prefetch" href="../examples/supervisor_strategies.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -281,6 +284,9 @@ manager.send_signal_label("worker-pool", Signal::Sighup)?;
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
+                    <a rel="next prefetch" href="../examples/supervisor_strategies.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
             </nav>
 
         </div>

@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "../searchindex-188565ed.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a77de263.js"></script>
+        <script src="../toc-346eb062.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -180,8 +180,8 @@
                         <h1 id="signal"><a class="header" href="#signal">Signal</a></h1>
 <p>The <code>signal</code> module provides two signal enums for different use cases:</p>
 <ul>
-<li><strong>[<code>KillSignal</code>]</strong> — Restricted to <code>SIGTERM</code>/<code>SIGKILL</code>, used for process termination via <code>stop()</code></li>
-<li><strong>[<code>Signal</code>]</strong> — Broader enum for general-purpose signaling via <code>send_signal()</code></li>
+<li><strong>[<code>KillSignal</code>]</strong> - Restricted to <code>SIGTERM</code>/<code>SIGKILL</code>, used for process termination via <code>stop()</code></li>
+<li><strong>[<code>Signal</code>]</strong> - Broader enum for general-purpose signaling via <code>send_signal()</code></li>
 </ul>
 <h2 id="killsignal"><a class="header" href="#killsignal">KillSignal</a></h2>
 <p><code>KillSignal</code> specifies which signal to send when terminating a process. It is intentionally limited to the two signals that make sense for the <code>stop()</code> path.</p>
@@ -192,8 +192,8 @@
 <tr><th>Variant</th><th>Signal</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Sigterm</code></td><td><code>SIGTERM</code> (15)</td><td>Graceful termination — the process can catch and handle it</td></tr>
-<tr><td><code>Sigkill</code></td><td><code>SIGKILL</code> (9)</td><td>Immediate termination — cannot be caught or handled</td></tr>
+<tr><td><code>Sigterm</code></td><td><code>SIGTERM</code> (15)</td><td>Graceful termination - the process can catch and handle it</td></tr>
+<tr><td><code>Sigkill</code></td><td><code>SIGKILL</code> (9)</td><td>Immediate termination - cannot be caught or handled</td></tr>
 </tbody>
 </table>
 </div>
@@ -247,8 +247,8 @@ let config = ProcessConfig::builder()
 <span class="boring">}</span></code></pre>
 <h3 id="when-to-use-which"><a class="header" href="#when-to-use-which">When to Use Which</a></h3>
 <ul>
-<li><strong><code>Sigterm</code></strong> (default) — Use for well-behaved processes that clean up on <code>SIGTERM</code> (save state, close connections, flush buffers). The configurable timeout gives them time to shut down gracefully.</li>
-<li><strong><code>Sigkill</code></strong> — Use for processes that don’t respond to <code>SIGTERM</code> or when you need immediate termination. <code>SIGKILL</code> cannot be caught, so the process is killed instantly by the kernel.</li>
+<li><strong><code>Sigterm</code></strong> (default) - Use for well-behaved processes that clean up on <code>SIGTERM</code> (save state, close connections, flush buffers). The configurable timeout gives them time to shut down gracefully.</li>
+<li><strong><code>Sigkill</code></strong> - Use for processes that don’t respond to <code>SIGTERM</code> or when you need immediate termination. <code>SIGKILL</code> cannot be caught, so the process is killed instantly by the kernel.</li>
 </ul>
 <h2 id="signal-1"><a class="header" href="#signal-1">Signal</a></h2>
 <p><code>Signal</code> is a broader enum covering common Unix signals for general process control. It is used with <code>ProcessManager::send_signal()</code> and <code>send_signal_label()</code>, which send a signal without removing the process from the manager.</p>
@@ -259,7 +259,7 @@ let config = ProcessConfig::builder()
 <tr><th>Variant</th><th>Signal</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Sighup</code></td><td><code>SIGHUP</code> (1)</td><td>Hang up — often used to reload configuration</td></tr>
+<tr><td><code>Sighup</code></td><td><code>SIGHUP</code> (1)</td><td>Hang up - often used to reload configuration</td></tr>
 <tr><td><code>Sigint</code></td><td><code>SIGINT</code> (2)</td><td>Interrupt (Ctrl+C)</td></tr>
 <tr><td><code>Sigquit</code></td><td><code>SIGQUIT</code> (3)</td><td>Quit with core dump</td></tr>
 <tr><td><code>Sigterm</code></td><td><code>SIGTERM</code> (15)</td><td>Graceful termination request</td></tr>
@@ -317,7 +317,7 @@ manager.stop(id)?;
 <tr><td>Variants</td><td><code>Sigterm</code>, <code>Sigkill</code></td><td>11 common Unix signals</td></tr>
 <tr><td>Used by</td><td><code>ProcessConfig::kill_signal</code>, <code>stop()</code></td><td><code>send_signal()</code>, <code>send_signal_label()</code></td></tr>
 <tr><td>Purpose</td><td>Termination with escalation</td><td>General process control</td></tr>
-<tr><td>Removes process</td><td>Yes (via <code>stop()</code>)</td><td>No — process stays in manager</td></tr>
+<tr><td>Removes process</td><td>Yes (via <code>stop()</code>)</td><td>No - process stays in manager</td></tr>
 </tbody>
 </table>
 </div>

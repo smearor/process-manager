@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "../searchindex-188565ed.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a77de263.js"></script>
+        <script src="../toc-346eb062.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,7 +181,7 @@
 <p><code>ProcessExitEvent</code> is emitted by the reaper thread when a tracked process exits.</p>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
 <p>When the reaper thread detects that a process has exited (via <code>try_wait()</code>), it constructs a <code>ProcessExitEvent</code> and sends it through the <code>std::sync::mpsc::Sender</code> provided to <code>ProcessManager::with_reaper()</code>.</p>
-<p>The consumer receives this event and can decide what to do — log the exit, restart the process, update UI state, etc.</p>
+<p>The consumer receives this event and can decide what to do - log the exit, restart the process, update UI state, etc.</p>
 <h2 id="fields"><a class="header" href="#fields">Fields</a></h2>
 <div class="table-wrapper">
 <table>
@@ -194,11 +194,11 @@
 <tr><td><code>label</code></td><td><code>String</code></td><td>The label under which the process was started</td></tr>
 <tr><td><code>restart_on_exit</code></td><td><code>bool</code></td><td>Whether the consumer should restart this process</td></tr>
 <tr><td><code>exit_status</code></td><td><code>Option&lt;ExitStatus&gt;</code></td><td>The exit status of the process (<code>None</code> if the child handle was missing or <code>try_wait()</code> returned an error)</td></tr>
-<tr><td><code>state</code></td><td><code>ProcessState</code></td><td>The lifecycle state at exit — <code>Stopped</code> if normal exit, <code>Crashed</code> if non-zero exit code or signal</td></tr>
+<tr><td><code>state</code></td><td><code>ProcessState</code></td><td>The lifecycle state at exit - <code>Stopped</code> if normal exit, <code>Crashed</code> if non-zero exit code or signal</td></tr>
 </tbody>
 </table>
 </div>
-<p>The <code>restart_on_exit</code> flag is set from <code>ProcessConfig::restart_on_exit</code>. It is a hint — the consumer is free to ignore it. The reaper itself does not restart processes; that is the consumer’s responsibility.</p>
+<p>The <code>restart_on_exit</code> flag is set from <code>ProcessConfig::restart_on_exit</code>. It is a hint - the consumer is free to ignore it. The reaper itself does not restart processes; that is the consumer’s responsibility.</p>
 <h2 id="event-flow"><a class="header" href="#event-flow">Event Flow</a></h2>
 <pre class="mermaid">graph TD
     classDef default fill: #1e1e1e, stroke: #333333, stroke-width: 1px, color: #ffffff
@@ -250,7 +250,7 @@ loop {
 }
 <span class="boring">}</span></code></pre>
 <h3 id="2-gtk-consumer-forwarding-thread"><a class="header" href="#2-gtk-consumer-forwarding-thread">2. GTK Consumer (Forwarding Thread)</a></h3>
-<p><strong>Important:</strong> Do not call <code>receiver.recv()</code> directly in <code>MainContext::spawn_local</code> — it is a blocking call that will freeze the GTK main loop.</p>
+<p><strong>Important:</strong> Do not call <code>receiver.recv()</code> directly in <code>MainContext::spawn_local</code> - it is a blocking call that will freeze the GTK main loop.</p>
 <p>Instead, use a forwarding thread to bridge the blocking <code>std::sync::mpsc</code> to a non-blocking <code>tokio::sync::mpsc</code> channel:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -265,7 +265,7 @@ let (async_sender, mut async_receiver) = unbounded_channel();
 std::thread::spawn(move || {
     while let Ok(event) = sync_receiver.recv() {
         if async_sender.send(event).is_err() {
-            break; // Async receiver dropped — exit thread
+            break; // Async receiver dropped - exit thread
         }
     }
 });
@@ -273,7 +273,7 @@ std::thread::spawn(move || {
 let manager = ProcessManager::with_reaper(Duration::from_secs(2), sync_sender);
 manager.start("task", &amp;config)?;
 
-// In GTK main context — non-blocking
+// In GTK main context - non-blocking
 let main_context = MainContext::default();
 main_context.spawn_local(async move {
     while let Some(event) = async_receiver.recv().await {

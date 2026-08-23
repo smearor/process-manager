@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "../searchindex-188565ed.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a77de263.js"></script>
+        <script src="../toc-346eb062.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,15 +184,15 @@
 <p>This crate is used by both <code>smearor-wrot</code> (to spawn compositor clients like panels, wallpapers, and widgets) and <code>smearor-swipe-launcher</code> (to launch terminal commands and desktop applications). It replaces the ad-hoc <code>launch_application()</code> function in wrot and the duplicated <code>TrackedProcess</code> struct in swipe-launcher.</p>
 <h2 id="types"><a class="header" href="#types">Types</a></h2>
 <ul>
-<li><strong><code>ProcessConfig</code></strong> — Unified configuration via <code>TypedBuilder</code> (command, args, env, working_dir, shell, forked, terminate_on_exit, kill_signal, restart_on_exit, stdio, socket)</li>
-<li><strong><code>ProcessManager</code></strong> — Concurrent process tracking via <code>DashMap</code>, label-based grouping, optional reaper thread</li>
-<li><strong><code>Process</code></strong> / <strong><code>ProcessId</code></strong> / <strong><code>ProcessInfo</code></strong> — Process handle, unique identifier, and lightweight snapshot type</li>
-<li><strong><code>ProcessState</code></strong> — Explicit lifecycle state enum (<code>Starting</code>, <code>Running</code>, <code>Stopping</code>, <code>Stopped</code>, <code>Crashed</code>, <code>Restarting</code>, <code>Failed</code>)</li>
-<li><strong><code>ProcessExitEvent</code></strong> — Reaper exit notification with <code>id</code>, <code>pid</code>, <code>label</code>, <code>restart_on_exit</code>, <code>exit_status</code>, <code>state</code></li>
-<li><strong><code>StdioConfig</code></strong> — Inherit/Null/Piped enum for standard streams</li>
-<li><strong><code>KillSignal</code></strong> — Sigterm/Sigkill enum for termination config</li>
-<li><strong><code>Signal</code></strong> — Broader signal enum (SIGHUP, SIGUSR1, SIGSTOP, etc.) for general process control</li>
-<li><strong><code>ProcessManagerError</code></strong> / <strong><code>ProcessConfigError</code></strong> — Error types</li>
+<li><strong><code>ProcessConfig</code></strong> - Unified configuration via <code>TypedBuilder</code> (command, args, env, working_dir, shell, forked, terminate_on_exit, kill_signal, restart_on_exit, stdio, socket)</li>
+<li><strong><code>ProcessManager</code></strong> - Concurrent process tracking via <code>DashMap</code>, label-based grouping, optional reaper thread</li>
+<li><strong><code>Process</code></strong> / <strong><code>ProcessId</code></strong> / <strong><code>ProcessInfo</code></strong> - Process handle, unique identifier, and lightweight snapshot type</li>
+<li><strong><code>ProcessState</code></strong> - Explicit lifecycle state enum (<code>Starting</code>, <code>Running</code>, <code>Stopping</code>, <code>Stopped</code>, <code>Crashed</code>, <code>Restarting</code>, <code>Failed</code>)</li>
+<li><strong><code>ProcessExitEvent</code></strong> - Reaper exit notification with <code>id</code>, <code>pid</code>, <code>label</code>, <code>restart_on_exit</code>, <code>exit_status</code>, <code>state</code></li>
+<li><strong><code>StdioConfig</code></strong> - Inherit/Null/Piped enum for standard streams</li>
+<li><strong><code>KillSignal</code></strong> - Sigterm/Sigkill enum for termination config</li>
+<li><strong><code>Signal</code></strong> - Broader signal enum (SIGHUP, SIGUSR1, SIGSTOP, etc.) for general process control</li>
+<li><strong><code>ProcessManagerError</code></strong> / <strong><code>ProcessConfigError</code></strong> - Error types</li>
 </ul>
 <h2 id="architecture"><a class="header" href="#architecture">Architecture</a></h2>
 <pre class="mermaid">graph TD
@@ -227,20 +227,20 @@
 
 <h2 id="features"><a class="header" href="#features">Features</a></h2>
 <ul>
-<li><strong><code>ProcessConfig</code> with <code>TypedBuilder</code></strong> — Compile-time enforcement of required fields, ergonomic optional fields</li>
-<li><strong>Label-based grouping</strong> — Start/stop multiple processes under a shared label</li>
-<li><strong>Forked/detached processes</strong> — <code>setsid()</code> via <code>pre_exec</code> for terminal detachment</li>
-<li><strong>Reaper thread</strong> — Non-blocking <code>try_wait()</code> polling with <code>ProcessExitEvent</code> channel</li>
-<li><strong>Signal escalation</strong> — <code>SIGTERM</code> with configurable timeout, automatic <code>SIGKILL</code> escalation</li>
-<li><strong>Wayland socket binding</strong> — Sets <code>WAYLAND_DISPLAY</code> from <code>Socket</code></li>
-<li><strong><code>StdioConfig</code></strong> — Inherit/Null/Piped with reader threads for output capture</li>
-<li><strong><code>KillSignal</code></strong> — <code>Sigterm</code>/<code>Sigkill</code> with serde support for termination config</li>
-<li><strong><code>Signal</code></strong> — Broader signal enum for general process control via <code>send_signal()</code></li>
-<li><strong>Restart</strong> — <code>restart()</code> / <code>restart_label()</code> preserve config and label across restarts</li>
-<li><strong>Serde</strong> — <code>ProcessConfig</code>, <code>StdioConfig</code>, <code>KillSignal</code>, and <code>Signal</code> implement <code>Serialize</code>/<code>Deserialize</code></li>
-<li><strong>Executable resolution</strong> — <code>which</code> integration for PATH lookup</li>
-<li><strong>Graceful shutdown</strong> — <code>terminate_on_exit</code> flag kills processes on drop</li>
-<li><strong><code>#[must_use]</code></strong> — All public structs and enums are <code>#[must_use]</code></li>
+<li><strong><code>ProcessConfig</code> with <code>TypedBuilder</code></strong> - Compile-time enforcement of required fields, ergonomic optional fields</li>
+<li><strong>Label-based grouping</strong> - Start/stop multiple processes under a shared label</li>
+<li><strong>Forked/detached processes</strong> - <code>setsid()</code> via <code>pre_exec</code> for terminal detachment</li>
+<li><strong>Reaper thread</strong> - Non-blocking <code>try_wait()</code> polling with <code>ProcessExitEvent</code> channel</li>
+<li><strong>Signal escalation</strong> - <code>SIGTERM</code> with configurable timeout, automatic <code>SIGKILL</code> escalation</li>
+<li><strong>Wayland socket binding</strong> - Sets <code>WAYLAND_DISPLAY</code> from <code>Socket</code></li>
+<li><strong><code>StdioConfig</code></strong> - Inherit/Null/Piped with reader threads for output capture</li>
+<li><strong><code>KillSignal</code></strong> - <code>Sigterm</code>/<code>Sigkill</code> with serde support for termination config</li>
+<li><strong><code>Signal</code></strong> - Broader signal enum for general process control via <code>send_signal()</code></li>
+<li><strong>Restart</strong> - <code>restart()</code> / <code>restart_label()</code> preserve config and label across restarts</li>
+<li><strong>Serde</strong> - <code>ProcessConfig</code>, <code>StdioConfig</code>, <code>KillSignal</code>, and <code>Signal</code> implement <code>Serialize</code>/<code>Deserialize</code></li>
+<li><strong>Executable resolution</strong> - <code>which</code> integration for PATH lookup</li>
+<li><strong>Graceful shutdown</strong> - <code>terminate_on_exit</code> flag kills processes on drop</li>
+<li><strong><code>#[must_use]</code></strong> - All public structs and enums are <code>#[must_use]</code></li>
 </ul>
 <h2 id="dependencies"><a class="header" href="#dependencies">Dependencies</a></h2>
 <div class="table-wrapper">

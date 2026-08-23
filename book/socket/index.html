@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65e3e949.js";
+            window.path_to_searchindex_js = "../searchindex-188565ed.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a77de263.js"></script>
+        <script src="../toc-346eb062.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,11 +184,11 @@
 <p>In a Wayland compositor, each output may need its own socket. <code>SocketManager</code> allows registering multiple sockets by name (e.g. <code>"default"</code>, <code>"hdmi-1"</code>) and retrieving them when spawning compositor clients. The <code>Socket</code> type is a lightweight <code>PathBuf</code> newtype that can be passed to <code>ProcessConfig::socket()</code> to automatically set <code>WAYLAND_DISPLAY</code> in a child process’s environment.</p>
 <h2 id="types"><a class="header" href="#types">Types</a></h2>
 <ul>
-<li><strong><code>Socket</code></strong> — <code>PathBuf</code> newtype with <code>path()</code> accessor, <code>Deref&lt;Target = Path&gt;</code>, <code>Display</code>, <code>AsRef&lt;OsStr&gt;</code>, <code>AsRef&lt;str&gt;</code>, <code>Serialize</code>/<code>Deserialize</code> implementations</li>
-<li><strong><code>SocketBuilder</code></strong> — Builds socket paths in <code>XDG_RUNTIME_DIR</code>, validates existing names or generates unique ones</li>
-<li><strong><code>SocketManager</code></strong> — Multi-socket manager using <code>DashMap</code>, shareable via <code>Arc</code> across threads</li>
-<li><strong><code>SocketBuilderError</code></strong> — Error type for socket construction failures</li>
-<li><strong><code>SocketManagerError</code></strong> — Error type for socket management operations</li>
+<li><strong><code>Socket</code></strong> - <code>PathBuf</code> newtype with <code>path()</code> accessor, <code>Deref&lt;Target = Path&gt;</code>, <code>Display</code>, <code>AsRef&lt;OsStr&gt;</code>, <code>AsRef&lt;str&gt;</code>, <code>Serialize</code>/<code>Deserialize</code> implementations</li>
+<li><strong><code>SocketBuilder</code></strong> - Builds socket paths in <code>XDG_RUNTIME_DIR</code>, validates existing names or generates unique ones</li>
+<li><strong><code>SocketManager</code></strong> - Multi-socket manager using <code>DashMap</code>, shareable via <code>Arc</code> across threads</li>
+<li><strong><code>SocketBuilderError</code></strong> - Error type for socket construction failures</li>
+<li><strong><code>SocketManagerError</code></strong> - Error type for socket management operations</li>
 </ul>
 <h2 id="architecture"><a class="header" href="#architecture">Architecture</a></h2>
 <pre class="mermaid">graph TD
@@ -215,9 +215,9 @@
 
 <h2 id="dependencies"><a class="header" href="#dependencies">Dependencies</a></h2>
 <ul>
-<li><code>dashmap</code> — concurrent map for <code>SocketManager</code></li>
-<li><code>thiserror</code> — error types</li>
-<li><code>serde</code> — <code>Serialize</code>/<code>Deserialize</code> for <code>Socket</code></li>
+<li><code>dashmap</code> - concurrent map for <code>SocketManager</code></li>
+<li><code>thiserror</code> - error types</li>
+<li><code>serde</code> - <code>Serialize</code>/<code>Deserialize</code> for <code>Socket</code></li>
 </ul>
 <h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
