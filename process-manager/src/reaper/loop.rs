@@ -1,5 +1,6 @@
 use crate::config::BackoffConfig;
 use crate::config::DependencyRef;
+use crate::config::Label;
 use crate::config::RestartPolicy;
 use crate::config::RestartTrigger;
 use crate::config::SupervisorStrategy;
@@ -46,7 +47,7 @@ pub(crate) fn reaper_loop(
         let mut to_remove: Vec<ProcessId> = Vec::new();
         let mut exited: Vec<ExitedProcess> = Vec::new();
         // Collect (crashed_id, label, spawn_sequence, strategy) for cascade processing
-        let mut cascade_origins: Vec<(ProcessId, String, u64, SupervisorStrategy)> = Vec::new();
+        let mut cascade_origins: Vec<(ProcessId, Label, u64, SupervisorStrategy)> = Vec::new();
 
         for mut entry in processes.iter_mut() {
             let process = entry.value_mut();
@@ -698,7 +699,7 @@ fn spawn_waiting_process(processes: &DashMap<ProcessId, Process>, id: ProcessId,
 }
 
 /// Spawn a new OS process from the given config and label.
-fn spawn_process(config: &crate::config::ProcessConfig, label: &str) -> std::io::Result<SpawnResult> {
+fn spawn_process(config: &crate::config::ProcessConfig, label: &Label) -> std::io::Result<SpawnResult> {
     let program_name = config.command.clone();
 
     // 1. Resolve executable
@@ -761,7 +762,7 @@ fn spawn_process(config: &crate::config::ProcessConfig, label: &str) -> std::io:
         && let Some(stdout) = child.stdout.take()
     {
         let program_name_clone = program_name.clone();
-        let label_clone = label.to_string();
+        let label_clone = label.clone();
         thread::Builder::new()
             .name(format!("stdout-reader-{}", program_name_clone))
             .spawn(move || {
@@ -782,7 +783,7 @@ fn spawn_process(config: &crate::config::ProcessConfig, label: &str) -> std::io:
         && let Some(stderr) = child.stderr.take()
     {
         let program_name_clone = program_name.clone();
-        let label_clone = label.to_string();
+        let label_clone = label.clone();
         thread::Builder::new()
             .name(format!("stderr-reader-{}", program_name_clone))
             .spawn(move || {

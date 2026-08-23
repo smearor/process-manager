@@ -1,3 +1,4 @@
+use process_manager::Label;
 use process_manager::ProcessConfig;
 use process_manager::ProcessManager;
 use process_manager::StdioConfig;
@@ -18,7 +19,7 @@ fn main() {
     let new_id = manager.restart(id).expect("failed to restart process");
     println!("Restarted: old ID={}, new ID={}", id, new_id);
     assert_ne!(id, new_id);
-    assert_eq!(manager.get_label(new_id), Some("worker".to_string()));
+    assert_eq!(manager.get_label(new_id), Some(Label::new("worker")));
 
     manager.stop(new_id).expect("failed to stop process");
     println!("Process stopped, manager empty: {}", manager.is_empty());

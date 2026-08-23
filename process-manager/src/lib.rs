@@ -54,6 +54,7 @@ pub mod signal;
 
 pub use config::BackoffConfig;
 pub use config::DependencyRef;
+pub use config::Label;
 pub use config::ProcessConfig;
 pub use config::ProcessConfigError;
 pub use config::RestartPolicy;

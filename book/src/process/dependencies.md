@@ -6,8 +6,8 @@ Processes can declare dependencies on other processes. A process with `depends_o
 
 Dependencies are declared via `DependencyRef`:
 
-- `DependencyRef::Label("compositor")` - resolved and bound to a `ProcessId` at `start()` time; the first `Running` process with that label is selected and the binding persists for the dependent's lifetime
-- `DependencyRef::Id(process_id)` - the process with the given `ProcessId` must be `Running`
+- `DependencyRef::label("compositor")` - resolved and bound to a `ProcessId` at `start()` time; the first `Running` process with that label is selected and the binding persists for the dependent's lifetime
+- `DependencyRef::id(process_id)` - the process with the given `ProcessId` must be `Running`
 
 ## Start flow
 
@@ -54,7 +54,7 @@ At `start()` time, the manager performs a DFS-based cycle check. If a dependency
 ## Example
 
 ```rust
-use process_manager::{DependencyRef, ProcessConfig, ProcessManager, StdioConfig};
+use process_manager::{DependencyRef, Label, ProcessConfig, ProcessManager, StdioConfig};
 use std::time::Duration;
 
 let manager = ProcessManager::new();
@@ -68,7 +68,7 @@ let comp_id = manager.start("compositor", &compositor)?;
 
 let panel = ProcessConfig::builder()
     .command("smearor-swipe-launcher".to_string())
-    .depends_on(vec![DependencyRef::Label("compositor".to_string())])
+    .depends_on(vec![DependencyRef::label("compositor")])
     .dependency_timeout_ms(10_000)
     .stdout(StdioConfig::Null)
     .stderr(StdioConfig::Null)

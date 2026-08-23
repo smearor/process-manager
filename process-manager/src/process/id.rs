@@ -26,6 +26,12 @@ impl std::fmt::Display for ProcessId {
     }
 }
 
+impl From<u64> for ProcessId {
+    fn from(id: u64) -> Self {
+        Self(id)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

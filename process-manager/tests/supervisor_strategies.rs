@@ -73,7 +73,7 @@ fn start_rejects_circular_dependency() {
         .args(vec!["10".to_string()])
         .stdout(StdioConfig::Null)
         .stderr(StdioConfig::Null)
-        .depends_on(vec![DependencyRef::Label("b".to_string())])
+        .depends_on(vec![DependencyRef::label("b")])
         .build();
 
     let id_a = manager.start("a", &config_a).unwrap();
@@ -87,7 +87,7 @@ fn start_rejects_circular_dependency() {
         .args(vec!["10".to_string()])
         .stdout(StdioConfig::Null)
         .stderr(StdioConfig::Null)
-        .depends_on(vec![DependencyRef::Label("a".to_string())])
+        .depends_on(vec![DependencyRef::label("a")])
         .build();
 
     let result = manager.start("b", &config_b);
@@ -105,7 +105,7 @@ fn start_rejects_self_dependency() {
         .args(vec!["10".to_string()])
         .stdout(StdioConfig::Null)
         .stderr(StdioConfig::Null)
-        .depends_on(vec![DependencyRef::Label("self".to_string())])
+        .depends_on(vec![DependencyRef::label("self")])
         .build();
 
     let result = manager.start("self", &config);
@@ -131,7 +131,7 @@ fn start_allows_diamond_dependency() {
         .args(vec!["30".to_string()])
         .stdout(StdioConfig::Null)
         .stderr(StdioConfig::Null)
-        .depends_on(vec![DependencyRef::Label("d".to_string())])
+        .depends_on(vec![DependencyRef::label("d")])
         .build();
     let id_b = manager.start("b", &config_b).unwrap();
     std::thread::sleep(Duration::from_millis(200));
@@ -143,7 +143,7 @@ fn start_allows_diamond_dependency() {
         .args(vec!["30".to_string()])
         .stdout(StdioConfig::Null)
         .stderr(StdioConfig::Null)
-        .depends_on(vec![DependencyRef::Label("d".to_string())])
+        .depends_on(vec![DependencyRef::label("d")])
         .build();
     let id_c = manager.start("c", &config_c).unwrap();
     std::thread::sleep(Duration::from_millis(200));
@@ -155,7 +155,7 @@ fn start_allows_diamond_dependency() {
         .args(vec!["30".to_string()])
         .stdout(StdioConfig::Null)
         .stderr(StdioConfig::Null)
-        .depends_on(vec![DependencyRef::Label("b".to_string()), DependencyRef::Label("c".to_string())])
+        .depends_on(vec![DependencyRef::label("b"), DependencyRef::label("c")])
         .build();
     let id_a = manager.start("a", &config_a).unwrap();
     std::thread::sleep(Duration::from_millis(200));
@@ -178,7 +178,7 @@ fn start_with_unsatisfied_deps_enters_waiting() {
         .args(vec!["30".to_string()])
         .stdout(StdioConfig::Null)
         .stderr(StdioConfig::Null)
-        .depends_on(vec![DependencyRef::Label("missing".to_string())])
+        .depends_on(vec![DependencyRef::label("missing")])
         .dependency_timeout_ms(5000)
         .build();
 
@@ -206,7 +206,7 @@ fn start_with_satisfied_deps_spawns_immediately() {
         .args(vec!["30".to_string()])
         .stdout(StdioConfig::Null)
         .stderr(StdioConfig::Null)
-        .depends_on(vec![DependencyRef::Label("dep".to_string())])
+        .depends_on(vec![DependencyRef::label("dep")])
         .build();
 
     let id = manager.start("dependent", &config).unwrap();
@@ -234,7 +234,7 @@ fn start_with_deps_blocks_until_dependency_running() {
         .args(vec!["30".to_string()])
         .stdout(StdioConfig::Null)
         .stderr(StdioConfig::Null)
-        .depends_on(vec![DependencyRef::Label("dep".to_string())])
+        .depends_on(vec![DependencyRef::label("dep")])
         .dependency_timeout_ms(5000)
         .build();
 
@@ -254,7 +254,7 @@ fn start_with_deps_times_out_when_dependency_never_starts() {
         .args(vec!["30".to_string()])
         .stdout(StdioConfig::Null)
         .stderr(StdioConfig::Null)
-        .depends_on(vec![DependencyRef::Label("nonexistent".to_string())])
+        .depends_on(vec![DependencyRef::label("nonexistent")])
         .dependency_timeout_ms(200)
         .build();
 
@@ -533,7 +533,7 @@ fn stop_waiting_process_emits_stopped_event() {
         .args(vec!["30".to_string()])
         .stdout(StdioConfig::Null)
         .stderr(StdioConfig::Null)
-        .depends_on(vec![DependencyRef::Label("nonexistent".to_string())])
+        .depends_on(vec![DependencyRef::label("nonexistent")])
         .dependency_timeout_ms(60000)
         .build();
 
@@ -586,7 +586,7 @@ fn start_rejects_indirect_circular_dependency() {
         .args(vec!["10".to_string()])
         .stdout(StdioConfig::Null)
         .stderr(StdioConfig::Null)
-        .depends_on(vec![DependencyRef::Label("b".to_string())])
+        .depends_on(vec![DependencyRef::label("b")])
         .build();
     let _id_a = manager.start("a", &config_a).unwrap();
 
@@ -595,7 +595,7 @@ fn start_rejects_indirect_circular_dependency() {
         .args(vec!["10".to_string()])
         .stdout(StdioConfig::Null)
         .stderr(StdioConfig::Null)
-        .depends_on(vec![DependencyRef::Label("c".to_string())])
+        .depends_on(vec![DependencyRef::label("c")])
         .build();
     let _id_b = manager.start("b", &config_b).unwrap();
 
@@ -605,7 +605,7 @@ fn start_rejects_indirect_circular_dependency() {
         .args(vec!["10".to_string()])
         .stdout(StdioConfig::Null)
         .stderr(StdioConfig::Null)
-        .depends_on(vec![DependencyRef::Label("a".to_string())])
+        .depends_on(vec![DependencyRef::label("a")])
         .build();
 
     let result = manager.start("c", &config_c);
@@ -664,7 +664,7 @@ fn waiting_state_reported_correctly() {
         .args(vec!["30".to_string()])
         .stdout(StdioConfig::Null)
         .stderr(StdioConfig::Null)
-        .depends_on(vec![DependencyRef::Label("nonexistent".to_string())])
+        .depends_on(vec![DependencyRef::label("nonexistent")])
         .dependency_timeout_ms(60000)
         .build();
 
@@ -1096,7 +1096,7 @@ fn reaper_times_out_waiting_process_without_start_with_deps() {
         .args(vec!["30".to_string()])
         .stdout(StdioConfig::Null)
         .stderr(StdioConfig::Null)
-        .depends_on(vec![DependencyRef::Label("nonexistent".to_string())])
+        .depends_on(vec![DependencyRef::label("nonexistent")])
         .dependency_timeout_ms(500)
         .build();
 
@@ -1228,7 +1228,7 @@ fn label_based_dependency_resolution_transitions_to_running() {
         .args(vec!["30".to_string()])
         .stdout(StdioConfig::Null)
         .stderr(StdioConfig::Null)
-        .depends_on(vec![DependencyRef::Label("compositor".to_string())])
+        .depends_on(vec![DependencyRef::label("compositor")])
         .dependency_timeout_ms(30000)
         .build();
 
@@ -1279,7 +1279,7 @@ fn label_binding_persists_across_dependency_restart() {
         .args(vec!["30".to_string()])
         .stdout(StdioConfig::Null)
         .stderr(StdioConfig::Null)
-        .depends_on(vec![DependencyRef::Label("compositor".to_string())])
+        .depends_on(vec![DependencyRef::label("compositor")])
         .dependency_timeout_ms(30000)
         .build();
 
@@ -1338,7 +1338,7 @@ fn label_binding_does_not_switch_to_new_process() {
         .args(vec!["30".to_string()])
         .stdout(StdioConfig::Null)
         .stderr(StdioConfig::Null)
-        .depends_on(vec![DependencyRef::Label("session".to_string())])
+        .depends_on(vec![DependencyRef::label("session")])
         .dependency_timeout_ms(30000)
         .build();
 

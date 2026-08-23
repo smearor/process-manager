@@ -24,7 +24,7 @@ let comp_id = manager.start("compositor", &compositor)?;
 
 let panel = ProcessConfig::builder()
     .command("smearor-swipe-launcher".to_string())
-    .depends_on(vec![DependencyRef::Label("compositor".to_string())])
+    .depends_on(vec![DependencyRef::label("compositor")])
     .dependency_timeout_ms(10_000)
     .stdout(StdioConfig::Null)
     .stderr(StdioConfig::Null)
@@ -41,8 +41,8 @@ Process C depends on both A and B. C starts only after both are `Running`.
 let config_c = ProcessConfig::builder()
     .command("my-service".to_string())
     .depends_on(vec![
-        DependencyRef::Label("a".to_string()),
-        DependencyRef::Label("b".to_string()),
+        DependencyRef::label("a"),
+        DependencyRef::label("b"),
     ])
     .dependency_timeout_ms(30_000)
     .stdout(StdioConfig::Null)
@@ -58,7 +58,7 @@ If dependencies are not `Running` within `dependency_timeout_ms`, the process tr
 ```rust
 let config = ProcessConfig::builder()
     .command("my-service".to_string())
-    .depends_on(vec![DependencyRef::Label("missing".to_string())])
+    .depends_on(vec![DependencyRef::label("missing")])
     .dependency_timeout_ms(5_000) // Fail after 5 seconds
     .stdout(StdioConfig::Null)
     .stderr(StdioConfig::Null)

@@ -73,7 +73,7 @@ graph TD
 | `id` | `ProcessId` | Unique identifier assigned by `ProcessManager` |
 | `pid` | `u32` | OS process ID |
 | `program_name` | `String` | Program name (for error reporting) |
-| `label` | `String` | Label under which the process was started |
+| `label` | `Label` | Label under which the process was started |
 | `terminate_on_exit` | `bool` | Whether to terminate on `ProcessManager` drop |
 | `config` | `ProcessConfig` | The configuration this process was started with |
 | `child` | `Option<Child>` | The `std::process::Child` handle (always `Some`) |

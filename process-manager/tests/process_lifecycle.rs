@@ -1,5 +1,6 @@
 use process_manager::BackoffConfig;
 use process_manager::KillSignal;
+use process_manager::Label;
 use process_manager::ProcessConfig;
 use process_manager::ProcessExitEvent;
 use process_manager::ProcessManager;
@@ -71,7 +72,7 @@ fn restart_preserves_config_and_label() {
 
     assert_eq!(id, new_id);
     assert_eq!(manager.len(), 1);
-    assert_eq!(manager.get_label(new_id), Some("worker".to_string()));
+    assert_eq!(manager.get_label(new_id), Some(Label::new("worker")));
 
     manager.stop(new_id).unwrap();
 }

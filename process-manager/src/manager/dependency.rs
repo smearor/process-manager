@@ -1,4 +1,5 @@
 use crate::config::DependencyRef;
+use crate::config::Label;
 use crate::manager::ProcessManagerError;
 use crate::process::ProcessId;
 use crate::process::ProcessState;
@@ -10,7 +11,7 @@ use std::collections::HashSet;
 ///
 /// Maps label -> list of `DependencyRef` for each known process.
 /// Also maps `ProcessId` -> label for resolving `DependencyRef::Id`.
-type DepGraph = HashMap<String, Vec<DependencyRef>>;
+type DepGraph = HashMap<Label, Vec<DependencyRef>>;
 
 /// Build a snapshot of the current dependency graph from the `DashMap`.
 ///
@@ -23,7 +24,7 @@ type DepGraph = HashMap<String, Vec<DependencyRef>>;
 /// traversed the `DashMap` while holding read locks on shards.
 pub(crate) fn build_dependency_snapshot(
     processes: &DashMap<ProcessId, crate::process::Process>,
-    new_label: &str,
+    new_label: &Label,
     new_depends_on: &[DependencyRef],
 ) -> DepGraph {
     let mut graph: DepGraph = HashMap::new();
@@ -31,7 +32,7 @@ pub(crate) fn build_dependency_snapshot(
         let process = entry.value();
         graph.insert(process.label.clone(), process.config.depends_on.clone());
     }
-    graph.insert(new_label.to_string(), new_depends_on.to_vec());
+    graph.insert(new_label.clone(), new_depends_on.to_vec());
     graph
 }
 
@@ -39,10 +40,10 @@ pub(crate) fn build_dependency_snapshot(
 ///
 /// Returns `Ok(())` if no cycle is found, or `Err(DependencyCycle)` with
 /// the cycle path.
-pub(crate) fn detect_cycle(graph: &DepGraph, start_label: &str, start_depends_on: &[DependencyRef]) -> Result<(), ProcessManagerError> {
-    let mut visited: HashSet<String> = HashSet::new();
+pub(crate) fn detect_cycle(graph: &DepGraph, start_label: &Label, start_depends_on: &[DependencyRef]) -> Result<(), ProcessManagerError> {
+    let mut visited: HashSet<Label> = HashSet::new();
     let mut path: Vec<DependencyRef> = Vec::new();
-    let mut path_labels: HashSet<String> = HashSet::new();
+    let mut path_labels: HashSet<Label> = HashSet::new();
 
     dfs_cycle(graph, start_label, start_depends_on, &mut visited, &mut path, &mut path_labels)
 }
@@ -50,13 +51,13 @@ pub(crate) fn detect_cycle(graph: &DepGraph, start_label: &str, start_depends_on
 /// Recursive DFS helper for cycle detection.
 fn dfs_cycle(
     graph: &DepGraph,
-    current_label: &str,
+    current_label: &Label,
     depends_on: &[DependencyRef],
-    visited: &mut HashSet<String>,
+    visited: &mut HashSet<Label>,
     path: &mut Vec<DependencyRef>,
-    path_labels: &mut HashSet<String>,
+    path_labels: &mut HashSet<Label>,
 ) -> Result<(), ProcessManagerError> {
-    path_labels.insert(current_label.to_string());
+    path_labels.insert(current_label.clone());
 
     for dep in depends_on {
         match dep {
@@ -91,7 +92,7 @@ fn dfs_cycle(
     }
 
     path_labels.remove(current_label);
-    visited.insert(current_label.to_string());
+    visited.insert(current_label.clone());
     Ok(())
 }
 
@@ -115,7 +116,7 @@ pub(crate) fn resolve_dependencies(
                 let found = processes
                     .iter()
                     .find(|entry| {
-                        entry.value().label == *label && (entry.value().state == ProcessState::Running || entry.value().state == ProcessState::Starting)
+                        &entry.value().label == label && (entry.value().state == ProcessState::Running || entry.value().state == ProcessState::Starting)
                     })
                     .map(|entry| *entry.key());
                 match found {
@@ -182,61 +183,61 @@ mod tests {
     #[test]
     fn test_detect_cycle_no_cycle() {
         let mut graph: DepGraph = HashMap::new();
-        graph.insert("a".to_string(), vec![DependencyRef::Label("b".to_string())]);
-        graph.insert("b".to_string(), vec![]);
+        graph.insert(Label::new("a"), vec![DependencyRef::label("b")]);
+        graph.insert(Label::new("b"), vec![]);
 
-        let result = detect_cycle(&graph, "a", &[DependencyRef::Label("b".to_string())]);
+        let result = detect_cycle(&graph, &Label::new("a"), &[DependencyRef::label("b")]);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_detect_cycle_direct() {
         let mut graph: DepGraph = HashMap::new();
-        graph.insert("a".to_string(), vec![DependencyRef::Label("b".to_string())]);
-        graph.insert("b".to_string(), vec![DependencyRef::Label("a".to_string())]);
+        graph.insert(Label::new("a"), vec![DependencyRef::label("b")]);
+        graph.insert(Label::new("b"), vec![DependencyRef::label("a")]);
 
-        let result = detect_cycle(&graph, "a", &[DependencyRef::Label("b".to_string())]);
+        let result = detect_cycle(&graph, &Label::new("a"), &[DependencyRef::label("b")]);
         assert!(matches!(result, Err(ProcessManagerError::DependencyCycle { .. })));
     }
 
     #[test]
     fn test_detect_cycle_indirect() {
         let mut graph: DepGraph = HashMap::new();
-        graph.insert("a".to_string(), vec![DependencyRef::Label("b".to_string())]);
-        graph.insert("b".to_string(), vec![DependencyRef::Label("c".to_string())]);
-        graph.insert("c".to_string(), vec![DependencyRef::Label("a".to_string())]);
+        graph.insert(Label::new("a"), vec![DependencyRef::label("b")]);
+        graph.insert(Label::new("b"), vec![DependencyRef::label("c")]);
+        graph.insert(Label::new("c"), vec![DependencyRef::label("a")]);
 
-        let result = detect_cycle(&graph, "a", &[DependencyRef::Label("b".to_string())]);
+        let result = detect_cycle(&graph, &Label::new("a"), &[DependencyRef::label("b")]);
         assert!(matches!(result, Err(ProcessManagerError::DependencyCycle { .. })));
     }
 
     #[test]
     fn test_detect_cycle_self_dependency() {
         let mut graph: DepGraph = HashMap::new();
-        graph.insert("a".to_string(), vec![DependencyRef::Label("a".to_string())]);
+        graph.insert(Label::new("a"), vec![DependencyRef::label("a")]);
 
-        let result = detect_cycle(&graph, "a", &[DependencyRef::Label("a".to_string())]);
+        let result = detect_cycle(&graph, &Label::new("a"), &[DependencyRef::label("a")]);
         assert!(matches!(result, Err(ProcessManagerError::DependencyCycle { .. })));
     }
 
     #[test]
     fn test_detect_cycle_diamond_no_false_positive() {
         let mut graph: DepGraph = HashMap::new();
-        graph.insert("a".to_string(), vec![DependencyRef::Label("b".to_string()), DependencyRef::Label("c".to_string())]);
-        graph.insert("b".to_string(), vec![DependencyRef::Label("d".to_string())]);
-        graph.insert("c".to_string(), vec![DependencyRef::Label("d".to_string())]);
-        graph.insert("d".to_string(), vec![]);
+        graph.insert(Label::new("a"), vec![DependencyRef::label("b"), DependencyRef::label("c")]);
+        graph.insert(Label::new("b"), vec![DependencyRef::label("d")]);
+        graph.insert(Label::new("c"), vec![DependencyRef::label("d")]);
+        graph.insert(Label::new("d"), vec![]);
 
-        let result = detect_cycle(&graph, "a", &[DependencyRef::Label("b".to_string()), DependencyRef::Label("c".to_string())]);
+        let result = detect_cycle(&graph, &Label::new("a"), &[DependencyRef::label("b"), DependencyRef::label("c")]);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_detect_cycle_id_dependency_ignored() {
         let mut graph: DepGraph = HashMap::new();
-        graph.insert("a".to_string(), vec![DependencyRef::Id(ProcessId::new(1))]);
+        graph.insert(Label::new("a"), vec![DependencyRef::Id(ProcessId::new(1))]);
 
-        let result = detect_cycle(&graph, "a", &[DependencyRef::Id(ProcessId::new(1))]);
+        let result = detect_cycle(&graph, &Label::new("a"), &[DependencyRef::Id(ProcessId::new(1))]);
         assert!(result.is_ok());
     }
 }

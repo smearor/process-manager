@@ -1,5 +1,6 @@
 mod dependency_ref;
 mod error;
+mod label;
 mod process;
 mod restart_policy;
 mod restart_trigger;
@@ -8,6 +9,7 @@ mod supervisor_strategy;
 
 pub use dependency_ref::DependencyRef;
 pub use error::ProcessConfigError;
+pub use label::Label;
 pub use process::ProcessConfig;
 pub use restart_policy::BackoffConfig;
 pub use restart_policy::RestartPolicy;

@@ -1,3 +1,4 @@
+use crate::config::Label;
 use crate::process::ProcessId;
 use serde::Deserialize;
 use serde::Serialize;
@@ -31,10 +32,20 @@ pub enum DependencyRef {
     /// `start()` time. The first `Running` process with this label is
     /// selected. The binding persists for the lifetime of the dependent
     /// process.
-    Label(String),
+    Label(Label),
 
     /// Dependency by `ProcessId` - the process with this ID must be `Running`.
     Id(ProcessId),
+}
+
+impl DependencyRef {
+    pub fn label<L: Into<Label>>(label: L) -> Self {
+        Self::Label(label.into())
+    }
+
+    pub fn id<PID: Into<ProcessId>>(id: PID) -> Self {
+        Self::Id(id.into())
+    }
 }
 
 #[cfg(test)]
@@ -43,7 +54,7 @@ mod tests {
 
     #[test]
     fn test_dependency_ref_label_serde_roundtrip() {
-        let dep = DependencyRef::Label("compositor".to_string());
+        let dep = DependencyRef::label("compositor");
         let json = serde_json::to_string(&dep).unwrap();
         let deserialized: DependencyRef = serde_json::from_str(&json).unwrap();
         assert_eq!(dep, deserialized);
@@ -59,8 +70,8 @@ mod tests {
 
     #[test]
     fn test_dependency_ref_label_equality() {
-        assert_eq!(DependencyRef::Label("foo".to_string()), DependencyRef::Label("foo".to_string()));
-        assert_ne!(DependencyRef::Label("foo".to_string()), DependencyRef::Label("bar".to_string()));
+        assert_eq!(DependencyRef::label("foo"), DependencyRef::label("foo"));
+        assert_ne!(DependencyRef::label("foo"), DependencyRef::label("bar"));
     }
 
     #[test]

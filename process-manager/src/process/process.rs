@@ -1,3 +1,4 @@
+use crate::config::Label;
 use crate::config::ProcessConfig;
 use crate::process::ProcessId;
 use crate::process::ProcessState;
@@ -29,7 +30,7 @@ pub struct Process {
     pub program_name: String,
 
     /// The label under which this process was started (for grouped operations).
-    pub label: String,
+    pub label: Label,
 
     /// Whether to terminate this process when the `ProcessManager` is dropped.
     pub terminate_on_exit: bool,
@@ -247,7 +248,7 @@ mod tests {
             id: ProcessId::new(1),
             pid,
             program_name: "sleep".to_string(),
-            label: "test".to_string(),
+            label: Label::new("test"),
             terminate_on_exit: false,
             config: Arc::new(ProcessConfig::builder().command("sleep".to_string()).build()),
             child: Some(child),
@@ -277,7 +278,7 @@ mod tests {
             id: ProcessId::new(1),
             pid,
             program_name: "true".to_string(),
-            label: "test".to_string(),
+            label: Label::new("test"),
             terminate_on_exit: false,
             config: Arc::new(ProcessConfig::builder().command("true".to_string()).build()),
             child: Some(child),
@@ -303,7 +304,7 @@ mod tests {
             id: ProcessId::new(1),
             pid,
             program_name: "false".to_string(),
-            label: "test".to_string(),
+            label: Label::new("test"),
             terminate_on_exit: false,
             config: Arc::new(ProcessConfig::builder().command("false".to_string()).build()),
             child: Some(child),
@@ -329,7 +330,7 @@ mod tests {
             id: ProcessId::new(1),
             pid,
             program_name: "sleep".to_string(),
-            label: "test".to_string(),
+            label: Label::new("test"),
             terminate_on_exit: false,
             config: Arc::new(ProcessConfig::builder().command("sleep".to_string()).build()),
             child: Some(child),
@@ -355,7 +356,7 @@ mod tests {
             id: ProcessId::new(1),
             pid,
             program_name: "sleep".to_string(),
-            label: "test".to_string(),
+            label: Label::new("test"),
             terminate_on_exit: false,
             config: Arc::new(ProcessConfig::builder().command("sleep".to_string()).build()),
             child: Some(child),

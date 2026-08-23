@@ -1,3 +1,4 @@
+use crate::config::Label;
 use crate::config::ProcessConfig;
 use crate::process::Process;
 use crate::process::ProcessId;
@@ -22,7 +23,7 @@ pub struct ProcessInfo {
     pub program_name: String,
 
     /// The label under which this process was started (for grouped operations).
-    pub label: String,
+    pub label: Label,
 
     /// Whether to terminate this process when the `ProcessManager` is dropped.
     pub terminate_on_exit: bool,

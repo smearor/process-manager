@@ -1,3 +1,4 @@
+use process_manager::Label;
 use process_manager::ProcessConfig;
 use process_manager::ProcessManager;
 use process_manager::ProcessState;
@@ -16,7 +17,7 @@ fn main() {
     let id = manager.start("example", &config).expect("failed to start process");
     println!("Started process with ID {}, PID {}", id, manager.get_pid(id).unwrap());
 
-    assert_eq!(manager.get_label(id), Some("example".to_string()));
+    assert_eq!(manager.get_label(id), Some(Label::new("example")));
     assert_eq!(manager.is_running(id), Some(true));
     assert_eq!(manager.state(id), Some(ProcessState::Running));
 

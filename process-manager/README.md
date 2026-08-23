@@ -15,6 +15,7 @@ Used by both `smearor-wrot` (to spawn compositor clients) and `smearor-swipe-lau
 
 - **`ProcessConfig` with `TypedBuilder`** - Compile-time enforcement of required fields, ergonomic optional fields
 - **`ProcessManager`** - Concurrent process tracking via `DashMap`, label-based grouping, optional reaper thread
+- **`Label` newtype** - Type-safe process labels for grouped operations and dependency references. Replaces bare `String` labels with a dedicated `Label` type, consistent with `ProcessId`
 - **Label-based operations** - Start/stop multiple processes under a shared label
 - **Forked/detached processes** - `setsid()` via `pre_exec` for terminal detachment
 - **Reaper thread** - Non-blocking `try_wait()` polling with `ProcessExitEvent` channel
@@ -32,7 +33,7 @@ Used by both `smearor-wrot` (to spawn compositor clients) and `smearor-swipe-lau
 ### Spawn a child process
 
 ```rust
-use process_manager::{ProcessConfig, ProcessManager, StdioConfig};
+use process_manager::{Label, ProcessConfig, ProcessManager, StdioConfig};
 
 let manager = ProcessManager::new();
 let config = ProcessConfig::builder()
@@ -127,7 +128,7 @@ let panel_config = ProcessConfig::builder()
     .restart_trigger(RestartTrigger::CrashOnly)
     .restart_policy(RestartPolicy::Backoff(BackoffConfig::default()))
     .supervisor_strategy(SupervisorStrategy::OneForAll)
-    .depends_on(vec![DependencyRef::Label("session".to_string())])
+    .depends_on(vec![DependencyRef::label("session")])
     .dependency_timeout_ms(10_000)
     .stdout(StdioConfig::Null)
     .stderr(StdioConfig::Null)
@@ -166,9 +167,13 @@ Controls automatic restart behavior when `restart_on_exit` is `true`:
 
 Controls which processes are restarted when one process in a group crashes. `OneForOne` (default) restarts only the crashed process. `OneForAll` restarts all processes in the same label group. `RestForOne` restarts the crashed process and all processes started after it in the same group. Only active when `restart_on_exit = true`.
 
+### `Label`
+
+A newtype wrapping `String` for type-safe process labeling. Used in `start()`, `stop_label()`, `restart_label()`, `get_by_label()`, `pids_by_label()`, and `DependencyRef::Label`. All manager methods accept `impl Into<Label>`, so callers can pass `&str` directly (`manager.start("compositor", &config)`) or construct a `Label` explicitly (`Label::new("compositor")`). Implements `Display`, `AsRef<str>`, `From<&str>`, `From<String>`, and serde traits.
+
 ### `DependencyRef`
 
-References a dependency by label (`DependencyRef::Label("compositor")`) or by `ProcessId` (`DependencyRef::Id(id)`). Used in `ProcessConfig::depends_on` to declare start-order dependencies. Label bindings are resolved once and persist for the dependent's lifetime.
+References a dependency by label (`DependencyRef::label("compositor")` or `DependencyRef::Label(Label::new("compositor"))`) or by `ProcessId` (`DependencyRef::id(id)` or `DependencyRef::Id(id)`). Used in `ProcessConfig::depends_on` to declare start-order dependencies. Label bindings are resolved once and persist for the dependent's lifetime.
 
 ### `ProcessState::Waiting`
 

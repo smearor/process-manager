@@ -12,6 +12,7 @@
     - [ProcessConfig](process/config.md)
     - [ProcessManager](process/manager.md)
     - [Process & ProcessId](process/process.md)
+    - [Label](process/label.md)
     - [ProcessState](process/state.md)
     - [Restart Policy](process/restart_policy.md)
     - [Supervisor Strategies](process/supervisor_strategies.md)

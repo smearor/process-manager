@@ -37,8 +37,8 @@ pub enum ProcessManagerError {
     DependencyTimeout {
         /// The process that could not start.
         id: ProcessId,
-        /// The dependency that was not ready.
-        dependency: DependencyRef,
+        /// The dependency that was not ready, or `None` if no dependency was specified.
+        dependency: Option<DependencyRef>,
     },
 
     /// A dependency reference could not be resolved (e.g. label not found).

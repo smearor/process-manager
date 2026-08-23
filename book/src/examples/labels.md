@@ -71,7 +71,7 @@ assert!(manager.is_empty());
 |--------|---------|-------------|
 | `pids_by_label(label)` | `Vec<u32>` | All PIDs for processes with this label |
 | `get_by_label(label)` | `Vec<Process>` | All processes with this label |
-| `labels()` | `Vec<String>` | All distinct labels currently registered |
+| `labels()` | `Vec<Label>` | All distinct labels currently registered |
 
 ## Mixed Labels
 

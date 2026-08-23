@@ -1,3 +1,4 @@
+use crate::config::Label;
 use crate::process::ProcessId;
 use crate::process::ProcessState;
 use std::process::ExitStatus;
@@ -13,7 +14,7 @@ pub struct ProcessExitEvent {
     pub id: ProcessId,
 
     /// The label of the process that exited.
-    pub label: String,
+    pub label: Label,
 
     /// The PID of the process that exited.
     pub pid: u32,
@@ -41,7 +42,7 @@ mod tests {
     fn test_process_exit_event_construction() {
         let event = ProcessExitEvent {
             id: ProcessId::new(42),
-            label: "test".to_string(),
+            label: Label::new("test"),
             pid: 12345,
             restart_on_exit: true,
             exit_status: None,
@@ -58,7 +59,7 @@ mod tests {
     fn test_process_exit_event_clone() {
         let event = ProcessExitEvent {
             id: ProcessId::new(1),
-            label: "app".to_string(),
+            label: Label::new("app"),
             pid: 999,
             restart_on_exit: false,
             exit_status: None,
@@ -78,7 +79,7 @@ mod tests {
         let status = Command::new("true").status().unwrap();
         let event = ProcessExitEvent {
             id: ProcessId::new(7),
-            label: "worker".to_string(),
+            label: Label::new("worker"),
             pid: 4321,
             restart_on_exit: false,
             exit_status: Some(status),
@@ -94,7 +95,7 @@ mod tests {
         let status = Command::new("false").status().unwrap();
         let event = ProcessExitEvent {
             id: ProcessId::new(8),
-            label: "failing".to_string(),
+            label: Label::new("failing"),
             pid: 1111,
             restart_on_exit: false,
             exit_status: Some(status),

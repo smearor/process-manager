@@ -1,4 +1,4 @@
-use crate::config::DependencyRef;
+use crate::config::Label;
 use crate::config::ProcessConfig;
 use crate::config::ProcessConfigError;
 use crate::config::StdioConfig;
@@ -105,15 +105,16 @@ impl ProcessManager {
     /// not yet `Running`, the process is inserted with `ProcessState::Waiting`
     /// and spawned asynchronously by the reaper once dependencies become
     /// `Running`. The `ProcessId` is assigned immediately and returned.
-    pub fn start(&self, label: &str, config: &ProcessConfig) -> Result<ProcessId, ProcessManagerError> {
+    pub fn start<L: Into<Label>>(&self, label: L, config: &ProcessConfig) -> Result<ProcessId, ProcessManagerError> {
+        let label = label.into();
         ProcessConfigError::validate(config).map_err(ProcessManagerError::from)?;
         let id = ProcessId::new(self.next_id.fetch_add(1, Ordering::Relaxed));
 
         // Cycle detection: build a snapshot of the dependency graph and check
         // for cycles before inserting anything into the DashMap.
         if !config.depends_on.is_empty() {
-            let graph = build_dependency_snapshot(&self.processes, label, &config.depends_on);
-            detect_cycle(&graph, label, &config.depends_on)?;
+            let graph = build_dependency_snapshot(&self.processes, &label, &config.depends_on);
+            detect_cycle(&graph, &label, &config.depends_on)?;
         }
 
         // Resolve dependencies (label -> ProcessId binding)
@@ -130,13 +131,13 @@ impl ProcessManager {
 
         if deps_ready || config.depends_on.is_empty() {
             // All deps Running (or no deps) - spawn immediately
-            let spawn = self.spawn_internal(label, config)?;
+            let spawn = self.spawn_internal(&label, config)?;
             let pid = spawn.child.id();
             let process = Process {
                 id,
                 pid,
                 program_name: config.command.clone(),
-                label: label.to_string(),
+                label: label.clone(),
                 terminate_on_exit: config.terminate_on_exit,
                 config: Arc::new(config.clone()),
                 child: Some(spawn.child),
@@ -166,7 +167,7 @@ impl ProcessManager {
                 id,
                 pid: 0,
                 program_name: config.command.clone(),
-                label: label.to_string(),
+                label: label.clone(),
                 terminate_on_exit: config.terminate_on_exit,
                 config: Arc::new(config.clone()),
                 child: None,
@@ -193,7 +194,7 @@ impl ProcessManager {
     ///
     /// Returns the `Child`, stdout reader handle, and stderr reader handle.
     /// Does not insert into the `DashMap` or assign a `ProcessId`.
-    fn spawn_internal(&self, label: &str, config: &ProcessConfig) -> Result<SpawnResult, ProcessManagerError> {
+    fn spawn_internal(&self, label: &Label, config: &ProcessConfig) -> Result<SpawnResult, ProcessManagerError> {
         ProcessConfigError::validate(config).map_err(ProcessManagerError::from)?;
         let program_name = config.command.clone();
 
@@ -260,7 +261,7 @@ impl ProcessManager {
             && let Some(stdout) = child.stdout.take()
         {
             let program_name_clone = program_name.clone();
-            let label_clone = label.to_string();
+            let label_clone = label.clone();
             thread::Builder::new()
                 .name(format!("stdout-reader-{}", program_name_clone))
                 .spawn(move || {
@@ -281,7 +282,7 @@ impl ProcessManager {
             && let Some(stderr) = child.stderr.take()
         {
             let program_name_clone = program_name.clone();
-            let label_clone = label.to_string();
+            let label_clone = label.clone();
             thread::Builder::new()
                 .name(format!("stderr-reader-{}", program_name_clone))
                 .spawn(move || {
@@ -349,7 +350,7 @@ impl ProcessManager {
     }
 
     /// The label of the process with the given ID.
-    pub fn get_label(&self, id: ProcessId) -> Option<String> {
+    pub fn get_label(&self, id: ProcessId) -> Option<Label> {
         self.processes.get(&id).map(|entry| entry.label.clone())
     }
 
@@ -368,19 +369,21 @@ impl ProcessManager {
     /// Returns a list of `(ProcessId, ProcessInfo)` snapshots. The processes
     /// remain in the manager. Snapshots contain metadata only - no `Child`
     /// handle. Use `stop()` / `stop_label()` for process control.
-    pub fn get_by_label(&self, label: &str) -> Vec<(ProcessId, ProcessInfo)> {
+    pub fn get_by_label<L: Into<Label>>(&self, label: L) -> Vec<(ProcessId, ProcessInfo)> {
+        let label = label.into();
         self.processes
             .iter()
-            .filter(|entry| entry.value().label == label)
+            .filter(|entry| &entry.value().label == &label)
             .map(|entry| (*entry.key(), ProcessInfo::from(entry.value())))
             .collect::<Vec<_>>()
     }
 
     /// Get all PIDs for processes with a given label.
-    pub fn pids_by_label(&self, label: &str) -> Vec<u32> {
+    pub fn pids_by_label<L: Into<Label>>(&self, label: L) -> Vec<u32> {
+        let label = label.into();
         self.processes
             .iter()
-            .filter(|entry| entry.value().label == label)
+            .filter(|entry| &entry.value().label == &label)
             .map(|entry| entry.value().pid)
             .collect()
     }
@@ -405,11 +408,12 @@ impl ProcessManager {
     ///
     /// Processes remain in the manager. Returns an error if any signal delivery
     /// fails, but still attempts all processes.
-    pub fn send_signal_label(&self, label: &str, signal: crate::Signal) -> Result<(), StopManyError> {
+    pub fn send_signal_label<L: Into<Label>>(&self, label: L, signal: crate::Signal) -> Result<(), StopManyError> {
+        let label = label.into();
         let ids: Vec<ProcessId> = self
             .processes
             .iter()
-            .filter(|entry| entry.value().label == label)
+            .filter(|entry| &entry.value().label == &label)
             .map(|entry| *entry.key())
             .collect();
 
@@ -686,11 +690,12 @@ impl ProcessManager {
     }
 
     /// Stop all processes with a given label.
-    pub fn stop_label(&self, label: &str) -> Result<(), ProcessManagerError> {
+    pub fn stop_label<L: Into<Label>>(&self, label: L) -> Result<(), ProcessManagerError> {
+        let label = label.into();
         let ids: Vec<ProcessId> = self
             .processes
             .iter()
-            .filter(|entry| entry.value().label == label)
+            .filter(|entry| &entry.value().label == &label)
             .map(|entry| *entry.key())
             .collect();
 
@@ -810,11 +815,12 @@ impl ProcessManager {
     ///
     /// Restarts each matching process in-place, preserving `ProcessId`s.
     /// Returns the `ProcessId`s of the restarted processes (same IDs).
-    pub fn restart_label(&self, label: &str) -> Result<Vec<ProcessId>, ProcessManagerError> {
+    pub fn restart_label<L: Into<Label>>(&self, label: L) -> Result<Vec<ProcessId>, ProcessManagerError> {
+        let label = label.into();
         let ids: Vec<ProcessId> = self
             .processes
             .iter()
-            .filter(|entry| entry.value().label == label)
+            .filter(|entry| &entry.value().label == &label)
             .map(|entry| *entry.key())
             .collect();
 
@@ -839,7 +845,7 @@ impl ProcessManager {
     /// For non-blocking start, use `start()` which inserts a `Waiting`
     /// placeholder and spawns the process asynchronously once
     /// dependencies are ready.
-    pub fn start_with_deps(&self, label: &str, config: &ProcessConfig) -> Result<ProcessId, ProcessManagerError> {
+    pub fn start_with_deps<L: Into<Label>>(&self, label: L, config: &ProcessConfig) -> Result<ProcessId, ProcessManagerError> {
         let id = self.start(label, config)?;
 
         // If the process is already Running (no deps or deps were ready),
@@ -860,7 +866,7 @@ impl ProcessManager {
                 if let Some(mut entry) = self.processes.get_mut(&id) {
                     entry.state = ProcessState::Failed;
                 }
-                let dep = config.depends_on.first().cloned().unwrap_or(DependencyRef::Label("unknown".to_string()));
+                let dep = config.depends_on.first().cloned();
                 return Err(ProcessManagerError::DependencyTimeout { id, dependency: dep });
             }
 
@@ -869,7 +875,7 @@ impl ProcessManager {
                 match entry.state {
                     ProcessState::Starting | ProcessState::Running => return Ok(id),
                     ProcessState::Failed => {
-                        let dep = config.depends_on.first().cloned().unwrap_or(DependencyRef::Label("unknown".to_string()));
+                        let dep = config.depends_on.first().cloned();
                         return Err(ProcessManagerError::DependencyTimeout { id, dependency: dep });
                     }
                     ProcessState::Waiting => {}
@@ -899,10 +905,11 @@ impl ProcessManager {
     /// Get all processes in the same label group.
     ///
     /// Returns a list of `ProcessId`s for processes with the given label.
-    pub fn group_members(&self, label: &str) -> Vec<ProcessId> {
+    pub fn group_members<L: Into<Label>>(&self, label: L) -> Vec<ProcessId> {
+        let label = label.into();
         self.processes
             .iter()
-            .filter(|entry| entry.value().label == label)
+            .filter(|entry| &entry.value().label == &label)
             .map(|entry| *entry.key())
             .collect()
     }
@@ -913,8 +920,8 @@ impl ProcessManager {
     }
 
     /// List all labels that have at least one process.
-    pub fn labels(&self) -> Vec<String> {
-        let mut labels: Vec<String> = self.processes.iter().map(|entry| entry.value().label.clone()).collect();
+    pub fn labels(&self) -> Vec<Label> {
+        let mut labels: Vec<Label> = self.processes.iter().map(|entry| entry.value().label.clone()).collect();
         labels.sort();
         labels.dedup();
         labels
@@ -1043,7 +1050,7 @@ mod tests {
             .stderr(StdioConfig::Null)
             .build();
         let id = manager.start("my-label", &config).unwrap();
-        assert_eq!(manager.get_label(id), Some("my-label".to_string()));
+        assert_eq!(manager.get_label(id), Some(Label::new("my-label")));
         assert_eq!(manager.get_label(ProcessId::new(999)), None);
         manager.stop(id).unwrap();
     }
@@ -1290,7 +1297,7 @@ mod tests {
         let _ = manager.start("alpha", &config).unwrap();
         let mut labels = manager.labels();
         labels.sort();
-        assert_eq!(labels, vec!["alpha", "beta"]);
+        assert_eq!(labels, vec![Label::new("alpha"), Label::new("beta")]);
         manager.stop_all();
     }
 

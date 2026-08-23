@@ -1,3 +1,4 @@
+use crate::config::Label;
 use crate::config::ProcessConfig;
 use crate::process::ProcessId;
 use crate::process::ProcessState;
@@ -15,7 +16,7 @@ pub(crate) struct ExitedProcess {
     pub id: ProcessId,
 
     /// The label of the process that exited.
-    pub label: String,
+    pub label: Label,
 
     /// The PID of the process that exited.
     pub pid: u32,
@@ -31,5 +32,5 @@ pub(crate) struct ExitedProcess {
 
     /// The restart config for this process (if `restart_on_exit`).
     /// Carries `Arc<ProcessConfig>` and label to avoid re-reading from the `DashMap`.
-    pub restart_config: Option<(Arc<ProcessConfig>, String)>,
+    pub restart_config: Option<(Arc<ProcessConfig>, Label)>,
 }

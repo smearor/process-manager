@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `Label` newtype wrapping `String` with `#[serde(transparent)]` - type-safe process labels for grouped operations and dependency references, consistent with `ProcessId`
+- `DependencyRef::label()` and `DependencyRef::id()` convenience constructors accepting `impl Into<Label>` / `impl Into<ProcessId>`
+- `From<u64> for ProcessId` - enables `DependencyRef::id(42u64)`
+- `ProcessId`, `ProcessInfo`, `ProcessExitEvent`, `ExitedProcess` now use `Label` instead of `String` for label fields
+- `ProcessManager` methods accept `impl Into<Label>` for label parameters (`start`, `stop_label`, `restart_label`, `get_by_label`, `pids_by_label`, `send_signal_label`, `start_with_deps`, `group_members`)
+- `ProcessManager::get_label()` returns `Option<Label>` instead of `Option<String>`
+- `ProcessManager::labels()` returns `Vec<Label>` instead of `Vec<String>`
+- `ProcessManagerError::DependencyTimeout.dependency` changed to `Option<DependencyRef>` (was `DependencyRef`)
+- Book page: `process/label.md`
 - `SupervisorStrategy` enum (`OneForOne`, `OneForAll`, `RestForOne`) - controls which processes are restarted when one process in a group crashes, following the Erlang OTP supervisor model
 - `DependencyRef` enum (`Label(String)`, `Id(ProcessId)`) - declares start-order dependencies by label or process ID
 - `ProcessState::Waiting` variant - processes queued but waiting for dependencies to become `Running`; `is_alive()` returns `true`
@@ -88,6 +97,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `DependencyRef::Label` variant now holds `Label` instead of `String`
+- `DepGraph` internal type uses `HashMap<Label, ...>` instead of `HashMap<String, ...>`
+- All dependency resolution functions use `&Label` instead of `&str`
 - Crates renamed from `smearor-wrot-process` / `smearor-wrot-socket` to `process-manager` / `process-manager-socket`
 - Repository URL changed from `smearor/smearor-wrot-process-manager` to `smearor/process-manager`
 - `Process::is_running()` now delegates to `state().is_alive()` instead of directly calling `try_wait()`
@@ -119,6 +131,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Process::send_signal()` now preserves the raw OS error code (uses `from_raw_os_error` instead of `Error::other`) so callers can detect ESRCH
 - `ProcessManager::stop()` now handles ESRCH gracefully - if the process has already exited, it joins readers and returns `Ok(())` instead of erroring
 - `KillSignal::to_signal()` renamed to `KillSignal::to_nix_signal()` for consistency with `Signal::to_nix_signal()`
+
+### Removed
+
+- `impl From<Label> for String` - removed to preserve newtype encapsulation; use `Label::as_str()`, `Label::into_inner()`, or `Display` instead
 
 ### Fixed
 
