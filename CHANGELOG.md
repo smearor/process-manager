@@ -13,6 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ProcessState::is_alive()` - `true` for `Starting`, `Running`, `Stopping`, `Restarting`
   - `ProcessState::is_terminated()` - `true` for `Stopped`, `Crashed`, `Failed`
   - `Default` (defaults to `Starting`), `Display` (lowercase string), `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`
+- `RestartTrigger` enum (`CrashOnly`, `Always`) - controls when automatic restart is triggered
+- `RestartPolicy` enum (`Immediate`, `Backoff(BackoffConfig)`) - controls restart strategy
+- `BackoffConfig` struct (`initial_delay`, `multiplier`, `max_delay`, `max_restarts`, `min_uptime`) - exponential backoff configuration
+- `RestartState` struct - internal state tracking for restart count, backoff timer, and stable uptime resets
+- `ProcessConfig.restart_trigger` and `ProcessConfig.restart_policy` fields with builder support
+- `ProcessManagerError::ProcessInRestartingState` error variant - returned by `send_signal()` when process is in `Restarting` state
+- Automatic restart with exponential backoff and rate limiting in the reaper thread
+- `ProcessId` preservation across restarts - `restart()` updates the process in-place instead of removing and re-inserting
+- Spawn failure during automatic restart sets state to `Failed`, emits single `ProcessExitEvent`, and removes process
+- `stop()` during `Restarting` state cancels backoff silently (no event, no signal)
+- `restart()` during `Restarting` state cancels backoff and spawns immediately
+- `spawn_internal()` helper method extracted from `start()` for reuse in `restart()`
+- Book page for Restart Policy at `book/src/process/restart_policy.md`
+- Integration tests for restart with backoff, rate limiting, `Restarting` state interactions, and `ProcessId` preservation
+- Unit tests for `BackoffConfig`, `RestartState`, `RestartTrigger`, `RestartPolicy`
 - `Process.state` field and `Process::state()` method - lazily updates state via non-blocking `try_wait()`
 - `ProcessInfo.state` field - lifecycle state snapshot in `ProcessInfo`
 - `ProcessExitEvent.state` field - lifecycle state at exit (`Stopped` or `Crashed`), derived from exit status by the reaper
@@ -59,6 +74,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ProcessManager::stop()` and `stop_many()` now set `ProcessState::Stopping` before sending signals
 - `ProcessManager::stop_many()` now sets `ProcessState::Failed` when re-inserting a process after `force_kill()` failure
 - `ProcessManager::restart()` and `restart_label()` now set `ProcessState::Restarting` before stopping the old process
+- `ProcessManager::restart()` now preserves `ProcessId` - updates the process in-place instead of removing and re-inserting
+- `ProcessManager::stop()` during `Restarting` state cancels backoff silently (no signal, no event)
+- `ProcessManager::send_signal()` returns `ProcessInRestartingState` error when process is in `Restarting` state
+- `ProcessExitEvent.state` can now be `Failed` (in addition to `Stopped` and `Crashed`) when rate limit is exceeded or spawn fails during restart
+- Reaper loop now handles automatic restart with exponential backoff, rate limiting, and stable uptime resets
+- `ExitedProcess` struct updated to carry `restart_config` for in-place restart
 - `ProcessManager::get_info()` now calls `state()` on the process before snapshotting to ensure the state is up-to-date
 - `Process::state()` short-circuits for `Stopping`, `Restarting`, and terminated states without calling `try_wait()`
 - Reaper loop now derives `ProcessState::Stopped` or `ProcessState::Crashed` from `exit_status.success()` and includes it in `ProcessExitEvent`

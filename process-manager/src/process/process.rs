@@ -1,6 +1,7 @@
 use crate::config::ProcessConfig;
 use crate::process::ProcessId;
 use crate::process::ProcessState;
+use crate::process::RestartState;
 use crate::signal::KillSignal;
 use nix::sys::signal::Signal;
 use nix::unistd::Pid;
@@ -50,6 +51,12 @@ pub struct Process {
     /// Updated lazily by `state()` / `is_running()` via non-blocking
     /// `try_wait()`, and explicitly by `stop()` / `restart()`.
     pub state: ProcessState,
+
+    /// Restart tracking state for automatic restarts with backoff.
+    ///
+    /// `Some` when `restart_on_exit` is `true`, `None` otherwise.
+    /// Maintained by the reaper thread.
+    pub restart_state: Option<RestartState>,
 }
 
 impl Process {
@@ -180,6 +187,7 @@ mod tests {
             stdout_reader: None,
             stderr_reader: None,
             state: ProcessState::Starting,
+            restart_state: None,
         };
         assert!(process.is_running());
         assert_eq!(process.state, ProcessState::Running);
@@ -205,6 +213,7 @@ mod tests {
             stdout_reader: None,
             stderr_reader: None,
             state: ProcessState::Starting,
+            restart_state: None,
         };
         assert!(!process.is_running());
         assert_eq!(process.state, ProcessState::Stopped);
@@ -226,6 +235,7 @@ mod tests {
             stdout_reader: None,
             stderr_reader: None,
             state: ProcessState::Starting,
+            restart_state: None,
         };
         let state = process.state();
         assert_eq!(state, ProcessState::Crashed);
@@ -247,6 +257,7 @@ mod tests {
             stdout_reader: None,
             stderr_reader: None,
             state: ProcessState::Starting,
+            restart_state: None,
         };
         let result = process.send_signal(KillSignal::Sigterm);
         assert!(result.is_ok());
@@ -268,6 +279,7 @@ mod tests {
             stdout_reader: None,
             stderr_reader: None,
             state: ProcessState::Starting,
+            restart_state: None,
         };
         let result = process.force_kill();
         assert!(result.is_ok());

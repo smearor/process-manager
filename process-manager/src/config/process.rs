@@ -1,3 +1,5 @@
+use crate::config::RestartPolicy;
+use crate::config::RestartTrigger;
 use crate::config::StdioConfig;
 use crate::signal::KillSignal;
 use process_manager_socket::Socket;
@@ -60,6 +62,18 @@ pub struct ProcessConfig {
     /// The `ProcessManager` emits an exit event; the consumer decides whether to restart.
     #[builder(default)]
     pub restart_on_exit: bool,
+
+    /// Which exit states trigger an automatic restart.
+    /// Only applies when `restart_on_exit` is `true`.
+    /// Defaults to `CrashOnly` - restart only on `Crashed`, not `Stopped`.
+    #[builder(default)]
+    pub restart_trigger: RestartTrigger,
+
+    /// Restart policy: `Immediate` or `Backoff(BackoffConfig)`.
+    /// Only applies when `restart_on_exit` is `true`.
+    /// Defaults to `Immediate`.
+    #[builder(default)]
+    pub restart_policy: RestartPolicy,
 
     /// Standard input configuration.
     #[builder(default = StdioConfig::Inherit)]

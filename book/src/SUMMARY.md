@@ -13,6 +13,7 @@
     - [ProcessManager](process/manager.md)
     - [Process & ProcessId](process/process.md)
     - [ProcessState](process/state.md)
+    - [Restart Policy](process/restart_policy.md)
     - [StdioConfig](process/stdio_config.md)
     - [Signal](process/signal.md)
     - [Reaper Thread](process/reaper.md)

@@ -18,6 +18,9 @@ pub enum ProcessManagerError {
     /// Failed to send a signal to the process.
     #[error("Failed to send signal to process {0}: {1}")]
     SignalFailed(u32, String),
+    /// Cannot send a signal to a process in `Restarting` state (no OS handle).
+    #[error("Process with ID {0} is in Restarting state, no OS handle available")]
+    ProcessInRestartingState(ProcessId),
     /// A ProcessConfig validation error.
     #[error("Process config error: {0}")]
     ConfigError(#[from] ProcessConfigError),

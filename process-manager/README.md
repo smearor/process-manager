@@ -22,6 +22,7 @@ Used by both `smearor-wrot` (to spawn compositor clients) and `smearor-swipe-lau
 - **Wayland socket binding** - Sets `WAYLAND_DISPLAY` from `Socket`
 - **`StdioConfig`** - Inherit/Null/Piped with reader threads for output capture
 - **`KillSignal`** - `Sigterm`/`Sigkill` with serde support
+- **Restart policies** - `RestartPolicy::Immediate` or `RestartPolicy::Backoff` with exponential backoff, rate limiting, and `RestartTrigger` (crash-only or always)
 - **Graceful shutdown** - `terminate_on_exit` flag kills processes on drop
 
 ## Quick Start
@@ -96,7 +97,7 @@ let id = manager.start("wayland-client", &config)?;
 
 ### `ProcessConfig`
 
-Configuration built via `TypedBuilder`. Required field: `command`. All other fields have defaults: `args`, `env`, `working_dir`, `shell`, `forked`, `terminate_on_exit`, `kill_signal`, `terminate_timeout_ms`, `restart_on_exit`, `stdin`, `stdout`, `stderr`, `socket`.
+Configuration built via `TypedBuilder`. Required field: `command`. All other fields have defaults: `args`, `env`, `working_dir`, `shell`, `forked`, `terminate_on_exit`, `kill_signal`, `terminate_timeout_ms`, `restart_on_exit`, `restart_trigger`, `restart_policy`, `stdin`, `stdout`, `stderr`, `socket`.
 
 ### `ProcessManager`
 
@@ -104,7 +105,15 @@ The main process manager. Tracks child processes in a `DashMap`, supports label-
 
 ### `ProcessExitEvent`
 
-Emitted by the reaper thread when a process exits. Contains `id`, `pid`, `label`, and `restart_on_exit` flag.
+Emitted by the reaper thread when a process exits. Contains `id`, `pid`, `label`, `restart_on_exit` flag, `exit_status`, and `state` (`Stopped`, `Crashed`, or `Failed`).
+
+### `RestartPolicy` / `BackoffConfig` / `RestartTrigger`
+
+Controls automatic restart behavior when `restart_on_exit` is `true`:
+- `RestartTrigger::CrashOnly` - restart only on crashes (non-zero exit), not on clean exits
+- `RestartTrigger::Always` - restart on any exit (including clean)
+- `RestartPolicy::Immediate` - restart immediately, no delay or rate limiting
+- `RestartPolicy::Backoff(BackoffConfig)` - exponential backoff with `initial_delay`, `multiplier`, `max_delay`, `max_restarts`, and `min_uptime` for counter reset
 
 ### `StdioConfig`
 

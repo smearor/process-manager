@@ -2,12 +2,14 @@ use crate::config::ProcessConfig;
 use crate::config::ProcessConfigError;
 use crate::config::StdioConfig;
 use crate::manager::ProcessManagerError;
+use crate::manager::SpawnResult;
 use crate::manager::StopManyError;
 use crate::process::Process;
 use crate::process::ProcessExitEvent;
 use crate::process::ProcessId;
 use crate::process::ProcessInfo;
 use crate::process::ProcessState;
+use crate::process::RestartState;
 use crate::reaper::ReaperHandle;
 use crate::reaper::reaper_loop;
 use dashmap::DashMap;
@@ -92,6 +94,42 @@ impl ProcessManager {
     pub fn start(&self, label: &str, config: &ProcessConfig) -> Result<ProcessId, ProcessManagerError> {
         ProcessConfigError::validate(config).map_err(ProcessManagerError::from)?;
         let id = ProcessId::new(self.next_id.fetch_add(1, Ordering::Relaxed));
+
+        let spawn = self.spawn_internal(label, config)?;
+
+        let pid = spawn.child.id();
+        let process = Process {
+            id,
+            pid,
+            program_name: config.command.clone(),
+            label: label.to_string(),
+            terminate_on_exit: config.terminate_on_exit,
+            config: Arc::new(config.clone()),
+            child: Some(spawn.child),
+            stdout_reader: spawn.stdout_reader,
+            stderr_reader: spawn.stderr_reader,
+            state: ProcessState::Starting,
+            restart_state: if config.restart_on_exit { Some(RestartState::new()) } else { None },
+        };
+        self.processes.insert(id, process);
+
+        // Mark started for restart tracking
+        if let Some(mut entry) = self.processes.get_mut(&id)
+            && let Some(restart_state) = &mut entry.restart_state
+        {
+            restart_state.mark_started(Instant::now());
+        }
+
+        debug!("Started process '{}' (pid={}, id={}, label='{}')", config.command, pid, id, label);
+        Ok(id)
+    }
+
+    /// Internal helper: spawn a child process from config and label.
+    ///
+    /// Returns the `Child`, stdout reader handle, and stderr reader handle.
+    /// Does not insert into the `DashMap` or assign a `ProcessId`.
+    fn spawn_internal(&self, label: &str, config: &ProcessConfig) -> Result<SpawnResult, ProcessManagerError> {
+        ProcessConfigError::validate(config).map_err(ProcessManagerError::from)?;
         let program_name = config.command.clone();
 
         // 1. Resolve executable
@@ -151,9 +189,8 @@ impl ProcessManager {
 
         // 7. Spawn
         let mut child = command.spawn().map_err(ProcessManagerError::SpawnFailed)?;
-        let pid = child.id();
 
-        // 5b. Spawn reader threads for piped stdout/stderr
+        // 8. Spawn reader threads for piped stdout/stderr
         let stdout_reader = if config.stdout == StdioConfig::Piped
             && let Some(stdout) = child.stdout.take()
         {
@@ -197,25 +234,11 @@ impl ProcessManager {
             None
         };
 
-        // 8. Track
-        let process = Process {
-            id,
-            pid,
-            program_name: program_name.clone(),
-            label: label.to_string(),
-            terminate_on_exit: config.terminate_on_exit,
-            config: Arc::new(config.clone()),
-            child: Some(child),
+        Ok(SpawnResult {
+            child,
             stdout_reader,
             stderr_reader,
-            state: ProcessState::Starting,
-        };
-        self.processes.insert(id, process);
-
-        debug!("Started process '{}' (pid={}, id={}, label='{}')", program_name, pid, id, label);
-
-        // 9. Return ProcessId
-        Ok(id)
+        })
     }
 
     /// Get a lightweight snapshot of a managed process by ID.
@@ -303,6 +326,9 @@ impl ProcessManager {
     /// Use [`stop`](Self::stop) for termination with grace period and escalation.
     pub fn send_signal(&self, id: ProcessId, signal: crate::Signal) -> Result<(), ProcessManagerError> {
         let process = self.processes.get_mut(&id).ok_or(ProcessManagerError::NotFound(id))?;
+        if process.state == ProcessState::Restarting {
+            return Err(ProcessManagerError::ProcessInRestartingState(id));
+        }
         let nix_signal = signal.to_nix_signal();
         nix::sys::signal::kill(nix::unistd::Pid::from_raw(process.pid as i32), nix_signal)
             .map_err(|e| ProcessManagerError::SignalFailed(process.pid, e.to_string()))?;
@@ -345,6 +371,17 @@ impl ProcessManager {
     /// waits the grace period, then escalates to `SIGKILL` if still alive.
     /// Removes the process from the manager.
     pub fn stop(&self, id: ProcessId) -> Result<(), ProcessManagerError> {
+        // Check if process is in Restarting state - just remove, no signal, no event
+        {
+            let process = self.processes.get(&id).ok_or(ProcessManagerError::NotFound(id))?;
+            if process.state == ProcessState::Restarting {
+                debug!("Process {} is in Restarting state, cancelling backoff and removing (no signal, no event)", id);
+                drop(process);
+                self.processes.remove(&id);
+                return Ok(());
+            }
+        }
+
         let mut process = self.processes.remove(&id).ok_or(ProcessManagerError::NotFound(id))?.1;
 
         let kill_signal = process.config.kill_signal;
@@ -549,48 +586,104 @@ impl ProcessManager {
 
     /// Restart a process by ID.
     ///
-    /// Stops the process (with grace period and SIGKILL escalation), then
-    /// starts a new process with the same config and label. Returns the
-    /// new `ProcessId`.
+    /// If the process is in `Restarting` state (backoff wait), cancels the
+    /// backoff, resets restart state, and spawns immediately.
+    /// If the process is running, stops it (with grace period and SIGKILL
+    /// escalation), then spawns a new process in-place with the same
+    /// `ProcessId`. Returns the same `ProcessId`.
     pub fn restart(&self, id: ProcessId) -> Result<ProcessId, ProcessManagerError> {
-        // Mark as Restarting in the map before stopping
-        if let Some(mut entry) = self.processes.get_mut(&id) {
-            entry.state = ProcessState::Restarting;
-        }
-        let process = self.processes.get(&id).ok_or(ProcessManagerError::NotFound(id))?;
-        let config = Arc::clone(&process.config);
-        let label = process.label.clone();
-        drop(process);
+        // Get config and label, and handle Restarting state
+        let (config, label, is_restarting) = {
+            let process = self.processes.get(&id).ok_or(ProcessManagerError::NotFound(id))?;
+            (Arc::clone(&process.config), process.label.clone(), process.state == ProcessState::Restarting)
+        };
 
-        self.stop(id)?;
-        self.start(&label, &config)
+        if is_restarting {
+            // Cancel backoff, reset restart state, spawn in-place
+            debug!("Process {} is in Restarting state, cancelling backoff and spawning immediately", id);
+            let mut entry = self.processes.get_mut(&id).ok_or(ProcessManagerError::NotFound(id))?;
+            let process = entry.value_mut();
+            // Clean up any remaining OS resources (should already be None)
+            if let Some(child) = process.child.as_mut() {
+                let _ = child.wait();
+            }
+            process.child = None;
+            process.join_readers(Duration::from_millis(500));
+            if let Some(restart_state) = &mut process.restart_state {
+                restart_state.reset();
+            }
+        } else {
+            // Normal restart: stop the OS process, then spawn in-place
+            self.stop(id)?;
+
+            // Re-insert a placeholder so we can spawn in-place
+            // stop() removed the entry, so we need to create a new one with the same ID
+        }
+
+        // Spawn the new process
+        let spawn = self.spawn_internal(&label, &config)?;
+
+        // Update the entry in-place (or re-insert with same ID)
+        let process = Process {
+            id,
+            pid: spawn.child.id(),
+            program_name: config.command.clone(),
+            label: label.clone(),
+            terminate_on_exit: config.terminate_on_exit,
+            config: Arc::clone(&config),
+            child: Some(spawn.child),
+            stdout_reader: spawn.stdout_reader,
+            stderr_reader: spawn.stderr_reader,
+            state: ProcessState::Starting,
+            restart_state: if config.restart_on_exit { Some(RestartState::new()) } else { None },
+        };
+
+        if is_restarting {
+            // Update in-place
+            let mut entry = self.processes.get_mut(&id).ok_or(ProcessManagerError::NotFound(id))?;
+            let existing = entry.value_mut();
+            existing.pid = process.pid;
+            existing.child = process.child;
+            existing.stdout_reader = process.stdout_reader;
+            existing.stderr_reader = process.stderr_reader;
+            existing.state = ProcessState::Starting;
+            if let Some(restart_state) = &mut existing.restart_state {
+                restart_state.mark_started(Instant::now());
+            }
+        } else {
+            // Re-insert with same ID (stop() removed it)
+            self.processes.insert(id, process);
+            // Mark started for restart tracking
+            if let Some(mut entry) = self.processes.get_mut(&id)
+                && let Some(restart_state) = &mut entry.restart_state
+            {
+                restart_state.mark_started(Instant::now());
+            }
+        }
+
+        debug!("Restarted process '{}' (id={}, label='{}')", config.command, id, label);
+        Ok(id)
     }
 
     /// Restart all processes with a given label.
     ///
-    /// Stops all matching processes concurrently, then starts new ones
-    /// with the same configs and label. Returns the new `ProcessId`s.
+    /// Restarts each matching process in-place, preserving `ProcessId`s.
+    /// Returns the `ProcessId`s of the restarted processes (same IDs).
     pub fn restart_label(&self, label: &str) -> Result<Vec<ProcessId>, ProcessManagerError> {
-        let entries: Vec<(ProcessId, Arc<ProcessConfig>)> = self
+        let ids: Vec<ProcessId> = self
             .processes
-            .iter_mut()
+            .iter()
             .filter(|entry| entry.value().label == label)
-            .map(|mut entry| {
-                entry.state = ProcessState::Restarting;
-                (*entry.key(), Arc::clone(&entry.config))
-            })
+            .map(|entry| *entry.key())
             .collect();
 
-        if entries.is_empty() {
+        if ids.is_empty() {
             return Ok(Vec::new());
         }
 
-        let ids: Vec<ProcessId> = entries.iter().map(|(id, _)| *id).collect();
-        self.stop_many(ids)?;
-
-        let mut new_ids = Vec::with_capacity(entries.len());
-        for (_, config) in entries {
-            new_ids.push(self.start(label, &config)?);
+        let mut new_ids = Vec::with_capacity(ids.len());
+        for id in ids {
+            new_ids.push(self.restart(id)?);
         }
         Ok(new_ids)
     }
@@ -1221,7 +1314,7 @@ mod tests {
         assert_eq!(manager.len(), 1);
         let new_id = manager.restart(id).unwrap();
         assert_eq!(manager.len(), 1);
-        assert_ne!(id, new_id);
+        assert_eq!(id, new_id);
         assert!(manager.get_info(new_id).is_some());
         manager.stop(new_id).unwrap();
     }

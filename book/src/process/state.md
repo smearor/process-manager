@@ -15,8 +15,8 @@ Each managed process has a `ProcessState` that reflects its current lifecycle ph
 | `Stopping` | A stop signal has been sent and the manager is waiting for exit. Set by `stop()` / `stop_many()`. |
 | `Stopped` | The process has exited normally (exit code 0 or stopped by the manager within the grace period). |
 | `Crashed` | The process exited unexpectedly with a non-zero exit code or signal. |
-| `Restarting` | A restart is in progress. The old process is being stopped and a new one will be started. |
-| `Failed` | The process failed to start or could not be killed. Set when `spawn()` fails or `force_kill()` fails and the process is re-inserted for tracking. |
+| `Restarting` | A restart is in progress - the process is in backoff wait. The OS child handle is `None` (resources released). `send_signal()` returns an error; `stop()` cancels backoff silently; `restart()` spawns immediately. |
+| `Failed` | The process failed to start, could not be killed, or exhausted restarts (rate limit exceeded or spawn failure during automatic restart). |
 
 ## State Transitions
 
@@ -30,10 +30,12 @@ graph TD
     Starting --> Running
     Running --> Stopping
     Stopping --> Stopped
-    Stopping --> Crashed
     Running --> Crashed
-    Running --> Restarting
+    Stopping --> Crashed
+    Crashed --> Restarting
+    Stopped --> Restarting
     Restarting --> Starting
+    Restarting --> Failed
     Starting --> Failed
 
     class Starting,Running,Stopping,Restarting active
@@ -95,6 +97,7 @@ let event = receiver.recv_timeout(Duration::from_secs(5))?;
 match event.state {
     ProcessState::Stopped => println!("Process {} exited normally", event.label),
     ProcessState::Crashed => println!("Process {} crashed", event.label),
+    ProcessState::Failed => println!("Process {} failed (rate limit or spawn error)", event.label),
     _ => unreachable!(),
 }
 ```

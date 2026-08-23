@@ -1,6 +1,8 @@
+use crate::config::ProcessConfig;
 use crate::process::ProcessId;
 use crate::process::ProcessState;
 use std::process::ExitStatus;
+use std::sync::Arc;
 
 /// Information about a process that the reaper has detected as exited.
 ///
@@ -24,6 +26,10 @@ pub(crate) struct ExitedProcess {
     /// The exit status of the process, if available.
     pub exit_status: Option<ExitStatus>,
 
-    /// The lifecycle state at the time of exit (`Stopped` or `Crashed`).
+    /// The lifecycle state at the time of exit (`Stopped`, `Crashed`, or `Failed`).
     pub state: ProcessState,
+
+    /// The restart config for this process (if `restart_on_exit`).
+    /// Carries `Arc<ProcessConfig>` and label to avoid re-reading from the `DashMap`.
+    pub restart_config: Option<(Arc<ProcessConfig>, String)>,
 }

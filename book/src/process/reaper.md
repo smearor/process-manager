@@ -8,8 +8,10 @@ When a child process exits, it becomes a zombie until someone calls `wait()` or 
 
 1. Spawns a `std::thread` named `"process-reaper"`
 2. Every `poll_interval`, iterates all tracked processes in the `DashMap`
-3. Calls `try_wait()` on each - if the process has exited, removes it from the `DashMap` and sends a `ProcessExitEvent` with the derived `ProcessState` (`Stopped` for normal exit, `Crashed` for non-zero)
-4. Runs until `ProcessManager` is dropped (via a `stop_flag` `AtomicBool`)
+3. For each process: checks stable uptime reset, then calls `try_wait()` to detect exits
+4. If a process has exited: determines `ProcessState` (`Stopped` or `Crashed`), checks restart policy and rate limiting, emits `ProcessExitEvent`, and either removes the process or transitions it to `Restarting`
+5. For processes in `Restarting` state: checks if backoff timer has elapsed, and if so, spawns a new process in-place (preserving `ProcessId`)
+6. Runs until `ProcessManager` is dropped (via a `stop_flag` `AtomicBool`)
 
 ## Polling Cycle
 
@@ -21,16 +23,38 @@ sequenceDiagram
     participant Consumer as Consumer
 
     loop Every poll_interval
-        Reaper->>DashMap: Iterate all processes
-        loop Each process
+        Reaper->>DashMap: Phase 1: Detect exits
+        loop Each process (skip Restarting)
+            Reaper->>Reaper: Check stable uptime reset
             Reaper->>Reaper: try_wait()
             alt Still running
                 Reaper->>Reaper: Skip
             else Exited
-                Reaper->>Reaper: Determine state (Stopped/Crashed)
-                Reaper->>DashMap: Remove process
-                Reaper->>Channel: Send ProcessExitEvent
-                Channel-->>Consumer: receiver.recv()
+                Reaper->>Reaper: Determine state + restart policy
+                alt No restart or rate-limited
+                    Reaper->>DashMap: Remove process
+                    Reaper->>Channel: Send ProcessExitEvent
+                else Restart triggered
+                    Reaper->>Reaper: Release OS resources
+                    Reaper->>Reaper: Record restart + schedule backoff
+                    Reaper->>Reaper: Set state = Restarting
+                    Reaper->>Channel: Send ProcessExitEvent
+                end
+            end
+        end
+        Reaper->>Reaper: Phase 2: Emit events
+        Reaper->>Reaper: Phase 3: Set Restarting state
+        Reaper->>DashMap: Phase 4: Check eligible restarts
+        loop Each Restarting process
+            alt Backoff elapsed
+                Reaper->>Reaper: Spawn new process in-place
+                alt Spawn success
+                    Reaper->>Reaper: Update entry, state = Starting
+                else Spawn failure
+                    Reaper->>Reaper: state = Failed
+                    Reaper->>DashMap: Remove process
+                    Reaper->>Channel: Send ProcessExitEvent (Failed)
+                end
             end
         end
     end

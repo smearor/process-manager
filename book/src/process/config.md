@@ -28,7 +28,9 @@ The `TypedBuilder` pattern enforces required fields at compile time - only `comm
 | `terminate_on_exit` | `bool` | `false` | Kill this process when `ProcessManager` is dropped |
 | `kill_signal` | `KillSignal` | `Sigterm` | Signal to send on termination (`Sigterm` or `Sigkill`) |
 | `terminate_timeout_ms` | `u64` | `5000` | Grace period (ms) before escalating from `SIGTERM` to `SIGKILL` |
-| `restart_on_exit` | `bool` | `false` | Flag in `ProcessExitEvent` - consumer decides whether to restart |
+| `restart_on_exit` | `bool` | `false` | Enable automatic restart on exit (requires reaper thread) |
+| `restart_trigger` | `RestartTrigger` | `CrashOnly` | When to restart: `CrashOnly` (non-zero exit) or `Always` (any exit) |
+| `restart_policy` | `RestartPolicy` | `Immediate` | Restart strategy: `Immediate` or `Backoff(BackoffConfig)` |
 | `stdin` | `StdioConfig` | `Null` | Standard input configuration |
 | `stdout` | `StdioConfig` | `Null` | Standard output configuration |
 | `stderr` | `StdioConfig` | `Null` | Standard error configuration |
@@ -76,7 +78,7 @@ let config = ProcessConfig::builder()
 ### Full
 
 ```rust
-use process_manager::{ProcessConfig, StdioConfig, KillSignal};
+use process_manager::{ProcessConfig, StdioConfig, KillSignal, RestartPolicy, RestartTrigger, BackoffConfig};
 use process_manager_socket::Socket;
 use std::path::PathBuf;
 use std::collections::HashMap;
@@ -95,6 +97,8 @@ let config = ProcessConfig::builder()
     .kill_signal(KillSignal::Sigterm)
     .terminate_timeout_ms(3000)
     .restart_on_exit(true)
+    .restart_trigger(RestartTrigger::CrashOnly)
+    .restart_policy(RestartPolicy::Backoff(BackoffConfig::default()))
     .stdin(StdioConfig::Null)
     .stdout(StdioConfig::Piped)
     .stderr(StdioConfig::Piped)
@@ -109,6 +113,9 @@ let config = ProcessConfig::builder()
 - **`terminate_on_exit = false`**: By default, processes are left running when the manager is dropped. Use `true` for processes that should be cleaned up with the manager.
 - **`kill_signal = Sigterm`**: Graceful termination by default. The process can catch `SIGTERM` and clean up.
 - **`terminate_timeout_ms = 5000`**: 5 seconds grace period before `SIGKILL`. Adjust for processes that need more cleanup time.
+- **`restart_on_exit = false`**: By default, processes are not automatically restarted. Enable with `restart_on_exit(true)` and use the reaper thread for automatic restart with backoff.
+- **`restart_trigger = CrashOnly`**: By default, only crashed processes (non-zero exit) are restarted. Use `Always` to also restart on clean exits.
+- **`restart_policy = Immediate`**: By default, restarts happen immediately. Use `Backoff(BackoffConfig)` for exponential backoff with rate limiting.
 - **`stdio = Null`**: All streams are null by default, suitable for background processes. Use `Piped` for output capture or `Inherit` for debugging.
 - **`socket = None`**: No Wayland binding by default. Set when spawning Wayland clients.
 

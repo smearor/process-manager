@@ -12,10 +12,19 @@
 ///                │
 ///                ╰──► Crashed (exited unexpectedly)
 ///
-/// Running ──► Restarting ──► Starting ──► Running
+/// Crashed ──► Restarting (backoff wait, no OS handle) ──► Starting ──► Running
+/// Stopped ──► Restarting (if restart_trigger = Always) ──► Starting ──► Running
+///
+/// Restarting can be cancelled by:
+///   - manual stop() → process removed (no event, no signal)
+///   - manual restart() → backoff cancelled, spawn immediately
+///   - rate limit exceeded → Failed
+///   - spawn failure during restart → Failed
 ///
 /// (spawn failure) ──► Failed
 /// (force-kill failure) ──► Failed
+/// (rate limit exceeded) ──► Failed
+/// (spawn failure during automatic restart) ──► Failed
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[must_use]
@@ -51,16 +60,22 @@ pub enum ProcessState {
     /// failure.
     Crashed,
 
-    /// A restart is in progress.
+    /// A restart is in progress - the process is in backoff wait.
     ///
-    /// Set when `restart()` / `restart_label()` is called. The old process is
-    /// being stopped and a new one will be started with the same config.
+    /// Set by the reaper when an automatic restart is triggered and the
+    /// backoff delay has not yet elapsed. The OS child handle is `None`
+    /// (resources released). `send_signal()` returns an error in this state.
+    /// `stop()` cancels the backoff and removes the process without
+    /// emitting an event. `restart()` cancels the backoff and spawns
+    /// immediately.
     Restarting,
 
-    /// The process failed to start or could not be killed.
+    /// The process failed to start, could not be killed, or exhausted restarts.
     ///
-    /// Set when `spawn()` fails (the process is not stored in the manager) or
-    /// when `force_kill()` fails and the process is re-inserted for tracking.
+    /// Set when `spawn()` fails (the process is not stored in the manager),
+    /// when `force_kill()` fails and the process is re-inserted for tracking,
+    /// when the restart rate limit is exceeded (`max_restarts` reached), or
+    /// when `spawn()` fails during an automatic restart in the reaper.
     Failed,
 }
 
