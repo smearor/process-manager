@@ -12,11 +12,12 @@ Each managed process has a `ProcessState` that reflects its current lifecycle ph
 |---------|-------------|
 | `Starting` | The process is being spawned and has not yet been confirmed running. Transient state between `spawn()` and insertion into the manager. |
 | `Running` | The process is alive and running. Confirmed via `try_wait()` returning `Ok(None)`. |
+| `Waiting` | The process is queued but waiting for dependencies to become `Running`. No OS child process has been spawned yet. `is_alive()` returns `true`. |
 | `Stopping` | A stop signal has been sent and the manager is waiting for exit. Set by `stop()` / `stop_many()`. |
 | `Stopped` | The process has exited normally (exit code 0 or stopped by the manager within the grace period). |
 | `Crashed` | The process exited unexpectedly with a non-zero exit code or signal. |
 | `Restarting` | A restart is in progress - the process is in backoff wait. The OS child handle is `None` (resources released). `send_signal()` returns an error; `stop()` cancels backoff silently; `restart()` spawns immediately. |
-| `Failed` | The process failed to start, could not be killed, or exhausted restarts (rate limit exceeded or spawn failure during automatic restart). |
+| `Failed` | The process failed to start, could not be killed, exhausted restarts (rate limit exceeded or spawn failure during automatic restart), or a dependency entered a terminal state. |
 
 ## State Transitions
 
@@ -28,6 +29,7 @@ graph TD
     classDef terminal fill: #dc0073, stroke: #333333, stroke-width: 2px, color: #ffffff
 
     Starting --> Running
+    Waiting --> Starting
     Running --> Stopping
     Stopping --> Stopped
     Running --> Crashed
@@ -35,10 +37,13 @@ graph TD
     Crashed --> Restarting
     Stopped --> Restarting
     Restarting --> Starting
+    Restarting --> Waiting
+    Running --> Failed
     Restarting --> Failed
+    Waiting --> Failed
     Starting --> Failed
 
-    class Starting,Running,Stopping,Restarting active
+    class Starting,Running,Stopping,Restarting,Waiting active
     class Restarting transient
     class Stopped,Crashed,Failed terminal
 ```
@@ -47,7 +52,7 @@ graph TD
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `is_alive()` | `bool` | `true` for `Starting`, `Running`, `Stopping`, `Restarting` - equivalent to the old `is_running()` semantics |
+| `is_alive()` | `bool` | `true` for `Starting`, `Running`, `Waiting`, `Stopping`, `Restarting` - equivalent to the old `is_running()` semantics |
 | `is_terminated()` | `bool` | `true` for `Stopped`, `Crashed`, `Failed` |
 
 ## Trait Implementations

@@ -15,6 +15,10 @@
 /// Crashed ──► Restarting (backoff wait, no OS handle) ──► Starting ──► Running
 /// Stopped ──► Restarting (if restart_trigger = Always) ──► Starting ──► Running
 ///
+/// Waiting ──► Starting (all deps Running)
+/// Waiting ──► Failed (dependency timeout or terminal dependency)
+/// Waiting ──► Stopped (stop() called while Waiting)
+///
 /// Restarting can be cancelled by:
 ///   - manual stop() → process removed (no event, no signal)
 ///   - manual restart() → backoff cancelled, spawn immediately
@@ -77,15 +81,31 @@ pub enum ProcessState {
     /// when the restart rate limit is exceeded (`max_restarts` reached), or
     /// when `spawn()` fails during an automatic restart in the reaper.
     Failed,
+
+    /// The process is queued but waiting for dependencies to become `Running`.
+    ///
+    /// Set by `start()` when `depends_on` is non-empty and one or more
+    /// dependencies are not yet `Running`. The process transitions to
+    /// `Starting` once all dependencies are `Running`, or to `Failed` if
+    /// a dependency enters a terminal state (`Failed` or permanently
+    /// `Stopped` without `restart_on_exit`) or the dependency timeout
+    /// expires.
+    ///
+    /// `is_alive()` returns `true` for `Waiting` - the process is
+    /// logically pending, not terminated.
+    Waiting,
 }
 
 impl ProcessState {
-    /// Whether the process is alive (`Starting`, `Running`, `Stopping`, or `Restarting`).
+    /// Whether the process is alive (`Starting`, `Running`, `Stopping`, `Restarting`, or `Waiting`).
     ///
     /// Equivalent to the old `is_running() -> bool` semantics for consumers
     /// that only need a binary alive/not-alive check.
     pub fn is_alive(self) -> bool {
-        matches!(self, ProcessState::Starting | ProcessState::Running | ProcessState::Stopping | ProcessState::Restarting)
+        matches!(
+            self,
+            ProcessState::Starting | ProcessState::Running | ProcessState::Stopping | ProcessState::Restarting | ProcessState::Waiting
+        )
     }
 
     /// Whether the process has terminated (`Stopped`, `Crashed`, or `Failed`).
@@ -104,6 +124,7 @@ impl std::fmt::Display for ProcessState {
             ProcessState::Crashed => write!(f, "crashed"),
             ProcessState::Restarting => write!(f, "restarting"),
             ProcessState::Failed => write!(f, "failed"),
+            ProcessState::Waiting => write!(f, "waiting"),
         }
     }
 }
@@ -118,6 +139,7 @@ mod tests {
         assert!(ProcessState::Running.is_alive());
         assert!(ProcessState::Stopping.is_alive());
         assert!(ProcessState::Restarting.is_alive());
+        assert!(ProcessState::Waiting.is_alive());
         assert!(!ProcessState::Stopped.is_alive());
         assert!(!ProcessState::Crashed.is_alive());
         assert!(!ProcessState::Failed.is_alive());
@@ -129,6 +151,7 @@ mod tests {
         assert!(!ProcessState::Running.is_terminated());
         assert!(!ProcessState::Stopping.is_terminated());
         assert!(!ProcessState::Restarting.is_terminated());
+        assert!(!ProcessState::Waiting.is_terminated());
         assert!(ProcessState::Stopped.is_terminated());
         assert!(ProcessState::Crashed.is_terminated());
         assert!(ProcessState::Failed.is_terminated());
@@ -148,6 +171,7 @@ mod tests {
         assert_eq!(ProcessState::Crashed.to_string(), "crashed");
         assert_eq!(ProcessState::Restarting.to_string(), "restarting");
         assert_eq!(ProcessState::Failed.to_string(), "failed");
+        assert_eq!(ProcessState::Waiting.to_string(), "waiting");
     }
 
     #[test]

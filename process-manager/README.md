@@ -23,6 +23,8 @@ Used by both `smearor-wrot` (to spawn compositor clients) and `smearor-swipe-lau
 - **`StdioConfig`** - Inherit/Null/Piped with reader threads for output capture
 - **`KillSignal`** - `Sigterm`/`Sigkill` with serde support
 - **Restart policies** - `RestartPolicy::Immediate` or `RestartPolicy::Backoff` with exponential backoff, rate limiting, and `RestartTrigger` (crash-only or always)
+- **Supervisor strategies** - `OneForOne` (restart only crashed), `OneForAll` (restart all in group), `RestForOne` (restart crashed and all started after it). Follows the Erlang OTP supervisor model
+- **Dependencies** - Declare `depends_on` with label or `ProcessId` references. Processes wait for dependencies to be `Running` before starting, with configurable timeout
 - **Graceful shutdown** - `terminate_on_exit` flag kills processes on drop
 
 ## Quick Start
@@ -93,6 +95,51 @@ let config = ProcessConfig::builder()
 let id = manager.start("wayland-client", &config)?;
 ```
 
+### Supervisor strategies with dependencies
+
+```rust
+use process_manager::{
+    BackoffConfig, DependencyRef, ProcessConfig, ProcessManager,
+    RestartPolicy, RestartTrigger, StdioConfig, SupervisorStrategy,
+};
+use std::time::Duration;
+
+let (tx, rx) = std::sync::mpsc::channel();
+let manager = ProcessManager::with_reaper(Duration::from_millis(100), tx)?;
+
+// Compositor - started first, no dependencies
+let compositor_config = ProcessConfig::builder()
+    .command("hyprland".to_string())
+    .restart_on_exit(true)
+    .restart_trigger(RestartTrigger::CrashOnly)
+    .restart_policy(RestartPolicy::Backoff(BackoffConfig::default()))
+    .supervisor_strategy(SupervisorStrategy::OneForAll)
+    .stdout(StdioConfig::Null)
+    .stderr(StdioConfig::Null)
+    .build();
+
+let compositor_id = manager.start("session", &compositor_config)?;
+
+// Panel - depends on compositor, restarts with it (OneForAll)
+let panel_config = ProcessConfig::builder()
+    .command("smearor-swipe-launcher".to_string())
+    .restart_on_exit(true)
+    .restart_trigger(RestartTrigger::CrashOnly)
+    .restart_policy(RestartPolicy::Backoff(BackoffConfig::default()))
+    .supervisor_strategy(SupervisorStrategy::OneForAll)
+    .depends_on(vec![DependencyRef::Label("session".to_string())])
+    .dependency_timeout_ms(10_000)
+    .stdout(StdioConfig::Null)
+    .stderr(StdioConfig::Null)
+    .build();
+
+let panel_id = manager.start("session", &panel_config)?;
+// Panel starts in Waiting state, then transitions to Running
+// once the compositor is Running.
+
+// If the compositor crashes, both compositor and panel are restarted.
+```
+
 ## API
 
 ### `ProcessConfig`
@@ -114,6 +161,18 @@ Controls automatic restart behavior when `restart_on_exit` is `true`:
 - `RestartTrigger::Always` - restart on any exit (including clean)
 - `RestartPolicy::Immediate` - restart immediately, no delay or rate limiting
 - `RestartPolicy::Backoff(BackoffConfig)` - exponential backoff with `initial_delay`, `multiplier`, `max_delay`, `max_restarts`, and `min_uptime` for counter reset
+
+### `SupervisorStrategy`
+
+Controls which processes are restarted when one process in a group crashes. `OneForOne` (default) restarts only the crashed process. `OneForAll` restarts all processes in the same label group. `RestForOne` restarts the crashed process and all processes started after it in the same group. Only active when `restart_on_exit = true`.
+
+### `DependencyRef`
+
+References a dependency by label (`DependencyRef::Label("compositor")`) or by `ProcessId` (`DependencyRef::Id(id)`). Used in `ProcessConfig::depends_on` to declare start-order dependencies. Label bindings are resolved once and persist for the dependent's lifetime.
+
+### `ProcessState::Waiting`
+
+New state for processes that are queued but waiting for dependencies to become `Running`. `is_alive()` returns `true` for `Waiting`. The process transitions to `Starting` once all dependencies are `Running`, or to `Failed` if the dependency timeout is exceeded.
 
 ### `StdioConfig`
 

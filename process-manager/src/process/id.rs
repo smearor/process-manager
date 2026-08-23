@@ -1,7 +1,10 @@
+use serde::Deserialize;
+use serde::Serialize;
+
 /// Unique identifier for a managed process.
 ///
 /// Assigned by `ProcessManager` using an `AtomicU64` counter.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[must_use]
 pub struct ProcessId(u64);
 

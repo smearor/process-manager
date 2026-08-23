@@ -1,9 +1,14 @@
+use crate::config::DependencyRef;
 use crate::config::ProcessConfig;
 use crate::config::ProcessConfigError;
 use crate::config::StdioConfig;
 use crate::manager::ProcessManagerError;
 use crate::manager::SpawnResult;
 use crate::manager::StopManyError;
+use crate::manager::all_deps_running;
+use crate::manager::build_dependency_snapshot;
+use crate::manager::detect_cycle;
+use crate::manager::resolve_dependencies;
 use crate::process::Process;
 use crate::process::ProcessExitEvent;
 use crate::process::ProcessId;
@@ -34,6 +39,7 @@ use tracing::warn;
 pub struct ProcessManager {
     processes: Arc<DashMap<ProcessId, Process>>,
     next_id: AtomicU64,
+    next_spawn_sequence: AtomicU64,
     /// Optional reaper thread handle.
     reaper: Option<ReaperHandle>,
 }
@@ -56,6 +62,7 @@ impl ProcessManager {
         Self {
             processes: Arc::new(DashMap::new()),
             next_id: AtomicU64::new(1),
+            next_spawn_sequence: AtomicU64::new(1),
             reaper: None,
         }
     }
@@ -71,6 +78,7 @@ impl ProcessManager {
         let processes_clone = Arc::clone(&processes);
 
         let stop_flag_clone = stop_flag.clone();
+        let exit_sender_clone = exit_sender.clone();
         let thread_handle = thread::Builder::new()
             .name("process-reaper".to_string())
             .spawn(move || {
@@ -81,7 +89,8 @@ impl ProcessManager {
         Ok(Self {
             processes,
             next_id: AtomicU64::new(1),
-            reaper: Some(ReaperHandle::new(stop_flag, thread_handle)),
+            next_spawn_sequence: AtomicU64::new(1),
+            reaper: Some(ReaperHandle::new(stop_flag, thread_handle, exit_sender_clone)),
         })
     }
 
@@ -91,36 +100,92 @@ impl ProcessManager {
     /// If `config.forked` is `true`, `setsid()` is applied via `pre_exec`
     /// to detach from the controlling terminal. The process is still tracked
     /// in the `DashMap` (with its `Child` handle) for stop/reaper operations.
+    ///
+    /// If `config.depends_on` is non-empty and one or more dependencies are
+    /// not yet `Running`, the process is inserted with `ProcessState::Waiting`
+    /// and spawned asynchronously by the reaper once dependencies become
+    /// `Running`. The `ProcessId` is assigned immediately and returned.
     pub fn start(&self, label: &str, config: &ProcessConfig) -> Result<ProcessId, ProcessManagerError> {
         ProcessConfigError::validate(config).map_err(ProcessManagerError::from)?;
         let id = ProcessId::new(self.next_id.fetch_add(1, Ordering::Relaxed));
 
-        let spawn = self.spawn_internal(label, config)?;
-
-        let pid = spawn.child.id();
-        let process = Process {
-            id,
-            pid,
-            program_name: config.command.clone(),
-            label: label.to_string(),
-            terminate_on_exit: config.terminate_on_exit,
-            config: Arc::new(config.clone()),
-            child: Some(spawn.child),
-            stdout_reader: spawn.stdout_reader,
-            stderr_reader: spawn.stderr_reader,
-            state: ProcessState::Starting,
-            restart_state: if config.restart_on_exit { Some(RestartState::new()) } else { None },
-        };
-        self.processes.insert(id, process);
-
-        // Mark started for restart tracking
-        if let Some(mut entry) = self.processes.get_mut(&id)
-            && let Some(restart_state) = &mut entry.restart_state
-        {
-            restart_state.mark_started(Instant::now());
+        // Cycle detection: build a snapshot of the dependency graph and check
+        // for cycles before inserting anything into the DashMap.
+        if !config.depends_on.is_empty() {
+            let graph = build_dependency_snapshot(&self.processes, label, &config.depends_on);
+            detect_cycle(&graph, label, &config.depends_on)?;
         }
 
-        debug!("Started process '{}' (pid={}, id={}, label='{}')", config.command, pid, id, label);
+        // Resolve dependencies (label -> ProcessId binding)
+        let resolved_deps = if config.depends_on.is_empty() {
+            Vec::new()
+        } else {
+            // Try to resolve - if any label is not found (no Running process),
+            // we proceed with Waiting state. The reaper will re-resolve later.
+            resolve_dependencies(&self.processes, &config.depends_on).unwrap_or_default()
+        };
+
+        // Check if all dependencies are Running
+        let deps_ready = resolved_deps.len() == config.depends_on.len() && all_deps_running(&self.processes, &resolved_deps);
+
+        if deps_ready || config.depends_on.is_empty() {
+            // All deps Running (or no deps) - spawn immediately
+            let spawn = self.spawn_internal(label, config)?;
+            let pid = spawn.child.id();
+            let process = Process {
+                id,
+                pid,
+                program_name: config.command.clone(),
+                label: label.to_string(),
+                terminate_on_exit: config.terminate_on_exit,
+                config: Arc::new(config.clone()),
+                child: Some(spawn.child),
+                stdout_reader: spawn.stdout_reader,
+                stderr_reader: spawn.stderr_reader,
+                state: ProcessState::Starting,
+                restart_state: if config.restart_on_exit { Some(RestartState::new()) } else { None },
+                spawn_sequence: self.next_spawn_sequence.fetch_add(1, Ordering::Relaxed),
+                cascade_flag: false,
+                resolved_deps,
+                waiting_since: None,
+            };
+            self.processes.insert(id, process);
+
+            // Mark started for restart tracking
+            if let Some(mut entry) = self.processes.get_mut(&id)
+                && let Some(restart_state) = &mut entry.restart_state
+            {
+                restart_state.mark_started(Instant::now());
+            }
+
+            debug!("Started process '{}' (pid={}, id={}, label='{}')", config.command, pid, id, label);
+        } else {
+            // Deps not ready - insert Waiting placeholder
+            let unresolved_count = config.depends_on.len() - resolved_deps.len();
+            let process = Process {
+                id,
+                pid: 0,
+                program_name: config.command.clone(),
+                label: label.to_string(),
+                terminate_on_exit: config.terminate_on_exit,
+                config: Arc::new(config.clone()),
+                child: None,
+                stdout_reader: None,
+                stderr_reader: None,
+                state: ProcessState::Waiting,
+                restart_state: if config.restart_on_exit { Some(RestartState::new()) } else { None },
+                spawn_sequence: self.next_spawn_sequence.fetch_add(1, Ordering::Relaxed),
+                cascade_flag: false,
+                resolved_deps,
+                waiting_since: Some(Instant::now()),
+            };
+            self.processes.insert(id, process);
+            debug!(
+                "Process '{}' (id={}, label='{}') inserted in Waiting state ({} deps not ready)",
+                config.command, id, label, unresolved_count
+            );
+        }
+
         Ok(id)
     }
 
@@ -380,6 +445,49 @@ impl ProcessManager {
                 self.processes.remove(&id);
                 return Ok(());
             }
+
+            // Check if process is in Waiting state - remove without signal, emit Stopped event
+            if process.state == ProcessState::Waiting {
+                debug!("Process {} is in Waiting state, removing without signal, emitting Stopped event", id);
+                let label = process.label.clone();
+                let pid = process.pid;
+                let restart_on_exit = process.config.restart_on_exit;
+                let cascade_stop = process.config.cascade_stop;
+                drop(process);
+                self.processes.remove(&id);
+
+                // Emit ProcessExitEvent with state: Stopped
+                // The caller received a ProcessId and must be able to track
+                // its lifecycle end, even if no OS process was ever spawned.
+                if let Some(reaper) = &self.reaper {
+                    let event = ProcessExitEvent {
+                        id,
+                        label,
+                        pid,
+                        restart_on_exit,
+                        exit_status: None,
+                        state: ProcessState::Stopped,
+                    };
+                    if let Err(e) = reaper.try_send_exit_event(event) {
+                        warn!("Failed to send exit event for Waiting process {}: {}", id, e);
+                    }
+                }
+
+                // Cascade stop dependents if configured
+                if cascade_stop {
+                    let dependents = self.dependents(id);
+                    if !dependents.is_empty() {
+                        debug!("Process {} (Waiting) has cascade_stop=true, stopping {} dependent(s)", id, dependents.len());
+                        for dep_id in dependents {
+                            if let Err(e) = self.stop(dep_id) {
+                                warn!("Failed to cascade-stop dependent {}: {}", dep_id, e);
+                            }
+                        }
+                    }
+                }
+
+                return Ok(());
+            }
         }
 
         let mut process = self.processes.remove(&id).ok_or(ProcessManagerError::NotFound(id))?.1;
@@ -387,6 +495,7 @@ impl ProcessManager {
         let kill_signal = process.config.kill_signal;
         let timeout_ms = process.config.terminate_timeout_ms;
         let pid = process.pid;
+        let cascade_stop = process.config.cascade_stop;
 
         // 0. Mark as Stopping
         process.state = ProcessState::Stopping;
@@ -437,6 +546,22 @@ impl ProcessManager {
         debug!("Process {} (pid={}) killed with SIGKILL", id, pid);
         process.join_readers(Duration::from_millis(500));
 
+        // Cascade stop: if this process has cascade_stop = true, stop all
+        // processes that depend on it (direct dependents via resolved_deps).
+        if cascade_stop {
+            let dependents = self.dependents(id);
+            if !dependents.is_empty() {
+                debug!("Process {} has cascade_stop=true, stopping {} dependent(s)", id, dependents.len());
+                for dep_id in dependents {
+                    // Recursively stop dependents - each dependent's cascade_stop
+                    // is also checked, propagating the cascade through the chain.
+                    if let Err(e) = self.stop(dep_id) {
+                        warn!("Failed to cascade-stop dependent {}: {}", dep_id, e);
+                    }
+                }
+            }
+        }
+
         Ok(())
     }
 
@@ -447,21 +572,33 @@ impl ProcessManager {
     /// process that doesn't exit within its individual timeout. Worst case
     /// is a single max timeout, not N × timeout.
     fn stop_many(&self, ids: Vec<ProcessId>) -> Result<(), ProcessManagerError> {
-        // 1. Remove all processes from the map and compute per-process deadlines
-        let mut entries: Vec<(Process, Instant)> = ids
-            .into_iter()
-            .filter_map(|id| self.processes.remove(&id).map(|(_, process)| process))
-            .map(|process| {
+        // 1. Remove all processes from the map.
+        // Separate processes that have a real OS child (pid != 0) from
+        // Waiting/Failed processes that were never spawned (pid == 0).
+        // Sending a signal to pid 0 would broadcast it to the entire
+        // process group, which is never intended.
+        let mut entries: Vec<(Process, Instant)> = Vec::new();
+        let mut no_signal: Vec<Process> = Vec::new();
+
+        for id in ids {
+            let Some((_, process)) = self.processes.remove(&id) else { continue };
+            if process.pid == 0 {
+                debug!("Process {} has pid=0 (Waiting/Failed), skipping signal in stop_many", process.id);
+                no_signal.push(process);
+            } else {
                 let deadline = Instant::now() + Duration::from_millis(process.config.terminate_timeout_ms);
-                (process, deadline)
-            })
-            .collect();
+                entries.push((process, deadline));
+            }
+        }
+
+        // Drop no-signal processes (no child to reap, no signal to send)
+        drop(no_signal);
 
         if entries.is_empty() {
             return Ok(());
         }
 
-        // 2. Send kill signal to all processes.
+        // 2. Send kill signal to all processes with a real PID.
         // Signal failures are logged - the process will escalate to SIGKILL
         // if still alive, so we don't record an error here.
         for (process, _) in &mut entries {
@@ -636,6 +773,10 @@ impl ProcessManager {
             stderr_reader: spawn.stderr_reader,
             state: ProcessState::Starting,
             restart_state: if config.restart_on_exit { Some(RestartState::new()) } else { None },
+            spawn_sequence: self.next_spawn_sequence.fetch_add(1, Ordering::Relaxed),
+            cascade_flag: false,
+            resolved_deps: Vec::new(),
+            waiting_since: None,
         };
 
         if is_restarting {
@@ -686,6 +827,84 @@ impl ProcessManager {
             new_ids.push(self.restart(id)?);
         }
         Ok(new_ids)
+    }
+
+    /// Start a process and wait for all dependencies to be `Running`.
+    ///
+    /// If `depends_on` is non-empty, this blocks until all dependencies
+    /// are `Running` or `dependency_timeout_ms` elapses. Returns
+    /// `ProcessManagerError::DependencyTimeout` if a dependency is not
+    /// ready in time.
+    ///
+    /// For non-blocking start, use `start()` which inserts a `Waiting`
+    /// placeholder and spawns the process asynchronously once
+    /// dependencies are ready.
+    pub fn start_with_deps(&self, label: &str, config: &ProcessConfig) -> Result<ProcessId, ProcessManagerError> {
+        let id = self.start(label, config)?;
+
+        // If the process is already Running (no deps or deps were ready),
+        // return immediately.
+        #[allow(clippy::collapsible_if)]
+        if let Some(entry) = self.processes.get(&id) {
+            if entry.state != ProcessState::Waiting {
+                return Ok(id);
+            }
+        }
+
+        // Block until deps are Running or timeout
+        let timeout = Duration::from_millis(config.dependency_timeout_ms);
+        let deadline = Instant::now() + timeout;
+        loop {
+            if Instant::now() >= deadline {
+                // Timeout - fail the process
+                if let Some(mut entry) = self.processes.get_mut(&id) {
+                    entry.state = ProcessState::Failed;
+                }
+                let dep = config.depends_on.first().cloned().unwrap_or(DependencyRef::Label("unknown".to_string()));
+                return Err(ProcessManagerError::DependencyTimeout { id, dependency: dep });
+            }
+
+            // Check if the process has transitioned out of Waiting
+            if let Some(entry) = self.processes.get(&id) {
+                match entry.state {
+                    ProcessState::Starting | ProcessState::Running => return Ok(id),
+                    ProcessState::Failed => {
+                        let dep = config.depends_on.first().cloned().unwrap_or(DependencyRef::Label("unknown".to_string()));
+                        return Err(ProcessManagerError::DependencyTimeout { id, dependency: dep });
+                    }
+                    ProcessState::Waiting => {}
+                    _ => return Ok(id),
+                }
+            } else {
+                // Process was removed
+                return Err(ProcessManagerError::NotFound(id));
+            }
+
+            thread::sleep(Duration::from_millis(50));
+        }
+    }
+
+    /// Get all processes that depend on the given process (direct dependents).
+    ///
+    /// Returns a list of `ProcessId`s for processes whose `resolved_deps`
+    /// contains the given `ProcessId`.
+    pub fn dependents(&self, id: ProcessId) -> Vec<ProcessId> {
+        self.processes
+            .iter()
+            .filter(|entry| entry.value().resolved_deps.contains(&id))
+            .map(|entry| *entry.key())
+            .collect()
+    }
+
+    /// Get all processes in the same label group.
+    ///
+    /// Returns a list of `ProcessId`s for processes with the given label.
+    pub fn group_members(&self, label: &str) -> Vec<ProcessId> {
+        self.processes
+            .iter()
+            .filter(|entry| entry.value().label == label)
+            .map(|entry| *entry.key())
+            .collect()
     }
 
     /// List all managed process IDs.

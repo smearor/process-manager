@@ -9,6 +9,7 @@ use std::process::Child;
 use std::process::ExitStatus;
 use std::sync::Arc;
 use std::thread::JoinHandle;
+use std::time::Instant;
 
 /// A managed child process.
 ///
@@ -57,6 +58,61 @@ pub struct Process {
     /// `Some` when `restart_on_exit` is `true`, `None` otherwise.
     /// Maintained by the reaper thread.
     pub restart_state: Option<RestartState>,
+
+    /// Monotonically increasing sequence number assigned at `start()` time.
+    ///
+    /// Used by `RestForOne` strategy to determine which processes were
+    /// started after the crashed one. Unlike `Instant` timestamps, this is
+    /// a deterministic integer that is immune to clock resolution issues
+    /// with near-simultaneous spawns and remains stable across manual
+    /// partial restarts.
+    ///
+    /// The sequence is global across all processes (not per-group), so
+    /// `RestForOne` compares sequence numbers within the same label group.
+    /// Assigned from `ProcessManager::next_spawn_sequence` atomic counter.
+    pub spawn_sequence: u64,
+
+    /// Whether this process is being stopped as part of a supervisor cascade.
+    ///
+    /// Set to `true` by the reaper before sending kill signals to processes
+    /// affected by `OneForAll` or `RestForOne`. When the reaper detects the
+    /// exit of a process with this flag set, it emits a `ProcessExitEvent`
+    /// with `state: Stopped` but does **not** trigger the supervisor strategy
+    /// again - the cascade is already being handled by the originating crash.
+    ///
+    /// This prevents recursive cascade loops: without this flag, stopping
+    /// process B (as part of A's `OneForAll`) would generate an exit event
+    /// for B, which would trigger `OneForAll` again, stopping A and C, and
+    /// so on.
+    ///
+    /// Reset to `false` when the process is restarted.
+    pub cascade_flag: bool,
+
+    /// Resolved dependency `ProcessId`s, bound at `start()` time.
+    ///
+    /// When `depends_on` contains `DependencyRef::Label("foo")`, the label
+    /// is resolved to a concrete `ProcessId` at `start()` time and stored
+    /// here. The reaper checks these `ProcessId`s (not the original labels)
+    /// to determine whether dependencies are `Running` or have entered a
+    /// terminal state.
+    ///
+    /// This binding ensures that if a new process is later started with the
+    /// same label, it does not accidentally satisfy an existing dependency.
+    /// `DependencyRef::Id` entries are stored as-is.
+    ///
+    /// Empty for processes without `depends_on`.
+    pub resolved_deps: Vec<ProcessId>,
+
+    /// Timestamp when the process entered `Waiting` state, if any.
+    ///
+    /// Set when a process is inserted in `Waiting` state because its
+    /// dependencies are not yet `Running`. Used by the reaper to enforce
+    /// `dependency_timeout_ms` - if the process has been `Waiting` longer
+    /// than the timeout, it transitions to `Failed`.
+    ///
+    /// `None` for processes that were never in `Waiting` state, or after
+    /// the process transitions out of `Waiting`.
+    pub waiting_since: Option<Instant>,
 }
 
 impl Process {
@@ -69,7 +125,7 @@ impl Process {
     /// For processes in `Stopping`, `Stopped`, `Crashed`, `Restarting`, or
     /// `Failed`, the state is returned as-is without polling.
     pub fn state(&mut self) -> ProcessState {
-        if self.state.is_terminated() || self.state == ProcessState::Stopping || self.state == ProcessState::Restarting {
+        if self.state.is_terminated() || self.state == ProcessState::Stopping || self.state == ProcessState::Restarting || self.state == ProcessState::Waiting {
             return self.state;
         }
         match &mut self.child {
@@ -131,7 +187,13 @@ impl Process {
     /// Uses `nix::sys::signal::kill(Pid::from_raw(pid), signal)` for both
     /// forked and tracked processes, since `std::process::Child::kill()`
     /// always sends `SIGKILL` and does not respect `kill_signal`.
+    ///
+    /// Returns `ESRCH` if `pid` is 0 (Waiting/Failed process with no OS child),
+    /// since `kill(0, signal)` would broadcast to the entire process group.
     pub fn send_signal(&mut self, signal: KillSignal) -> std::io::Result<()> {
+        if self.pid == 0 {
+            return Err(std::io::Error::from_raw_os_error(libc::ESRCH));
+        }
         let nix_signal = signal.to_nix_signal();
         nix::sys::signal::kill(Pid::from_raw(self.pid as i32), nix_signal).map_err(|e| std::io::Error::from_raw_os_error(e as i32))
     }
@@ -140,7 +202,12 @@ impl Process {
     ///
     /// This is the escalation step after `SIGTERM` + grace period.
     /// Uses `nix::sys::signal::kill(Pid::from_raw(pid), Signal::SIGKILL)`.
+    ///
+    /// Returns `ESRCH` if `pid` is 0 (Waiting/Failed process with no OS child).
     pub fn force_kill(&mut self) -> std::io::Result<()> {
+        if self.pid == 0 {
+            return Err(std::io::Error::from_raw_os_error(libc::ESRCH));
+        }
         nix::sys::signal::kill(Pid::from_raw(self.pid as i32), Signal::SIGKILL).map_err(|e| std::io::Error::from_raw_os_error(e as i32))
     }
 
@@ -188,6 +255,10 @@ mod tests {
             stderr_reader: None,
             state: ProcessState::Starting,
             restart_state: None,
+            spawn_sequence: 0,
+            cascade_flag: false,
+            resolved_deps: Vec::new(),
+            waiting_since: None,
         };
         assert!(process.is_running());
         assert_eq!(process.state, ProcessState::Running);
@@ -214,6 +285,10 @@ mod tests {
             stderr_reader: None,
             state: ProcessState::Starting,
             restart_state: None,
+            spawn_sequence: 0,
+            cascade_flag: false,
+            resolved_deps: Vec::new(),
+            waiting_since: None,
         };
         assert!(!process.is_running());
         assert_eq!(process.state, ProcessState::Stopped);
@@ -236,6 +311,10 @@ mod tests {
             stderr_reader: None,
             state: ProcessState::Starting,
             restart_state: None,
+            spawn_sequence: 0,
+            cascade_flag: false,
+            resolved_deps: Vec::new(),
+            waiting_since: None,
         };
         let state = process.state();
         assert_eq!(state, ProcessState::Crashed);
@@ -258,6 +337,10 @@ mod tests {
             stderr_reader: None,
             state: ProcessState::Starting,
             restart_state: None,
+            spawn_sequence: 0,
+            cascade_flag: false,
+            resolved_deps: Vec::new(),
+            waiting_since: None,
         };
         let result = process.send_signal(KillSignal::Sigterm);
         assert!(result.is_ok());
@@ -280,6 +363,10 @@ mod tests {
             stderr_reader: None,
             state: ProcessState::Starting,
             restart_state: None,
+            spawn_sequence: 0,
+            cascade_flag: false,
+            resolved_deps: Vec::new(),
+            waiting_since: None,
         };
         let result = process.force_kill();
         assert!(result.is_ok());

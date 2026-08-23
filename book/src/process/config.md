@@ -31,6 +31,10 @@ The `TypedBuilder` pattern enforces required fields at compile time - only `comm
 | `restart_on_exit` | `bool` | `false` | Enable automatic restart on exit (requires reaper thread) |
 | `restart_trigger` | `RestartTrigger` | `CrashOnly` | When to restart: `CrashOnly` (non-zero exit) or `Always` (any exit) |
 | `restart_policy` | `RestartPolicy` | `Immediate` | Restart strategy: `Immediate` or `Backoff(BackoffConfig)` |
+| `supervisor_strategy` | `SupervisorStrategy` | `OneForOne` | Controls which processes are restarted on crash: `OneForOne`, `OneForAll`, or `RestForOne` |
+| `depends_on` | `Vec<DependencyRef>` | `vec![]` | Dependencies to wait for before starting. `DependencyRef::Label` or `DependencyRef::Id` |
+| `dependency_timeout_ms` | `u64` | `30000` | Timeout (ms) for dependencies to become `Running` before failing |
+| `cascade_stop` | `bool` | `true` | When `true`, stopping a process also stops its dependents |
 | `stdin` | `StdioConfig` | `Null` | Standard input configuration |
 | `stdout` | `StdioConfig` | `Null` | Standard output configuration |
 | `stderr` | `StdioConfig` | `Null` | Standard error configuration |

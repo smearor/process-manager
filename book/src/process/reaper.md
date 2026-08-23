@@ -8,10 +8,13 @@ When a child process exits, it becomes a zombie until someone calls `wait()` or 
 
 1. Spawns a `std::thread` named `"process-reaper"`
 2. Every `poll_interval`, iterates all tracked processes in the `DashMap`
-3. For each process: checks stable uptime reset, then calls `try_wait()` to detect exits
-4. If a process has exited: determines `ProcessState` (`Stopped` or `Crashed`), checks restart policy and rate limiting, emits `ProcessExitEvent`, and either removes the process or transitions it to `Restarting`
-5. For processes in `Restarting` state: checks if backoff timer has elapsed, and if so, spawns a new process in-place (preserving `ProcessId`)
-6. Runs until `ProcessManager` is dropped (via a `stop_flag` `AtomicBool`)
+3. **Phase 1**: Detect exits - for each process (skip `Restarting`), check stable uptime reset, then call `try_wait()` to detect exits. If exited, determine state, check restart policy, emit event, and either remove or transition to `Restarting`. If restart is triggered and `supervisor_strategy` is `OneForAll` or `RestForOne`, collect cascade targets in the same label group.
+4. **Phase 2**: Cascade kill - send kill signals to cascade-flagged processes. Processes with `cascade_flag = true` skip supervisor strategy logic on their own exit.
+5. **Phase 3**: Set `Restarting` state for processes scheduled for restart.
+6. **Phase 4**: Check eligible restarts - for `Restarting` processes whose backoff has elapsed, spawn a new process in-place. If the process has unsatisfied dependencies, transition to `Waiting` instead of spawning.
+7. **Phase 5**: Check `Waiting` processes - resolve label dependencies, spawn when all deps are `Running`, fail-fast when a dependency is terminal, timeout if deps not ready within `dependency_timeout_ms`.
+8. **Phase 6**: Check `Running` processes for terminal dependencies - if a resolved dependency is removed or enters a terminal state, fail-fast the dependent process.
+9. Runs until `ProcessManager` is dropped (via a `stop_flag` `AtomicBool`)
 
 ## Polling Cycle
 
@@ -42,19 +45,40 @@ sequenceDiagram
                 end
             end
         end
-        Reaper->>Reaper: Phase 2: Emit events
+        Reaper->>Reaper: Phase 2: Cascade kill (OneForAll/RestForOne)
         Reaper->>Reaper: Phase 3: Set Restarting state
         Reaper->>DashMap: Phase 4: Check eligible restarts
         loop Each Restarting process
             alt Backoff elapsed
-                Reaper->>Reaper: Spawn new process in-place
-                alt Spawn success
-                    Reaper->>Reaper: Update entry, state = Starting
-                else Spawn failure
-                    Reaper->>Reaper: state = Failed
-                    Reaper->>DashMap: Remove process
-                    Reaper->>Channel: Send ProcessExitEvent (Failed)
+                Reaper->>Reaper: Check dependencies
+                alt Deps ready
+                    Reaper->>Reaper: Spawn new process in-place
+                    alt Spawn success
+                        Reaper->>Reaper: Update entry, state = Starting
+                    else Spawn failure
+                        Reaper->>Reaper: state = Failed
+                        Reaper->>DashMap: Remove process
+                        Reaper->>Channel: Send ProcessExitEvent (Failed)
+                    end
+                else Deps not ready
+                    Reaper->>Reaper: state = Waiting
                 end
+            end
+        end
+        Reaper->>DashMap: Phase 5: Check Waiting processes
+        loop Each Waiting process
+            alt Deps all Running
+                Reaper->>Reaper: Spawn process
+            else Dependency terminal
+                Reaper->>Reaper: state = Failed, emit event
+            else Timeout exceeded
+                Reaper->>Reaper: state = Failed, emit event
+            end
+        end
+        Reaper->>DashMap: Phase 6: Check Running deps
+        loop Each Running process with deps
+            alt Dependency terminal/removed
+                Reaper->>Reaper: Kill + state = Failed, emit event
             end
         end
     end

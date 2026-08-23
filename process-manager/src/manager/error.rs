@@ -1,3 +1,4 @@
+use crate::config::DependencyRef;
 use crate::config::ProcessConfigError;
 use crate::process::ProcessId;
 use thiserror::Error;
@@ -30,6 +31,32 @@ pub enum ProcessManagerError {
     /// One or more processes failed to stop during a batch operation.
     #[error("{0}")]
     StopMany(#[from] StopManyError),
+
+    /// A dependency was not `Running` within the configured timeout.
+    #[error("Dependency {dependency:?} was not Running within timeout for process {id}")]
+    DependencyTimeout {
+        /// The process that could not start.
+        id: ProcessId,
+        /// The dependency that was not ready.
+        dependency: DependencyRef,
+    },
+
+    /// A dependency reference could not be resolved (e.g. label not found).
+    #[error("Dependency {dependency:?} could not be resolved")]
+    DependencyNotFound {
+        /// The dependency reference that could not be resolved.
+        dependency: DependencyRef,
+    },
+
+    /// A circular dependency was detected at `start()` time.
+    ///
+    /// The `depends_on` graph contains a cycle (e.g. A depends on B,
+    /// B depends on A). The process was not inserted into the manager.
+    #[error("Circular dependency detected: {cycle:?}")]
+    DependencyCycle {
+        /// The dependency chain that forms the cycle, in order.
+        cycle: Vec<DependencyRef>,
+    },
 }
 
 /// Aggregated errors from stopping multiple processes.

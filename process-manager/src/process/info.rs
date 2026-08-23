@@ -35,6 +35,11 @@ pub struct ProcessInfo {
     /// This is a snapshot taken at the time of the `ProcessInfo` creation.
     /// It may be stale if the process has since changed state.
     pub state: ProcessState,
+
+    /// The spawn sequence number of this process.
+    ///
+    /// Used by `RestForOne` strategy to determine start order.
+    pub spawn_sequence: u64,
 }
 
 impl From<&Process> for ProcessInfo {
@@ -47,6 +52,7 @@ impl From<&Process> for ProcessInfo {
             terminate_on_exit: process.terminate_on_exit,
             config: Arc::clone(&process.config),
             state: process.state,
+            spawn_sequence: process.spawn_sequence,
         }
     }
 }

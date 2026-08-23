@@ -53,11 +53,13 @@ pub mod reaper;
 pub mod signal;
 
 pub use config::BackoffConfig;
+pub use config::DependencyRef;
 pub use config::ProcessConfig;
 pub use config::ProcessConfigError;
 pub use config::RestartPolicy;
 pub use config::RestartTrigger;
 pub use config::StdioConfig;
+pub use config::SupervisorStrategy;
 pub use manager::ProcessManager;
 pub use manager::ProcessManagerError;
 pub use manager::StopManyError;

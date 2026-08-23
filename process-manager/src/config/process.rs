@@ -1,6 +1,8 @@
+use crate::config::DependencyRef;
 use crate::config::RestartPolicy;
 use crate::config::RestartTrigger;
 use crate::config::StdioConfig;
+use crate::config::SupervisorStrategy;
 use crate::signal::KillSignal;
 use process_manager_socket::Socket;
 use serde::Deserialize;
@@ -20,6 +22,7 @@ use typed_builder::TypedBuilder;
 #[must_use]
 pub struct ProcessConfig {
     /// The program name or absolute path to execute.
+    #[builder(setter(into))]
     pub command: String,
 
     /// Arguments passed to the command.
@@ -90,6 +93,41 @@ pub struct ProcessConfig {
     /// Optional Wayland socket. When set, `WAYLAND_DISPLAY` is set in the child environment.
     #[builder(default)]
     pub socket: Option<Socket>,
+
+    /// Supervisor strategy for this process's group.
+    ///
+    /// Determines which processes are restarted when one process in the
+    /// group crashes. Only applies when `restart_on_exit` is `true`.
+    /// Defaults to `OneForOne`.
+    #[builder(default)]
+    pub supervisor_strategy: SupervisorStrategy,
+
+    /// Processes that must be `Running` before this process starts.
+    ///
+    /// The `start()` call will wait (up to `dependency_timeout_ms`) for all
+    /// dependencies to reach `Running` state. If a dependency is not
+    /// running within the timeout, `start()` returns an error.
+    ///
+    /// Dependencies are resolved by `DependencyRef` (label or `ProcessId`).
+    /// Empty by default - no dependencies, start immediately.
+    #[builder(default)]
+    pub depends_on: Vec<DependencyRef>,
+
+    /// Maximum time in milliseconds to wait for dependencies to become `Running`.
+    ///
+    /// Defaults to 30 seconds. If a dependency does not reach `Running`
+    /// within this timeout, `start()` fails with
+    /// `ProcessManagerError::DependencyTimeout`.
+    #[builder(default = 30_000)]
+    pub dependency_timeout_ms: u64,
+
+    /// Whether stopping this process should also stop processes that depend on it.
+    ///
+    /// Defaults to `false` - stopping a dependency does not affect dependents.
+    /// Set to `true` for strict dependency chains where dependents cannot
+    /// survive without this process.
+    #[builder(default)]
+    pub cascade_stop: bool,
 }
 
 #[cfg(test)]

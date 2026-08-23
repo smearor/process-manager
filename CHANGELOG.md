@@ -9,8 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `SupervisorStrategy` enum (`OneForOne`, `OneForAll`, `RestForOne`) - controls which processes are restarted when one process in a group crashes, following the Erlang OTP supervisor model
+- `DependencyRef` enum (`Label(String)`, `Id(ProcessId)`) - declares start-order dependencies by label or process ID
+- `ProcessState::Waiting` variant - processes queued but waiting for dependencies to become `Running`; `is_alive()` returns `true`
+- `ProcessConfig.supervisor_strategy`, `ProcessConfig.depends_on`, `ProcessConfig.dependency_timeout_ms`, `ProcessConfig.cascade_stop` fields with builder support
+- `ProcessManagerError::DependencyTimeout`, `DependencyNotFound`, `DependencyCycle` error variants
+- `ProcessManager::start_with_deps()` - blocking API that waits for dependencies to become `Running` before returning
+- `ProcessManager::dependents(id)` - returns process IDs that depend on the given process
+- `ProcessManager::group_members(label)` - returns all process IDs with the given label
+- DFS-based cycle detection in `start()` using a local `HashMap` snapshot
+- Reaper loop Phase 5: checks `Waiting` processes, resolves label dependencies, spawns when all deps are `Running`, fail-fast on terminal dependencies, timeout if deps not ready
+- Reaper loop Phase 6: monitors `Running` processes for terminal dependencies, fail-fast when a resolved dependency is removed or enters a terminal state
+- Supervisor strategy cascade kill in reaper loop: `OneForAll` stops all group members, `RestForOne` stops crashed process and all with higher `spawn_sequence`
+- `cascade_flag` on `Process` to prevent recursive cascade triggers
+- Dependency-ordered restart: `perform_restart` transitions to `Waiting` if dependencies are not `Running`, ensuring ordered restart in `OneForAll`/`RestForOne`
+- `waiting_since: Option<Instant>` on `Process` for dependency timeout tracking
+- `spawn_sequence: u64` on `Process` for deterministic `RestForOne` ordering
+- `resolved_deps: Vec<ProcessId>` on `Process` for persistent label binding
+- Label binding semantics: resolved once at `start()` time, persists for dependent's lifetime, does not re-resolve to new processes with same label
+- Book pages: `process/supervisor_strategies.md`, `process/dependencies.md`, `examples/supervisor_strategies.md`, `examples/dependencies.md`
+- Integration tests for supervisor strategies, dependencies, cycle detection, fail-fast, label binding, cascade stop, and dependency-ordered restart (31 tests total)
 - `ProcessState` enum with lifecycle states: `Starting`, `Running`, `Stopping`, `Stopped`, `Crashed`, `Restarting`, `Failed`
-  - `ProcessState::is_alive()` - `true` for `Starting`, `Running`, `Stopping`, `Restarting`
+  - `ProcessState::is_alive()` - `true` for `Starting`, `Running`, `Waiting`, `Stopping`, `Restarting`
   - `ProcessState::is_terminated()` - `true` for `Stopped`, `Crashed`, `Failed`
   - `Default` (defaults to `Starting`), `Display` (lowercase string), `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`
 - `RestartTrigger` enum (`CrashOnly`, `Always`) - controls when automatic restart is triggered
