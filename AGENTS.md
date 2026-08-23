@@ -165,46 +165,6 @@
 
 ## Project-Specific Requirements
 
-### Requirements
-
-1. Widgets are individual crates (`plugins/<name>`)
-2. Services are individual crates (`services/<name>`)
-3. Widget (View) and Service (Business Logic) must be separated
-4. When Widget and Service need shared structs or enums, these belong in a separate crate (`model/<name>`)
-5. For Services, use the `service_plugin!(MyService);` macro
-6. For Widgets, use the `widget_plugin!(MyWidget);` macro
-7. Implement the Service struct in `service.rs` and implement the traits `MessageHandler`, `MessageBroadcaster`, `PluginMetaGetter`, `AsRef<
-   Option<FfiCoreContext>>`
-8. Implement the Widget struct in `widget.rs` and implement the traits `MessageHandler`, `MessageBroadcaster`, `PluginMetaGetter`,
-   `AsRef<Option<FfiCoreContext>>`
-9. In `model`, implement Actions and Message formats
-10. When a Widget needs a config, implement a dedicated struct in `config.rs` with a `parse` method
-11. FFI-relevant types in `model` crates must carry `#[stabby::stabby(no_opt)]` with fields manually sorted by descending alignment
-12. Services must use `tokio::sync::mpsc` instead of `std::sync::mpsc` and spawn async tasks via `PluginExecutor`
-13. Widgets must use `glib::MainContext::spawn_local` for GTK updates and `tokio::sync::mpsc` for message reception
-14. Polling loops (`timeout_add_local`) are forbidden; use event-driven `recv().await` instead
-15. All message types in `model` crates must derive `Serialize, Deserialize` from `serde`. The `stabby` dependency must include the `serde` feature
-    (`stabby = { workspace = true, features = ["serde"] }`). JSON converters must use `impl_json_convertible!` with
-    `serde_json::from_value(json).unwrap_or_default()` — manual `parse_*` functions in `json_converters.rs` are forbidden. Structs used as deserialization
-    fallbacks must also derive `Default`.
-
-### Examples
-
-- Example for Service: services/app-launcher
-    - service.rs: Service struct (+ implementation of MessageHandler, MessageBroadcaster, PluginMetaGetter, AsRef<Option<FfiCoreContext>>)
-    - lib.rs: Implement service_plugin! macro
-- Example for Widget: plugins/app-launcher
-    - config.rs: Struct for the config file part (+ parsing)
-    - widget.rs: Widget struct (+ implementation of MessageHandler, MessageBroadcaster, PluginMetaGetter, AsRef<Option<FfiCoreContext>>)
-    - lib.rs: Implement widget_plugin! macro
-- Example for Model: model/audio
-    - Message system topics
-    - Enums for Actions (with `Serialize, Deserialize`)
-    - Structs for message system payload (with `Serialize, Deserialize, Default`)
-        - All FFI-relevant types with `#[stabby::stabby(no_opt)]` (fields sorted by descending alignment)
-    - `lib.rs`: `impl_json_convertible!(...Converter, ...Message, |json: serde_json::Value| serde_json::from_value(json).unwrap_or_default())`
-    - `lib.rs`: `register_json_converters(context)` function calling `Converter::register_in_host(context)`
-
 ### Rust Implementation Standards
 
 - **Rust Edition 2024**: Use latest edition features
@@ -244,34 +204,9 @@
 - **No trailing commas** in single-line constructs; use trailing commas only in multi-line blocks
 - **Compact closures**: Keep closure bodies compact when they fit on one line
 
-### Dependencies
-
-- `thiserror`: Internal error types
-- `miette`: User-facing error types
-- `clap`: Command line argument parsing
-- `gtk4`: GTK4 framework for UI widgets
-- `glib`: GLib utilities and patterns
-- `stabby`: ABI-stable types and FFI trait objects (enable `serde` feature for JSON serialization of stabby types)
-- `tokio`: Async runtime for services
-- `libloading`: Dynamic library loading (used with stabby ABI verification)
-
 ### Key Features to Implement
 
-- **Smart Pointers**: Use `Rc`, `RefCell`, `Box<dyn Fn>`, `Weak`, `glib::clone`
-- **Type Safety**: Leverage GTK4 type systems
-- **Error Handling**: Integrate miette and thiserror
-- **Async I/O**: Use `tokio::sync::mpsc` for message passing; spawn async tasks via `PluginExecutor`
-- **ABI Stability**: Use `#[stabby::stabby(no_opt)]` for all FFI-relevant types; use `stabby::libloading::StabbyLibrary` for verified plugin loading. Always use
-  `no_opt` and manually sort struct fields by descending alignment to minimize padding:
-    1. `stabby::string::String`, `stabby::vec::Vec`, `stabby::option::Option<T>` (align 8)
-    2. `i64`, `u64`, `f64` (align 8)
-    3. `i32`, `u32`, `f32` (align 4)
-    4. `i16`, `u16` (align 2)
-    5. `bool`, 1-byte enums (align 1)
-       This avoids stabby's compile-time permutation search (N! evaluations) while achieving optimal memory layout.
-- **Zero-Copy Messages**: Pass messages via raw pointers with `type_id` for type-safe downcasting (no serialization overhead)
-- **JSON Serialization**: Use `serde` derives (`Serialize, Deserialize`) with `serde_json::from_value` for JSON conversion; enable `stabby` `serde` feature for
-  stabby type compatibility
+- **JSON Serialization**: Use `serde` derives (`Serialize, Deserialize`) with `serde_json::from_value` for JSON conversion
 
 ### Testing Requirements
 
@@ -286,7 +221,6 @@
 - [The Rust Book](https://doc.rust-lang.org/book/)
 - [Rust by Example](https://doc.rust-lang.org/rust-by-example/)
 - [API Guidelines](https://rust-lang.github.io/api-guidelines/)
-- [GTK4 Rust Documentation](https://gtk-rs.org/gtk4-rs/stable/latest/docs/gtk4/)
 
 ### Tools and Libraries
 
@@ -295,12 +229,7 @@
 - `cargo-audit` - Security audit
 - `thiserror` - Error handling
 - `miette` - User-friendly error reporting
-- `anyhow` - Error handling
-- `tokio` - Async runtime
 - `serde` - Serialization
-- `gtk4` - GTK4 bindings
-- `clap` - CLI argument parsing
-- `stabby` - ABI-stable FFI types and trait objects
 
 ---
 

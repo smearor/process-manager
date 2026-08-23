@@ -51,7 +51,7 @@ let manager = ProcessManager::new();
 // Spawn a panel on eDP-1
 let edp_socket = socket_manager.get("eDP-1").unwrap().clone();
 let panel_config = ProcessConfig::builder()
-    .command("waybar".to_string())
+    .command("smearor-swipe-launcher".to_string())
     .socket(Some(edp_socket))
     .stdout(StdioConfig::Null)
     .stderr(StdioConfig::Null)
