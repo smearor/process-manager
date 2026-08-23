@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["reaper_loop"]};
+window.SIDEBAR_ITEMS = {"fn":["get_backoff_config","perform_restart","reaper_loop","should_restart","spawn_process","spawn_waiting_process"]};

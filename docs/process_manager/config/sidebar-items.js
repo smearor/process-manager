@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ProcessConfigError","StdioConfig"],"mod":["error","process","stdio"],"struct":["ProcessConfig"]};
+window.SIDEBAR_ITEMS = {"enum":["DependencyRef","ProcessConfigError","RestartPolicy","RestartTrigger","StdioConfig","SupervisorStrategy"],"mod":["dependency_ref","error","label","process","restart_policy","restart_trigger","stdio","supervisor_strategy"],"struct":["BackoffConfig","Label","ProcessConfig"]};

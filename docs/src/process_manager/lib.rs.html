@@ -3,23 +3,23 @@
 <a href=#3 id=3 data-nosnippet>3</a>//! `process-manager` provides a [`ProcessManager`] that spawns, tracks,
 <a href=#4 id=4 data-nosnippet>4</a>//! and terminates child processes with support for:
 <a href=#5 id=5 data-nosnippet>5</a>//!
-<a href=#6 id=6 data-nosnippet>6</a>//! - **Labels** — group processes and operate on them collectively ([`stop_label`], [`restart_label`])
-<a href=#7 id=7 data-nosnippet>7</a>//! - **Forked mode** — detach processes via `setsid()` while keeping them tracked
-<a href=#8 id=8 data-nosnippet>8</a>//! - **Reaper thread** — detect process exits without a thread-per-process blocking `wait()`
-<a href=#9 id=9 data-nosnippet>9</a>//! - **Graceful shutdown** — `SIGTERM` → `SIGKILL` escalation with configurable timeout
-<a href=#10 id=10 data-nosnippet>10</a>//! - **Wayland sockets** — automatically set `WAYLAND_DISPLAY` when a [`Socket`] is configured
-<a href=#11 id=11 data-nosnippet>11</a>//! - **Terminate-on-exit** — kill processes when the manager is dropped
+<a href=#6 id=6 data-nosnippet>6</a>//! - **Labels** - group processes and operate on them collectively ([`stop_label`], [`restart_label`])
+<a href=#7 id=7 data-nosnippet>7</a>//! - **Forked mode** - detach processes via `setsid()` while keeping them tracked
+<a href=#8 id=8 data-nosnippet>8</a>//! - **Reaper thread** - detect process exits without a thread-per-process blocking `wait()`
+<a href=#9 id=9 data-nosnippet>9</a>//! - **Graceful shutdown** - `SIGTERM` → `SIGKILL` escalation with configurable timeout
+<a href=#10 id=10 data-nosnippet>10</a>//! - **Wayland sockets** - automatically set `WAYLAND_DISPLAY` when a [`Socket`] is configured
+<a href=#11 id=11 data-nosnippet>11</a>//! - **Terminate-on-exit** - kill processes when the manager is dropped
 <a href=#12 id=12 data-nosnippet>12</a>//!
 <a href=#13 id=13 data-nosnippet>13</a>//! # Key types
 <a href=#14 id=14 data-nosnippet>14</a>//!
-<a href=#15 id=15 data-nosnippet>15</a>//! - [`ProcessManager`] — central handle for spawning, stopping, and inspecting processes
-<a href=#16 id=16 data-nosnippet>16</a>//! - [`ProcessConfig`] — builder-based configuration for each spawned process
-<a href=#17 id=17 data-nosnippet>17</a>//! - [`ProcessId`] — opaque identifier assigned by the manager
-<a href=#18 id=18 data-nosnippet>18</a>//! - [`ProcessInfo`] — lightweight snapshot of a running process (no `Child` handle)
-<a href=#19 id=19 data-nosnippet>19</a>//! - [`ProcessExitEvent`] — emitted by the reaper when a process exits
-<a href=#20 id=20 data-nosnippet>20</a>//! - [`KillSignal`] — `SIGTERM` or `SIGKILL` (used for termination config)
-<a href=#21 id=21 data-nosnippet>21</a>//! - [`Signal`] — broader signal enum for general process control (`SIGHUP`, `SIGUSR1`, `SIGSTOP`, etc.)
-<a href=#22 id=22 data-nosnippet>22</a>//! - [`StdioConfig`] — `Inherit`, `Null`, or `Piped` for stdin/stdout/stderr
+<a href=#15 id=15 data-nosnippet>15</a>//! - [`ProcessManager`] - central handle for spawning, stopping, and inspecting processes
+<a href=#16 id=16 data-nosnippet>16</a>//! - [`ProcessConfig`] - builder-based configuration for each spawned process
+<a href=#17 id=17 data-nosnippet>17</a>//! - [`ProcessId`] - opaque identifier assigned by the manager
+<a href=#18 id=18 data-nosnippet>18</a>//! - [`ProcessInfo`] - lightweight snapshot of a running process (no `Child` handle)
+<a href=#19 id=19 data-nosnippet>19</a>//! - [`ProcessExitEvent`] - emitted by the reaper when a process exits
+<a href=#20 id=20 data-nosnippet>20</a>//! - [`KillSignal`] - `SIGTERM` or `SIGKILL` (used for termination config)
+<a href=#21 id=21 data-nosnippet>21</a>//! - [`Signal`] - broader signal enum for general process control (`SIGHUP`, `SIGUSR1`, `SIGSTOP`, etc.)
+<a href=#22 id=22 data-nosnippet>22</a>//! - [`StdioConfig`] - `Inherit`, `Null`, or `Piped` for stdin/stdout/stderr
 <a href=#23 id=23 data-nosnippet>23</a>//!
 <a href=#24 id=24 data-nosnippet>24</a>//! # Usage
 <a href=#25 id=25 data-nosnippet>25</a>//!
@@ -52,16 +52,24 @@
 <a href=#52 id=52 data-nosnippet>52</a><span class="kw">pub mod </span>reaper;
 <a href=#53 id=53 data-nosnippet>53</a><span class="kw">pub mod </span>signal;
 <a href=#54 id=54 data-nosnippet>54</a>
-<a href=#55 id=55 data-nosnippet>55</a><span class="kw">pub use </span>config::ProcessConfig;
-<a href=#56 id=56 data-nosnippet>56</a><span class="kw">pub use </span>config::ProcessConfigError;
-<a href=#57 id=57 data-nosnippet>57</a><span class="kw">pub use </span>config::StdioConfig;
-<a href=#58 id=58 data-nosnippet>58</a><span class="kw">pub use </span>manager::ProcessManager;
-<a href=#59 id=59 data-nosnippet>59</a><span class="kw">pub use </span>manager::ProcessManagerError;
-<a href=#60 id=60 data-nosnippet>60</a><span class="kw">pub use </span>manager::StopManyError;
-<a href=#61 id=61 data-nosnippet>61</a><span class="kw">pub use </span>process::Process;
-<a href=#62 id=62 data-nosnippet>62</a><span class="kw">pub use </span>process::ProcessExitEvent;
-<a href=#63 id=63 data-nosnippet>63</a><span class="kw">pub use </span>process::ProcessId;
-<a href=#64 id=64 data-nosnippet>64</a><span class="kw">pub use </span>process::ProcessInfo;
-<a href=#65 id=65 data-nosnippet>65</a><span class="kw">pub use </span>signal::KillSignal;
-<a href=#66 id=66 data-nosnippet>66</a><span class="kw">pub use </span>signal::Signal;
+<a href=#55 id=55 data-nosnippet>55</a><span class="kw">pub use </span>config::BackoffConfig;
+<a href=#56 id=56 data-nosnippet>56</a><span class="kw">pub use </span>config::DependencyRef;
+<a href=#57 id=57 data-nosnippet>57</a><span class="kw">pub use </span>config::Label;
+<a href=#58 id=58 data-nosnippet>58</a><span class="kw">pub use </span>config::ProcessConfig;
+<a href=#59 id=59 data-nosnippet>59</a><span class="kw">pub use </span>config::ProcessConfigError;
+<a href=#60 id=60 data-nosnippet>60</a><span class="kw">pub use </span>config::RestartPolicy;
+<a href=#61 id=61 data-nosnippet>61</a><span class="kw">pub use </span>config::RestartTrigger;
+<a href=#62 id=62 data-nosnippet>62</a><span class="kw">pub use </span>config::StdioConfig;
+<a href=#63 id=63 data-nosnippet>63</a><span class="kw">pub use </span>config::SupervisorStrategy;
+<a href=#64 id=64 data-nosnippet>64</a><span class="kw">pub use </span>manager::ProcessManager;
+<a href=#65 id=65 data-nosnippet>65</a><span class="kw">pub use </span>manager::ProcessManagerError;
+<a href=#66 id=66 data-nosnippet>66</a><span class="kw">pub use </span>manager::StopManyError;
+<a href=#67 id=67 data-nosnippet>67</a><span class="kw">pub use </span>process::Process;
+<a href=#68 id=68 data-nosnippet>68</a><span class="kw">pub use </span>process::ProcessExitEvent;
+<a href=#69 id=69 data-nosnippet>69</a><span class="kw">pub use </span>process::ProcessId;
+<a href=#70 id=70 data-nosnippet>70</a><span class="kw">pub use </span>process::ProcessInfo;
+<a href=#71 id=71 data-nosnippet>71</a><span class="kw">pub use </span>process::ProcessState;
+<a href=#72 id=72 data-nosnippet>72</a><span class="kw">pub use </span>process::RestartState;
+<a href=#73 id=73 data-nosnippet>73</a><span class="kw">pub use </span>signal::KillSignal;
+<a href=#74 id=74 data-nosnippet>74</a><span class="kw">pub use </span>signal::Signal;
 </code></pre></div></section></main></body></html>

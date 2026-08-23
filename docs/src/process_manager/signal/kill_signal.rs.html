@@ -4,21 +4,21 @@
 <a href=#4 id=4 data-nosnippet>4</a>
 <a href=#5 id=5 data-nosnippet>5</a><span class="doccomment">/// Signal used for process termination.
 <a href=#6 id=6 data-nosnippet>6</a>///
-<a href=#7 id=7 data-nosnippet>7</a>/// Restricted to `SIGTERM` and `SIGKILL` — the only signals that make sense
+<a href=#7 id=7 data-nosnippet>7</a>/// Restricted to `SIGTERM` and `SIGKILL` - the only signals that make sense
 <a href=#8 id=8 data-nosnippet>8</a>/// for the `stop()` path. Use [`crate::Signal`] for general-purpose signaling
 <a href=#9 id=9 data-nosnippet>9</a>/// via `send_signal()`.
 <a href=#10 id=10 data-nosnippet>10</a>///
-<a href=#11 id=11 data-nosnippet>11</a>/// Made framework-agnostic — the conversion to `nix::sys::signal::Signal`
+<a href=#11 id=11 data-nosnippet>11</a>/// Made framework-agnostic - the conversion to `nix::sys::signal::Signal`
 <a href=#12 id=12 data-nosnippet>12</a>/// is internal. This allows the type to be used without importing `nix`
 <a href=#13 id=13 data-nosnippet>13</a>/// in consumer crates.
 <a href=#14 id=14 data-nosnippet>14</a></span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 <a href=#15 id=15 data-nosnippet>15</a>#[serde(rename_all = <span class="string">"UPPERCASE"</span>)]
 <a href=#16 id=16 data-nosnippet>16</a>#[must_use]
 <a href=#17 id=17 data-nosnippet>17</a></span><span class="kw">pub enum </span>KillSignal {
-<a href=#18 id=18 data-nosnippet>18</a>    <span class="doccomment">/// Send `SIGTERM` — allows the process to clean up gracefully.
+<a href=#18 id=18 data-nosnippet>18</a>    <span class="doccomment">/// Send `SIGTERM` - allows the process to clean up gracefully.
 <a href=#19 id=19 data-nosnippet>19</a>    </span><span class="attr">#[default]
 <a href=#20 id=20 data-nosnippet>20</a>    </span>Sigterm,
-<a href=#21 id=21 data-nosnippet>21</a>    <span class="doccomment">/// Send `SIGKILL` — immediate termination, no cleanup possible.
+<a href=#21 id=21 data-nosnippet>21</a>    <span class="doccomment">/// Send `SIGKILL` - immediate termination, no cleanup possible.
 <a href=#22 id=22 data-nosnippet>22</a>    </span>Sigkill,
 <a href=#23 id=23 data-nosnippet>23</a>}
 <a href=#24 id=24 data-nosnippet>24</a>

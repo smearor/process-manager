@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["handle","loop"]};
+window.SIDEBAR_ITEMS = {"mod":["exited","handle","loop"]};

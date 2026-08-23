@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ProcessManagerError"],"mod":["error","process"],"struct":["ProcessManager","StopManyError"]};
+window.SIDEBAR_ITEMS = {"enum":["ProcessManagerError"],"mod":["dependency","error","process","spawn_result"],"struct":["ProcessManager","StopManyError"]};

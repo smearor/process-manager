@@ -4,11 +4,11 @@ managing Wayland socket paths. It is designed to work alongside
 <a href="https://docs.rs/process-manager"><code>process-manager</code></a> to bind spawned processes to specific sockets.</p>
 <h2 id="key-types"><a class="doc-anchor" href="#key-types">§</a>Key types</h2>
 <ul>
-<li><a href="socket/struct.Socket.html" title="struct process_manager_socket::socket::Socket"><code>Socket</code></a> — newtype wrapping a <code>PathBuf</code> representing a Wayland socket path</li>
-<li><a href="builder/struct.SocketBuilder.html" title="struct process_manager_socket::builder::SocketBuilder"><code>SocketBuilder</code></a> — creates sockets with automatic unique name generation</li>
-<li><a href="manager/struct.SocketManager.html" title="struct process_manager_socket::manager::SocketManager"><code>SocketManager</code></a> — concurrent registry of named sockets (<code>DashMap</code>-backed)</li>
-<li><a href="error/enum.SocketBuilderError.html" title="enum process_manager_socket::error::SocketBuilderError"><code>SocketBuilderError</code></a> — errors during socket creation</li>
-<li><a href="error/enum.SocketManagerError.html" title="enum process_manager_socket::error::SocketManagerError"><code>SocketManagerError</code></a> — errors during registration or lookup</li>
+<li><a href="socket/struct.Socket.html" title="struct process_manager_socket::socket::Socket"><code>Socket</code></a> - newtype wrapping a <code>PathBuf</code> representing a Wayland socket path</li>
+<li><a href="builder/struct.SocketBuilder.html" title="struct process_manager_socket::builder::SocketBuilder"><code>SocketBuilder</code></a> - creates sockets with automatic unique name generation</li>
+<li><a href="manager/struct.SocketManager.html" title="struct process_manager_socket::manager::SocketManager"><code>SocketManager</code></a> - concurrent registry of named sockets (<code>DashMap</code>-backed)</li>
+<li><a href="error/enum.SocketBuilderError.html" title="enum process_manager_socket::error::SocketBuilderError"><code>SocketBuilderError</code></a> - errors during socket creation</li>
+<li><a href="error/enum.SocketManagerError.html" title="enum process_manager_socket::error::SocketManagerError"><code>SocketManagerError</code></a> - errors during registration or lookup</li>
 </ul>
 <h2 id="usage"><a class="doc-anchor" href="#usage">§</a>Usage</h2>
 <div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>process_manager_socket::{SocketBuilder, SocketManager};

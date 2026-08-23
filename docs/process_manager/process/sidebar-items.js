@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["exit_event","id","info","process"],"struct":["Process","ProcessExitEvent","ProcessId","ProcessInfo"]};
+window.SIDEBAR_ITEMS = {"enum":["ProcessState"],"mod":["exit_event","id","info","process","restart_state","state"],"struct":["Process","ProcessExitEvent","ProcessId","ProcessInfo","RestartState"]};
